@@ -2,7 +2,8 @@
 
 本目录下与 ACP 宿主对接相关的协议文档总索引。这些扩展从 Box-Agent 0.8.26
 开始逐步加入；每份文档中的兼容性小节才是对应能力的版本边界。CLI 不消费 ACP
-wire 格式，但底层共享 core/tool 行为仍可能一致。
+wire 格式，但 CLI、ACP 与 SDK 都共享 `box_agent.api` 契约、
+`KernelAgentService`、`AgentLoopKernel` 和同一组能力插件。
 
 > ACP 入口：`box-agent-acp` 走 stdio JSON-RPC。
 > 公共扩展点：`session/new._meta`（一次性配置）、`session/prompt._meta`（每轮可变）、`update_tool_call.rawOutput`（结构化产物）。
@@ -14,8 +15,9 @@ ID 会显式报错，不会静默退回其他工作流。
 
 Kernel ACP runtime 还注册了显式的 `goal`、`autopilot`、`plan` Workflow
 Plugin key；第三方可在 `_meta.workflow_id` 选择它们，直接调用新的状态/续跑
-协议。自由文本 `/goal` 或复杂交付标记仍按兼容路由处理，直到终态渲染和完整
-事件流 parity fixture 通过。
+协议。自由文本 `/goal` 和历史调用形状通过兼容 facade 进入同一组 Workflow
+Plugin；Goal、Plan、PPT、Skill、Completion Gate 与 Autopilot 的事件流 parity
+fixture 已通过，pre-Kernel fallback 已退役。
 
 Native ACP 的无凭据端到端验收和静态事件报告见
 [ACP E2E 指南](e2e/ACP_E2E_GUIDE_CN.md)；它是宿主接入前验证 session、权限、插件、
@@ -84,9 +86,19 @@ box_agent/acp/
 ├── action_hints.py        # MEMORY 稀缺检测 + playwright disabled 检测 + prompt 段
 └── env_context.py         # 宿主环境注入 schema + sanitize + markdown 渲染
 
+box_agent/adapters/
+├── acp_kernel.py          # ACP payload / callback 与稳定 Run/Event 契约互转
+├── acp_projection.py      # AgentEvent → ACP update
+├── service.py             # 协议无关 payload → AgentService 调用
+├── hosts.py               # ACP / CLI / SDK 薄适配器
+└── plugin_host.py         # 内置能力 → 类型化 PluginHost / KernelAgentService
+
 tests/
-├── test_action_hints.py   # 18 个用例
-└── test_env_context.py    # 23 个用例（含 11 条恶意输入回归）
+├── test_acp_kernel_adapter.py
+├── test_acp_projection.py
+├── test_service_adapter.py
+├── test_action_hints.py
+└── test_env_context.py
 ```
 
 ---
@@ -95,6 +107,7 @@ tests/
 
 | 版本   | 变更                                                                                                                                                                             |
 | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unreleased (`0c46137`) | ACP、CLI、SDK 与历史 API 统一进入 `KernelAgentService` / `AgentLoopKernel`；工作流 parity 通过，旧执行循环退役；`api/`、`plugins/`、`adapters/` 成为稳定扩展边界 |
 | 0.8.38 | 新增 Memory Match 协议：`memory_search.rawOutput` 返回本轮显式搜索或后端自动匹配到的 context memory；core memory 只注入模型，不返回前端                                      |
 | 0.8.29 | `PermissionEngine` 把 `~/.box-agent/` 视为引擎自有数据，所有 scope 下都默认放行（skills / runtime-packages / browsers / log / trash 等子目录不再触发 `permission/request` 弹窗） |
 | 0.8.28 | system prompt 注入 skills 源目录，限定模型只从 `~/.box-agent/skills/`（user）和 builtin 包内目录加载 skill，禁止扫描其它路径                                                     |

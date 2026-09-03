@@ -123,6 +123,42 @@ model: "your-model"
 - **Planning Snapshots**: Structured plan tool for rendering objective, scope, steps, verification, and risks in host UIs
 - **Task Tracking**: Built-in todo tool for multi-step task decomposition and progress tracking
 
+## Runtime Architecture
+
+Box Agent has one execution owner. CLI, ACP, SDK, sub-agents, and the
+historical Python API all submit stable `box_agent.api` contracts through
+`KernelAgentService`; only `AgentLoopKernel` advances a run. Host adapters
+translate protocols and render events, while capabilities are selected from
+typed `PluginHost` registries for each run.
+
+![Box Agent single-kernel architecture](docs/assets/box-agent-architecture.png)
+
+```text
+CLI / ACP / SDK / historical API
+            ↓
+thin adapters or compatibility facades
+            ↓
+KernelAgentService → PluginKernelComposer → AgentLoopKernel
+            ↓
+Context · Tools · Permissions · Memory · Persistence · LLM · Workflows · Hooks
+```
+
+| Layer | Responsibility |
+| --- | --- |
+| `box_agent/api/` | Serializable requests, events, results, controls, handles, and capability ports |
+| `box_agent/kernel/` | The single loop, model streaming/recovery, and per-run workflow composition |
+| `box_agent/services/` | Session/run lifecycle, replay, idempotency, controls, checkpoints, and leases |
+| `box_agent/plugins/` | Typed registries, manifests, dependency activation, disposal, and plugin locks |
+| `box_agent/adapters/` / `box_agent/acp/` | CLI, ACP, and SDK translation or rendering without a second loop |
+| Capability packages | `context/`, `memory_engine/`, `permissions/`, `persistence/`, `tools/`, `workflows/`, and `llm/` |
+| `box_agent/compat/` and root facades | Preserve historical imports and call shapes while forwarding into the same Kernel |
+
+The pre-Kernel runtime selector is retired. Goal, Plan, PPT, Skill, Completion
+Gate, and Autopilot now run as workflow plugins with parity fixtures. See the
+[architecture guide](docs/ARCHITECTURE.md),
+[runtime capability matrix](docs/runtime-capability-matrix.md), and
+[documentation index](docs/README.md) for the complete ownership map.
+
 ## Demos
 
 ### Task Execution
@@ -145,9 +181,19 @@ _The agent searches the web and summarizes results._
 
 ## Installation
 
-> **Requires Python 3.10+.** If your system Python is older (e.g. 3.9), use `uv tool install` — it manages Python automatically.
+Choose the installation path for the entry point you intend to use:
 
-### Quick Start (uv, recommended)
+| Goal | Recommended installation |
+| ---- | ------------------------ |
+| Use the interactive CLI, one-shot CLI, or ACP server | `uv tool install box-agent` |
+| Embed Box Agent in a Python application | `uv add box-agent` in that application |
+| Develop Box Agent or build a standalone runtime | Clone this repository, then run `uv sync --group dev` |
+| Embed a published standalone ACP runtime | Download a release archive; no system Python is required |
+
+The Python package requires Python 3.10+. A standalone runtime already bundles
+Python and its dependencies.
+
+### Install the command-line tools (recommended)
 
 [uv](https://docs.astral.sh/uv/) handles Python version management for you — no need to upgrade your system Python:
 
@@ -155,33 +201,66 @@ _The agent searches the web and summarizes results._
 # Install uv (if not already)
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Install box-agent (auto-downloads Python 3.10+ if needed)
+# Install Box Agent (downloads Python 3.10+ if needed)
 uv tool install box-agent
-box-agent setup    # interactive config wizard
-box-agent          # start chatting
+
+# Create the shared LLM/MCP configuration and verify it
+box-agent setup
+box-agent doctor
+
+# Start the interactive CLI
+box-agent
 
 # Upgrade later
 uv tool upgrade box-agent
 ```
 
-### Quick Start (pip)
+If you already manage a Python 3.10+ virtual environment, `pip install
+box-agent` exposes the same console commands inside that environment.
 
-If you already have Python 3.10+:
+### Install the Python SDK
+
+Add Box Agent to the Python application that will import it:
+
+```bash
+uv add box-agent
+```
+
+Or, inside an activated Python 3.10+ virtual environment:
 
 ```bash
 pip install box-agent
-box-agent setup
-box-agent
 ```
 
-### From Source
+`uv tool install` uses an isolated tool environment, so it is ideal for the
+commands but does not add `box_agent` to another application's import path.
+
+### Run from source
 
 ```bash
 git clone https://github.com/Raccoon-Office/Box-Agent.git
 cd Box-Agent
 uv sync
-uv run python -m box_agent.cli
+uv run box-agent setup
+uv run box-agent
 ```
+
+In a source checkout, prefix console commands with `uv run`. Install the
+development group before testing or packaging: `uv sync --group dev`.
+
+### Entry-point reference
+
+| Entry point | Installed command | Source-checkout command | Intended caller |
+| ----------- | ----------------- | ----------------------- | --------------- |
+| Interactive and one-shot CLI | `box-agent` | `uv run box-agent` | A person, shell script, or CI job |
+| ACP server | `box-agent-acp` | `uv run box-agent-acp` | An editor or application speaking ACP over stdio |
+| Python SDK | `box_agent` imports | `uv run python your_app.py` | Python application code |
+| Web Extract MCP server | `box-agent-web-extract-mcp` | `uv run box-agent-web-extract-mcp` | An MCP client speaking MCP over stdio |
+| Standalone runtime builder | — | `uv run box-agent-build-runtime` | Maintainers packaging the ACP server from a source checkout |
+
+`box-agent-acp` and `box-agent-web-extract-mcp` are protocol servers: normally
+configure a host to spawn them instead of typing into them in a terminal. The
+sections below show the startup contract for every entry point.
 
 ## Contributor Quickstart
 
@@ -208,11 +287,16 @@ Project map:
 
 | Area | Where to start |
 | ---- | -------------- |
-| Agent execution loop | `box_agent/kernel/`, `box_agent/services/`, `box_agent/api/` |
+| Stable host contracts | `box_agent/api/` |
+| Agent execution loop | `box_agent/kernel/` |
+| Session and Run lifecycle | `box_agent/services/kernel.py` |
+| Plugin composition | `box_agent/plugins/`, `box_agent/adapters/plugin_host.py` |
 | CLI and config | `box_agent/adapters/cli/app.py`, `box_agent/config.py`, `box_agent/config/` |
 | LLM providers | `box_agent/llm/` |
-| Built-in tools | `box_agent/tools/` |
-| ACP server/runtime embedding | `box_agent/acp/`, `box_agent/build_runtime_cli.py` |
+| Capability implementations | `box_agent/context/`, `box_agent/memory_engine/`, `box_agent/permissions/`, `box_agent/persistence/`, `box_agent/tools/`, `box_agent/workflows/` |
+| ACP and SDK adapters | `box_agent/acp/`, `box_agent/adapters/` |
+| Historical compatibility | `box_agent/compat/` and root module facades |
+| Runtime packaging | `box_agent/build_runtime_cli.py`, `scripts/build_runtime.py` |
 | Skills | `box_agent/skills/`, `box_agent/tools/skill_loader.py` |
 | Tests | `tests/test_<area>.py` |
 
@@ -247,13 +331,13 @@ Build a versioned runtime and install the resulting archive into the usual
 officev3 checkout in one command:
 
 ```bash
-uv run box-agent-build-runtime --version 0.8.82 --install-officev3
+uv run box-agent-build-runtime --version 0.9.6 --install-officev3
 ```
 
 Pass an explicit checkout path after `--install-officev3`, or set
 `BOX_AGENT_OFFICEV3_DIR`, when officev3 is stored elsewhere.
 
-### Configuration
+## Configuration
 
 After running `box-agent setup`, your config lives at `~/.box-agent/config/config.yaml`:
 
@@ -291,15 +375,29 @@ box-agent doctor                    # check environment & API connectivity
 box-agent doctor --json             # machine-readable health check
 ```
 
-## CLI Usage
+## CLI Entry Points
+
+All CLI modes use the configuration created by `box-agent setup`. Pass
+`--workspace` to choose the directory the Agent may work in; otherwise the
+current directory is used.
+
+### 1. Interactive CLI
 
 ```bash
-# Interactive mode
 box-agent
 box-agent --workspace /path/to/project
 box-agent --no-sandbox           # disable Jupyter sandbox
+```
 
-# Non-interactive (CI/CD, scripts)
+In-session commands: `/help`, `/clear`, `/clear_all`, `/history`, `/stats`,
+`/sandbox_status`, `/log`, `/goal`, `/memory review`, `/exit`.
+
+### 2. One-shot CLI for scripts and CI
+
+`--task` runs one request and exits. Add `--json` when a caller needs the
+machine-readable execution summary in addition to normal output.
+
+```bash
 box-agent --task "analyze data.csv and create a report"
 box-agent --task "analyze data.csv" --json          # append execution summary JSON
 box-agent --task "local file task" --no-verify-api  # skip startup API probe
@@ -308,8 +406,21 @@ box-agent --task "create a PPT" --no-completion-gate
 box-agent --goal "Ship CLI parity" --task "finish tests"
 box-agent --goal "Ship CLI parity" --task "finish tests" --no-goal-autopilot
 box-agent --deep-think --task "review this repo"    # enable thinking mode when supported
+```
 
-# Subcommands
+Use `--goal "<objective>"` to keep a durable workspace objective attached to
+later turns. Box Agent stores goals under `~/.box-agent/goals/`. In one-shot
+CLI and ACP sessions, an active goal can continue automatically within the
+configured turn, time, and no-progress limits; pass `--no-goal-autopilot` for
+one run to disable that behavior.
+
+Manage the goal interactively with `/goal pause`, `/goal resume`, `/goal block
+<reason>`, `/goal complete <evidence>`, or `/goal clear`; scripts can use
+`box-agent goal ...`.
+
+### 3. Setup, health, and maintenance commands
+
+```bash
 box-agent setup              # config wizard
 box-agent config             # show/edit config
 box-agent doctor             # health check
@@ -345,7 +456,7 @@ Requires Node.js ≥ 18 on `PATH`. Chromium lands in `~/.box-agent/browsers/` (s
 
 **ACP embedders**: no env-var plumbing required — `box-agent-acp` defaults `PLAYWRIGHT_BROWSERS_PATH` to the same `~/.box-agent/browsers/` path. To point at a different cache, export `PLAYWRIGHT_BROWSERS_PATH=<your path>` before spawning `box-agent-acp` (our setdefault won't override it).
 
-In-session commands: `/help`, `/clear`, `/clear_all`, `/history`, `/stats`, `/sandbox_status`, `/log`, `/goal`, `/memory review`, `/exit`
+### Session trace retention
 
 ACP session traces keep their existing `~/.box-agent/log/sessions/<session-id>.jsonl`
 name and `box-agent-session-trace/v1` record format. Retention removes only whole,
@@ -358,13 +469,17 @@ Operators can override the defaults with `BOX_AGENT_SESSION_TRACE_RETENTION_DAYS
 `BOX_AGENT_SESSION_TRACE_CLEANUP_INTERVAL_SECONDS`, or disable cleanup with
 `BOX_AGENT_SESSION_TRACE_RETENTION_ENABLED=0`.
 
-Use `/goal <objective>` or `--goal "<objective>"` to keep a durable workspace objective attached to later turns. The CLI persists it under `~/.box-agent/goals/`; later turns include that goal until you run `/goal pause`, `/goal resume`, `/goal block <reason>`, `/goal complete <evidence>`, or `/goal clear`. Scripted runs can manage it with `box-agent goal ...`.
+## ACP, SDK, and Packaged Runtime Entry Points
 
-In non-interactive `--task` mode and ACP sessions, active goals also use bounded autopilot: when a turn ends naturally but the goal is still `active`, Box-Agent automatically continues in the same session until the model marks the goal `complete`, marks it `blocked`, the user cancels, `goal_autopilot_max_turns` / `goal_autopilot_max_seconds` is reached, or `goal_autopilot_no_progress_turns` consecutive automatic continuations make no recorded goal progress. Use `--no-goal-autopilot` for one CLI run, or set `goal_autopilot_enabled: false` in config.
-
-## ACP & Editor Integration
+### 4. ACP server for editors and applications
 
 Box Agent supports the [Agent Communication Protocol](https://github.com/nichochar/agent-client-protocol) for embedding in editors and apps.
+
+The host must spawn `box-agent-acp` and communicate with it using ACP JSON-RPC
+over stdio. stdin/stdout are protocol-only; diagnostic logs go to stderr. Use
+the absolute executable path returned by `which box-agent-acp` on macOS/Linux
+or `where box-agent-acp` on Windows when the host does not inherit your shell
+`PATH`.
 
 **Zed Editor** — add to `settings.json`:
 
@@ -378,7 +493,48 @@ Box Agent supports the [Agent Communication Protocol](https://github.com/nichoch
 }
 ```
 
-**Standalone Runtime** — for Electron apps and other hosts:
+From a source checkout, configure the host command as `uv` with arguments
+`["run", "box-agent-acp"]`, or point it at the environment's generated
+`box-agent-acp` executable. Do not send human-readable input directly to this
+process.
+
+### 5. Python SDK embedding
+
+Install the dependency with `uv add box-agent` or `pip install box-agent`.
+The SDK uses the same service and event contracts as ACP and
+CLI; it does not construct another Agent loop:
+
+```python
+import asyncio
+import os
+
+from box_agent import LLMClient, build_kernel_service
+from box_agent.adapters import SDKServiceAdapter
+
+
+async def main() -> None:
+    llm = LLMClient(api_key=os.environ["ANTHROPIC_API_KEY"])
+    service = build_kernel_service(llm=llm, tools=[])
+    result = await SDKServiceAdapter(service).run(
+        {"session_id": "session-1", "message": "Explain this architecture"}
+    )
+    print(result)
+
+
+asyncio.run(main())
+```
+
+For advanced integrations, register typed capability ports in `PluginHost` and
+create the service with `KernelAgentService.from_plugin_host(host)`. Direct
+Kernel construction is intended for tests or callers that have already bound
+every run-scoped dependency. See the
+[runtime capability matrix](docs/runtime-capability-matrix.md) for registry,
+workflow, replay, and control examples.
+
+### 6. Standalone ACP runtime
+
+Use this entry point for Electron applications and other hosts that must not
+depend on a system Python installation:
 
 ```bash
 # Download pre-built binary (latest release; omit the tag to always get the newest)
@@ -396,10 +552,43 @@ uv run box-agent-build-runtime
 UV_PROJECT_ENVIRONMENT=.venv-x64 BOX_AGENT_RUNTIME_TARGET=darwin-x64 arch -x86_64 ~/.local/bin-x64/uv run box-agent-build-runtime
 ```
 
-The runtime communicates via JSON-RPC over stdio. stdout = protocol only, stderr = diagnostics.
+The builder reads repository-owned scripts, so run it from a source checkout
+after `uv sync --group dev`. The archive contains
+`box-agent-runtime/bin/box-agent-acp` (`.exe` on Windows); configure the host to
+spawn that binary exactly as it would spawn the installed ACP command. The
+runtime communicates via JSON-RPC over stdio: stdout is protocol-only and
+stderr is for diagnostics.
+
 macOS runtime archives include Box-Agent's pinned Node.js runtime for skills
 under `box-agent-runtime/runtimes/node/`; npm cache/prefix state remains in
 `~/.box-agent/runtimes/node/sandbox/`.
+
+### 7. Web Extract MCP server
+
+This entry point exposes the `web_extract` tool to MCP clients. A source or
+Python-package installation provides `box-agent-web-extract-mcp`; add it to the
+client's stdio MCP configuration and let the client spawn it. For example,
+Box Agent's `~/.box-agent/config/mcp.json` format is:
+
+```json
+{
+  "mcpServers": {
+    "box-agent-web-extract": {
+      "command": "/absolute/path/to/box-agent-web-extract-mcp",
+      "args": [],
+      "alwaysLoad": true,
+      "disabled": false
+    }
+  }
+}
+```
+
+The server fetches public HTTP(S) pages without executing JavaScript. It reads
+the Box Agent LLM configuration when a long page needs summarization. In a
+standalone runtime, the same server is already declared in `manifest.json` and
+is launched as `bin/box-agent-acp --web-extract-mcp`; hosts should consume that
+manifest instead of inventing a second packaged command. Other MCP clients may
+use different field names around the same command and stdio transport.
 
 ## Testing
 

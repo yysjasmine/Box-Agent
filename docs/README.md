@@ -10,6 +10,8 @@ contracts.
 | Topic | English | 中文 |
 | --- | --- | --- |
 | Layered architecture and ownership | [Architecture](ARCHITECTURE.md) | [分层架构](ARCHITECTURE_CN.md) |
+| Implemented capability and migration status | [Runtime Capability Matrix](runtime-capability-matrix.md) | Same document |
+| Single-Kernel migration design record | [Architecture Refactor Plan](box-agent-architecture-plan-boss.md) | Same document |
 | Development and extension | [Development Guide](DEVELOPMENT_GUIDE.md) | [开发指南](DEVELOPMENT_GUIDE_CN.md) |
 | Understand Anything code map | [Code Map Guide](UNDERSTAND_ANYTHING.md) | [代码图谱指南](UNDERSTAND_ANYTHING_CN.md) |
 | Production and runtime packaging | [Production Guide](PRODUCTION_GUIDE.md) | [生产指南](PRODUCTION_GUIDE_CN.md) |
@@ -19,6 +21,29 @@ contracts.
 | Review change history | [Change index](changes/README.md) | Same document |
 | Current published/unreleased state | [Release State](RELEASE_STATE.md) | Same document |
 | Third-party model API behavior | [Third-party API Compatibility](THIRD_PARTY_API_COMPATIBILITY.md) | Same document |
+
+## Where to start after the single-Kernel refactor
+
+Follow the runtime path instead of starting from a historical root facade:
+
+```text
+api contracts → host adapter → KernelAgentService → AgentLoopKernel
+                                      ↓
+                         typed PluginHost capabilities
+```
+
+- Host-facing DTOs, events, controls, and ports: `box_agent/api/`.
+- The only execution state machine: `box_agent/kernel/`.
+- Session, Run, replay, checkpoint, effect, and lease ownership:
+  `box_agent/services/` and `box_agent/persistence/`.
+- Capability discovery and composition: `box_agent/plugins/`.
+- CLI, ACP, and SDK translation: `box_agent/adapters/` and `box_agent/acp/`.
+- Historical imports and call shapes: `box_agent/compat/` plus root facades;
+  these never own a second loop.
+
+Use [Runtime Capability Coverage](runtime-capability-matrix.md) for a
+file-by-file map and [Architecture](ARCHITECTURE.md) for invariants and request
+flow.
 
 ## Core runtime behavior
 
@@ -35,6 +60,10 @@ contracts.
 
 Start with the [ACP integration index](INTEGRATION.md), then open the specific
 wire contract:
+
+- [ACP E2E Guide](e2e/ACP_E2E_GUIDE.md) / [ACP 端到端指南](e2e/ACP_E2E_GUIDE_CN.md):
+  credential-free text, permission, Context/Memory, workflow-continuation, and
+  durable-resume acceptance cases with a local visual report.
 
 - [Host progress events](integration/host-progress-events.md): sub-agent, plan,
   todo, goal, and other structured tool activity.
