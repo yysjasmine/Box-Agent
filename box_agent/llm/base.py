@@ -6,7 +6,7 @@ from typing import Any
 
 from ..auth import request_auth_headers
 from ..client_info import current_client_headers
-from ..retry import RetryConfig
+from .retry import RetryConfig
 from ..schema import LLMResponse, Message, StreamEvent
 
 HOSTED_AUTH_API_KEY_PLACEHOLDERS = {

@@ -37,6 +37,8 @@ def _run_node(script: Path, *args: str) -> subprocess.CompletedProcess[str]:
         [str(NODE), str(script), *args],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         check=False,
     )
     unavailable = (

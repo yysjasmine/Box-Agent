@@ -53,7 +53,12 @@ def _runtime_root(explicit_root: Path | None = None) -> Path | None:
 
 def default_managed_mcp_config_path() -> Path:
     """Return the shared user MCP configuration owned by Box-Agent."""
-    return Path.home() / ".box-agent" / "config" / "mcp.json"
+    # Embedded hosts and tests may intentionally provide an isolated HOME.
+    # ``Path.home()`` prefers USERPROFILE on Windows, so honor HOME first to
+    # keep CLI, ACP, and packaged runtimes on the same state directory.
+    configured_home = os.environ.get("HOME")
+    home = Path(configured_home).expanduser() if configured_home else Path.home()
+    return home / ".box-agent" / "config" / "mcp.json"
 
 
 def _normalize_hosted_search_url(value: str) -> str | None:

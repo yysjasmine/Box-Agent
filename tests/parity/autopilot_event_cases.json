@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "name": "one_continuation_then_budget_stop",
+      "objective": "Ship the release",
+      "responses": ["initial work", "continued work"],
+      "max_continuations": 1,
+      "no_progress_turns": 2,
+      "expected_event_types": [
+        "run.started",
+        "step.started",
+        "context.assembled",
+        "model.requested",
+        "model.content.delta",
+        "model.response.completed",
+        "workflow.checkpoint",
+        "workflow.continuation.requested",
+        "step.completed",
+        "step.started",
+        "context.assembled",
+        "model.requested",
+        "model.content.delta",
+        "model.response.completed",
+        "workflow.checkpoint",
+        "step.completed",
+        "run.completed"
+      ],
+      "expected_stop_cause": "continuation_budget",
+      "expected_continuations": 1,
+      "expected_no_progress_turns": 1
+    }
+  ]
+}

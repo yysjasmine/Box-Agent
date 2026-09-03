@@ -18,6 +18,8 @@ from datetime import datetime, timezone
 from typing import Any
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
+from box_agent.observability.redaction import sanitize_for_logging
+
 logger = logging.getLogger(__name__)
 
 _SINK: ContextVar[Callable[[dict[str, Any]], None] | None] = ContextVar(
@@ -26,21 +28,6 @@ _SINK: ContextVar[Callable[[dict[str, Any]], None] | None] = ContextVar(
 
 _TRUTHY = {"1", "true", "yes", "on", "debug"}
 _FALSY = {"0", "false", "no", "off", ""}
-_REDACTED = "<redacted>"
-_SENSITIVE_KEYS = {
-    "api-key",
-    "apikey",
-    "api_key",
-    "authorization",
-    "cookie",
-    "password",
-    "proxy-authorization",
-    "refresh_token",
-    "secret",
-    "set-cookie",
-    "token",
-    "x-api-key",
-}
 _REQUEST_TEXT_PREVIEW_CHARS = 320
 _REQUEST_ARGUMENT_PREVIEW_CHARS = 240
 _REQUEST_LIST_PREVIEW_ITEMS = 20
@@ -239,78 +226,6 @@ def log_image_generation_error_meta(
     )
 
 
-def sanitize_for_logging(value: Any) -> Any:
-    """Return a JSON-serializable copy with credentials redacted."""
-
-    if isinstance(value, Mapping):
-        block_type = value.get("type")
-        if block_type == "image" and isinstance(value.get("source"), Mapping):
-            source = value["source"]
-            if source.get("type") == "base64" and isinstance(
-                source.get("data"), str
-            ):
-                return {
-                    **{
-                        str(key): sanitize_for_logging(item)
-                        for key, item in value.items()
-                        if key != "source"
-                    },
-                    "source": {
-                        **{
-                            str(key): sanitize_for_logging(item)
-                            for key, item in source.items()
-                            if key != "data"
-                        },
-                        "data": {
-                            "redacted": True,
-                            "characters": len(source["data"]),
-                        },
-                    },
-                }
-        if block_type == "image_url" and isinstance(
-            value.get("image_url"), Mapping
-        ):
-            image_url = value["image_url"]
-            url = image_url.get("url")
-            if isinstance(url, str) and url.startswith("data:"):
-                return {
-                    **{
-                        str(key): sanitize_for_logging(item)
-                        for key, item in value.items()
-                        if key != "image_url"
-                    },
-                    "image_url": {
-                        **{
-                            str(key): sanitize_for_logging(item)
-                            for key, item in image_url.items()
-                            if key != "url"
-                        },
-                        "url": {
-                            "redacted": True,
-                            "characters": len(url),
-                        },
-                    },
-                }
-        return {
-            str(key): _REDACTED if _is_sensitive_key(str(key)) else sanitize_for_logging(item)
-            for key, item in value.items()
-        }
-
-    if isinstance(value, list | tuple):
-        return [sanitize_for_logging(item) for item in value]
-
-    if hasattr(value, "model_dump"):
-        try:
-            return sanitize_for_logging(value.model_dump())
-        except Exception:
-            pass
-
-    if isinstance(value, str | int | float | bool) or value is None:
-        return value
-
-    return str(value)
-
-
 def full_payload_logging_enabled() -> bool:
     """Return True when debug logs should keep full provider request payloads."""
 
@@ -485,10 +400,6 @@ def _emit(record: dict[str, Any]) -> None:
             sys.stderr.flush()
         except Exception:
             pass
-
-
-def _is_sensitive_key(key: str) -> bool:
-    return key.lower().replace("_", "-") in _SENSITIVE_KEYS
 
 
 def _mapping_from_headers(headers: Any) -> dict[str, Any]:

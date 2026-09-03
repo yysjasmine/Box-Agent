@@ -1,192 +1,184 @@
-# Box-Agent Layered Architecture
+# Box-Agent Architecture
 
-## Decision
+## Core rule
 
-Box-Agent uses three collaboration layers. The core is **changeable**, but it
-is a low-churn, core-team-owned kernel. Product and capability work should
-normally be completed without editing `box_agent/core.py`.
+Box-Agent has one execution owner: `AgentLoopKernel`. ACP, CLI, SDK,
+officev3, and the historical `Agent.run_events()` API are adapters. Context,
+tools, permissions, memory, workflows, hooks, LLMs, and persistence are
+registered plugins; product behavior does not live in the loop.
 
 ```mermaid
 flowchart TB
-    P["Product and host adapters<br/>officev3 / ACP / CLI / custom UI"]
-    E["Capabilities and policies<br/>Tools / Skills / MCP / workflows / providers"]
-    A["Stable public API<br/>Agent / AgentRunOptions / AgentEvent / WorkflowPolicy"]
-    R["Composition and runtime bridge<br/>box_agent.runtime"]
-    C["Agent kernel<br/>box_agent.core"]
-    K["Stable contracts<br/>events / schema / Tool / WorkflowPolicy"]
-
-    P --> A
-    E --> A
-    A --> R
-    R --> C
-    C --> K
-    E --> K
-    E --> R
+    H["Hosts<br/>ACP / CLI / SDK / officev3"] --> A["Thin adapters"]
+    A --> S["KernelAgentService<br/>session / run / attach / resume"]
+    S --> K["AgentLoopKernel<br/>single state machine"]
+    K --> P["PluginHost + TypedRegistry"]
+    P --> C[ContextEngine]
+    P --> T[ToolEngine]
+    P --> G[PermissionPolicy]
+    P --> M[MemoryEngine]
+    P --> W[WorkflowPolicy]
+    P --> L[LLMPort]
+    P --> O[Hook]
+    S --> D["Session / Event / Checkpoint / Effect / Lease stores"]
 ```
 
-Dependencies point downward. The kernel must not import ACP, CLI, officev3, or
-another product adapter. Application and capability modules must not import
-`box_agent.core` directly.
+Dependencies point downward. The Kernel does not import ACP, CLI, officev3,
+or a concrete workflow. Root `agent`, `core`, and `runtime` modules preserve
+historical imports but execute through the same Kernel. The pre-Kernel loop is
+retired.
 
-## Layers and ownership
+## Directory ownership
 
-| Layer | Main code | Typical changes | Default owner | Change rate |
-| --- | --- | --- | --- | --- |
-| Product / integration | `box_agent/acp/`, `box_agent/cli.py`, host code | Protocol translation, UI/session behavior, rendering | Product teams | High |
-| Capability / policy | `box_agent/tools/` except `base.py`, `box_agent/skills/`, `box_agent/workflows/`, provider implementations in `box_agent/llm/`, `memory.py` | Tools, skills, providers, storage, product-neutral workflows | Feature/platform teams | Medium to high |
-| Stable API / kernel | `agent.py` public API, `runtime.py`, `core.py`, `workflow_policy.py`, `events.py`, `schema.py`, `loop_guards.py`, `hooks.py`, `artifacts.py`, `turn_policy.py`, `tools/base.py` | Loop invariants, shared contracts, composition, scheduling, cancellation, security enforcement points | Core team | Low |
-
-“Core-owned” means a core maintainer reviews and approves the change. It does
-not mean the files can never change.
-
-## Public entry points
-
-Application adapters run a turn through `Agent.run_events()`. They configure
-host-specific collaborators with a complete `AgentRunOptions` snapshot:
-
-```python
-from dataclasses import replace
-
-from box_agent import Agent
-
-options = replace(
-    agent.default_run_options(),
-    session_id=host_session_id,
-    permission_negotiator=permission_adapter,
-    hooks=host_hooks,
-)
-
-async for event in agent.run_events(options=options):
-    await render_for_host(event)
-```
-
-Use the public `Agent` configuration methods instead of assigning its private
-fields:
-
-- `set_permission_negotiator(...)`
-- `set_memory_extractor(...)`
-- `set_memory_proposal_negotiator(...)`
-- `clear_history()`
-
-Framework capabilities that intentionally create an isolated low-level loop,
-such as `SubAgentTool`, may import `run_agent_loop` from
-`box_agent.runtime`. `box_agent.runtime` is the only production-code bridge
-allowed to import the implementation module `box_agent.core`.
-
-Shared artifact helpers are in `box_agent.artifacts`; turn classification is
-in `box_agent.turn_policy`. Neither requires importing the kernel.
-
-Stateful, product-neutral workflows implement the public `WorkflowPolicy`
-contract. Built-in policies are selected in `box_agent.workflows` and composed
-by `box_agent.runtime`; `box_agent.core` receives only the contract. A host may
-inject a custom implementation with `AgentRunOptions.workflow_policy` without
-editing the kernel.
-`CompletionGate.workflow_options` is opaque to the kernel, while
-`WorkflowPolicy.build_checkpoint()` lets a workflow re-derive its own stage
-from persisted artifacts.
-
-Application adapters may retain an opaque `CompletionGate` across protocol
-turns. They use the generic `box_agent.workflows.recover_completion_gate()`
-registry after a host restart; they must not inspect a concrete workflow kind
-or its checkpoint files.
-
-The controlled-presentation boundary is split further:
-
-| Module | Responsibility |
+| Path | Responsibility |
 | --- | --- |
-| `completion.py`, `delivery.py` | Generic deliverable intent, pending-gate lifecycle signals, and workflow-router composition |
-| `workflows/presentation_routing.py` | PPT-specific recognition, research mode, and Completion Gate options |
-| `workflows/presentation_checkpoint.py` | Filesystem-derived PPT stages and next actions |
-| `workflows/controlled_presentation.py` | PPT tool restrictions, evidence rules, and per-run state |
-| `workflows/presentation_recovery.py` | Rebuild an interrupted PPT gate from durable artifacts |
+| `api/` | Stable DTOs, events, commands, errors, ports, and handles |
+| `kernel/` | The only Agent loop and per-run composer |
+| `services/` | Session/run lifecycle, replay, leases, and controls |
+| `plugins/` | Manifests, typed registries, dependencies, activation/disposal |
+| `context/` | ContextEngine, contributors, compaction, resource ledger |
+| `tools/` | Tool plugins, ToolEngine, MCP exposure, workspace safety |
+| `permissions/` | Fail-closed permission decision before execution |
+| `memory_engine/` | Memory SPI, durable store, maintenance, and composition |
+| `workflows/` | Goal, Plan, PPT, Skill, Completion Gate, Autopilot policies |
+| `persistence/` | Session, event, checkpoint, effect, and lease stores |
+| `llm/` | Provider adaptation, streaming, capabilities, routing |
+| `adapters/` | ACP/CLI/SDK translation; `cli/app.py` owns the CLI implementation |
+| `acp/` | Lightweight ACP handshake and transport-independent Kernel assembly |
+| `compat/` | Historical call shapes translated to stable Kernel contracts |
+| `observability/` | Logging, tracing, and redaction hooks |
 
-Changing PPT recognition, stages, or tool rules therefore does not require
-editing `core.py` or `loop_guards.py`.
+Important files:
 
-### CompletionGate migration
-
-The workflow-specific constructor argument was intentionally removed from the
-generic gate. Callers that previously constructed:
-
-```python
-CompletionGate(
-    workflow_checkpoint_kind="controlled_presentation",
-    presentation_research_mode="deep",
-)
-```
-
-must migrate to:
-
-```python
-CompletionGate(
-    workflow_checkpoint_kind="controlled_presentation",
-    workflow_options={"research_mode": "deep"},
-)
-```
-
-`presentation_research_mode` is no longer accepted and raises `TypeError`.
-There is no compatibility alias in the kernel because that would reintroduce
-a PPT-specific contract into `loop_guards.py`.
-
-## Where a change belongs
-
-| Requirement | Put it here |
+| File | Single responsibility |
 | --- | --- |
-| Add a tool or external ability | A `Tool` implementation, Skill, or MCP server |
-| Add a model provider or wire quirk | `box_agent/llm/` |
-| Change ACP fields, session metadata, or host rendering | `box_agent/acp/` |
-| Change terminal commands or display | `box_agent/cli.py` |
-| Add a reusable business workflow | `box_agent/workflows/` implementing `WorkflowPolicy`, or a Skill |
-| Change automatic deliverable recognition or routing | `completion.py`, `delivery.py`, or the matching `workflows/*_routing.py` |
-| Add a new host-neutral event | `events.py`, with core-team review |
-| Change scheduling, cancellation, tool-call closure, or security invariants | Kernel, with core-team review |
+| `api/contracts.py` | Run, message, tool, usage, artifact, session DTOs |
+| `api/workflows.py` | Workflow action and checkpoint DTOs; `api/ports.py` is the only WorkflowPolicy definition |
+| `api/events.py` | Ordered durable `AgentEvent` envelope |
+| `api/controls.py` | External command and idempotent ACK |
+| `api/ports.py` | Context/Tool/Permission/Memory/LLM/Hook/Workflow SPIs |
+| `api/handles.py` | `AgentLoop`, `AgentService`, and `AgentRunHandle` |
+| `kernel/loop.py` | Context → model → tools → continuation → terminal |
+| `kernel/composer.py` | Resolve run-scoped components from PluginHost |
+| `kernel/workflow_composite.py` | Generic fan-out across registered workflow policies |
+| `services/kernel.py` | Session/run ownership, event commit, lease, recovery |
+| `plugins/builtins.py` | One built-in workflow/plugin composition shared by ACP and CLI |
+| `tools/engine.py` | Validate → permission → hook → effect → execute |
+| `persistence/sqlite.py` | Transactional runtime fact store |
+| `compat/runtime.py` | Translate historical arguments/events; no second loop |
+| `adapters/cli/app.py` | CLI commands, interaction, and event rendering over the Service |
+| `acp/bootstrap.py` | Establish stdio and answer the handshake before loading heavyweight capabilities |
+| `acp/kernel_runtime.py` | Assemble `KernelACPRuntime` from config/plugins without owning transport or another loop |
+| `llm/__init__.py`, `llm/llm_wrapper.py` | Keep the LLM facade lightweight and load only the selected provider SDK when its client is created |
+| `memory_engine/store.py` | Long-term memory indexing, retrieval, and writes |
+| `memory_engine/maintenance.py` | Memory consolidation and maintenance jobs |
+| `context/experts.py`, `evidence.py` | Expert context contribution and evidence normalization |
+| `workflows/completion.py`, `guards.py`, `delivery.py` | Delivery intent, completion gates, and pure policy decisions |
+| `workflows/execution_profile.py`, `turn_policy.py` | Execution profile and turn classification |
+| `persistence/artifacts.py`, `roadmap_artifacts.py` | Artifact protocol, naming, scanning, and metadata validation |
+| `observability/logger.py`, `session_trace.py`, `cache_fingerprint.py` | Redactable logs, session traces, and request fingerprints |
+| `compat/events.py`, `hooks.py` | Historical event/hook shapes at the compatibility boundary |
 
-If a product feature appears to require a Core edit, first ask whether it can
-be expressed as a tool, hook, event consumer, run option, completion gate, or
-Skill. If none is sufficient, add the smallest generic contract to Core; do not
-embed a product name or one workflow's state machine in the kernel.
+## Public protocol
 
-## Core change gate
+```python
+session = await service.open_session(SessionOpenRequest(session_id="s1"))
+handle = await service.start(RunRequest(
+    request_id="req-1",
+    session_id=session.session_id,
+    turn_id="turn-1",
+    user_input=Message.user("summarize the workspace"),
+    options=RunOptions(workflow_id="completion_gate"),
+))
 
-A Core change should include:
+async for event in handle.events(after_sequence=0):
+    render(event)
+result = await handle.wait()
+```
 
-1. The invariant or missing generic contract that requires the change.
-2. Compatibility impact on `AgentRunOptions`, events, tools, CLI, and ACP.
-3. Focused regression tests plus the full suite.
-4. Packaged-runtime rebuild/install/probe status when officev3 consumes it.
-5. A core-maintainer approval.
+- Input: immutable `RunRequest` with session, turn, message, attachments, and
+  data-only `RunOptions`.
+- Stream output: monotonically sequenced, replayable `AgentEvent` values.
+- Terminal output: `RunResult` with content, stop reason, usage, artifacts,
+  and metadata.
+- Control: `handle.send(ControlCommand(...))`; `command_id` is idempotent.
+- Ownership: `attach(run_id)` observes; `resume(run_id)` explicitly acquires a
+  worker lease.
 
-Event and option changes should be additive when possible. Removing or
-reinterpreting an existing field requires an explicit migration.
+The Tool boundary is fixed: schema validation → permission preflight →
+`Hook.before_tool` → revalidation after mutation → effect fence → executor →
+`Hook.after_tool` → normalized result. Permission is therefore always decided
+before an executor can run.
 
-## Automated boundary
+## Plugin composition
 
-`tests/test_architecture_boundaries.py` rejects production modules that import
-`box_agent.core` outside `box_agent/runtime.py`, rejects Core dependencies on
-application adapters, rejects concrete workflow imports or workflow-name
-branches in Core, and rejects PPT-specific state or vocabulary in `core.py`,
-`loop_guards.py`, and `workflow_policy.py`. It also rejects concrete
-presentation-workflow imports or kind checks in ACP. This test protects
-dependency direction; ownership approval still belongs in repository
-governance.
+Primary registries include `llm`, `context`, `context.contributors`, `memory`,
+`tools.descriptors`, `tools.executors`, `tools.engines`,
+`tools.session_contributors`, `permissions`, `workflows`,
+`workflow.selectors`, `hooks`, `sessions`, `events`, `checkpoints`, `effects`,
+`leases`, `control.routes`, `host.extensions`, and `host.projections`.
+Historical short names (`llm`, `context`, `tools`, `memory`, `permissions`)
+are object aliases of their canonical typed registries, so registration,
+hot reload, disposal, and replay locks have one source of truth.
 
-For enforced ownership, configure a real GitHub core-maintainer user/team in
-`CODEOWNERS`, require code-owner review for the protected branch, and require
-the boundary/full test jobs. Do not add a placeholder team: an invalid owner
-silently weakens the rule.
+```python
+host = PluginHost()
+host.registries["llm"].register("default", my_llm, source="acme.llm")
+host.registries["context"].register("default", my_context, source="acme.context")
+host.registries["memory"].register("default", my_memory, source="acme.memory")
+host.registries["tools.executors"].register(
+    "ticket.create", ticket_tool, source="acme.ticket"
+)
+host.registries["workflows"].register(
+    "release", release_policy, source="acme.release"
+)
+service = KernelAgentService.from_plugin_host(host)
+```
 
-## Current transition debt
+A distributable plugin declares a `box_agent.plugins` entry point. The host
+calls `PluginHost.discover()` then `activate_many()`. Discovery validates
+manifests; activation resolves dependencies and rolls back partial failure.
+Unknown requested workflow/component keys fail closed.
 
-The dependency boundary is now explicit. Controlled-presentation routing,
-filesystem checkpoints, recovery, policy state, and tool restrictions live in
-the capability/workflow layer. ACP retains only an opaque gate between
-protocol turns, and the stable kernel consumes only generic contracts.
-Remaining incremental work:
+Third parties should call `KernelAgentService.from_plugin_host(host)`, not
+construct transport-specific loops. Direct Kernel construction is for tests
+or callers that have already bound all run-scoped collaborators.
 
-- `agent.py` still combines the public facade with terminal rendering and some
-  goal/session conveniences.
-- GitHub ownership enforcement needs the repository's real maintainer handle
-  and branch-rule configuration.
+## Resume from any durable boundary
 
-Move these incrementally with behavior-preserving tests. Do not rewrite the
-kernel in one migration.
+The runtime persists replayable facts, not Python stacks:
+
+1. `SessionStore` owns logical session metadata.
+2. `EventLog` stores every externally visible transition and sequence.
+3. `CheckpointStore` stores messages, counters, workflow state, context digest,
+   and plugin lock.
+4. `EffectLedger` fences side effects before execution, replays completed
+   results, and fails closed on unknown outcomes.
+5. `LeaseStore` guarantees one active executor per Run.
+6. Recovery verifies event digest, checkpoint schema, and plugin lock before
+   execution continues.
+
+A process may therefore stop at a model, tool, workflow-pause, or terminal
+boundary. A new process loads the session, attaches to inspect facts, or
+explicitly resumes from the last committed checkpoint without repeating a
+confirmed side effect.
+
+## Acceptance criteria
+
+- Every host and historical API reaches `AgentLoopKernel`.
+- Kernel imports no host or concrete workflow implementation.
+- Context, tool, permission, memory, workflow, hook, LLM, and stores are
+  independently replaceable.
+- Every event has stable identity, sequence, and replayable payload; terminal
+  completion occurs exactly once.
+- Recovery never silently crosses a plugin/schema mismatch or repeats a
+  confirmed side effect.
+- Goal, Plan, PPT, Skill, Completion Gate, and Autopilot parity fixtures pass.
+- ACP E2E covers text, permission, Context/Memory, continuation, and durable
+  resume and produces the visual `tests/e2e/report.html`.
+- `tests/parity/migration_status.json` records `legacy_loop_retired=true` with
+  no runtime blockers.
+
+See [capability coverage](runtime-capability-matrix.md),
+[third-party integration](INTEGRATION.md), and
+[ACP E2E](e2e/ACP_E2E_GUIDE.md).

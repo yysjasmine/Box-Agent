@@ -1,0 +1,20 @@
+[
+  {
+    "workflow": "external_skill",
+    "skill_name": "vendor-skill",
+    "skill_source": "user",
+    "description": "Produce a deterministic artifact.",
+    "content": "Use the approved artifact pipeline and publish the result.",
+    "context_fragment": "Use the approved artifact pipeline",
+    "checkpoint_forbids_prompt": true
+  },
+  {
+    "workflow": "external_skill",
+    "skill_name": "report-skill",
+    "skill_source": "builtin",
+    "description": "Generate a concise report.",
+    "content": "Preserve source facts and write the final report to output.",
+    "context_fragment": "Preserve source facts",
+    "checkpoint_forbids_prompt": true
+  }
+]

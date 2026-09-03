@@ -1,0 +1,34 @@
+[
+  {
+    "name": "required-tool-pending",
+    "required_tools": ["verify"],
+    "succeeded_tools": [],
+    "max_continuations": 1,
+    "stop_reason": "end_turn",
+    "expects_continuation": true
+  },
+  {
+    "name": "required-tool-satisfied",
+    "required_tools": ["verify"],
+    "succeeded_tools": ["verify"],
+    "max_continuations": 1,
+    "stop_reason": "end_turn",
+    "expects_continuation": false
+  },
+  {
+    "name": "continuation-budget-exhausted",
+    "required_tools": ["verify"],
+    "succeeded_tools": [],
+    "max_continuations": 0,
+    "stop_reason": "end_turn",
+    "expects_continuation": false
+  },
+  {
+    "name": "non-terminal-model-turn",
+    "required_tools": ["verify"],
+    "succeeded_tools": [],
+    "max_continuations": 1,
+    "stop_reason": "tool_calls",
+    "expects_continuation": false
+  }
+]

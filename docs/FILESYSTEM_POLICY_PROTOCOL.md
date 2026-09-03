@@ -148,7 +148,7 @@ def _path_allowed_by_scope(self, resolved: Path, scope: str) -> bool:
         return any(self._is_inside(resolved, allowed) for allowed in self._allowed_dirs)
 ```
 
-`workspace_dir`（ACP `cwd`）始终允许。`session_workspace_root` 与 `allowed_directories` 是叠加白名单。落在外面会触发 `permission_request` 协商（escalation 到 `user_home` 或 `custom`），而不是直接拒绝。
+`workspace_dir`（ACP `cwd`）始终允许。`session_workspace_root` 与 `allowed_directories` 是叠加白名单。落在外面会触发 `permission_request` 协商（escalation 到 `user_home` 或 `custom`），而不是直接拒绝。包含断链在内的符号链接会先解析其真实目标，再执行目录包含关系检查；不能借由工作区内的链接名绕过范围限制。
 
 主 Agent 与其子 Agent 共用同一个父会话权限协商器。子 Agent 不会自行扩权；批准后只重试触发请求的工具调用。相同的并发文件权限请求会合并，不同请求会串行弹出，避免多个子 Agent 同时展示重复审批框；危险命令的一次性安全审批不会合并。
 

@@ -6,20 +6,21 @@ import asyncio
 import threading
 from pathlib import Path
 from time import monotonic
-from types import SimpleNamespace
+from uuid import uuid4
 
 import pytest
 
-from box_agent.acp import BoxACPAgent
-from box_agent.config import AgentConfig, Config, LLMConfig, ToolsConfig
+from box_agent.adapters import HostExtensionContext, HostExtensionRouter, MemoryManagerEngine
+from box_agent.adapters.builtin_extensions import (
+    MemoryProposalApplyExtension,
+    MemoryProposalListExtension,
+)
+from box_agent.api import MemoryQuery
 from box_agent.llm import SessionBoundLLM
 from box_agent.memory import MemoryManager, write_context_file
+from box_agent.memory_engine import MemoryProposalService
+from box_agent.plugins.registry import TypedRegistry
 from tests.test_memory_promotion import _entry  # reuse helper
-
-
-class DummyConn:
-    async def sessionUpdate(self, payload):
-        pass
 
 
 class DummyLLM:
@@ -31,22 +32,59 @@ class DummyLLM:
         yield  # pragma: no cover
 
 
+class _KnownSessionService:
+    async def load_session(self, request):
+        raise ValueError(f"unknown session: {request.session_id}")
+
+
+class _MemoryProposalHost:
+    """Route proposal methods through the public host-extension registry."""
+
+    def __init__(self, proposal_service: MemoryProposalService) -> None:
+        registry = TypedRegistry("host.extensions")
+        registry.register(
+            "memory_proposal_list",
+            MemoryProposalListExtension(proposal_service),
+            source="test.memory-proposals",
+        )
+        registry.register(
+            "memory_proposal_apply",
+            MemoryProposalApplyExtension(proposal_service),
+            source="test.memory-proposals",
+        )
+        self._router = HostExtensionRouter(registry)
+        self._context = HostExtensionContext(service=_KnownSessionService())
+
+    async def ext_method(self, method: str, params: dict):
+        result = await self._router.handle(method, params, context=self._context)
+        assert result is not None
+        return result
+
+    extMethod = ext_method
+
+
 def _make_agent(tmp_path: Path, *, hit_threshold: int = 5, cooldown_days: int = 14):
     memory_dir = tmp_path / "memory"
     memory_dir.mkdir()
     memory_mgr = MemoryManager(memory_dir=str(memory_dir))
-    config = Config(
-        llm=LLMConfig(api_key="test-key"),
-        agent=AgentConfig(
-            max_steps=3,
-            workspace_dir=str(tmp_path),
-            memory_dir=str(memory_dir),
-            memory_promotion_hit_threshold=hit_threshold,
-            memory_promotion_cooldown_days=cooldown_days,
-        ),
-        tools=ToolsConfig(),
+    def planning_llm(session_id: str) -> SessionBoundLLM:
+        planning_id = session_id or f"local-agent-memory-review-{uuid4()}"
+        bound = SessionBoundLLM(DummyLLM())
+        bound.set_request_context(
+            session_id=planning_id,
+            turn_id=planning_id,
+            title="本地 Agent 记忆整理",
+        )
+        return bound
+
+    agent = _MemoryProposalHost(
+        MemoryProposalService(
+            memory_mgr,
+            hit_threshold=hit_threshold,
+            cooldown_days=cooldown_days,
+            planning_llm_resolver=planning_llm,
+        )
     )
-    agent = BoxACPAgent(DummyConn(), config, DummyLLM(), [], "system", memory_manager=memory_mgr)
     return agent, memory_mgr
 
 
@@ -127,20 +165,15 @@ async def test_memory_proposal_list_waits_off_event_loop(tmp_path: Path):
 
 @pytest.mark.asyncio
 async def test_session_recall_waits_off_event_loop(tmp_path: Path):
-    agent, mgr = _make_agent(tmp_path)
+    _, mgr = _make_agent(tmp_path)
     mgr.write_context("- project memory", topic="project")
 
-    session = await _run_while_memory_transaction_is_held(
+    recall = await _run_while_memory_transaction_is_held(
         mgr,
-        agent.newSession(
-            SimpleNamespace(
-                cwd=str(tmp_path),
-                field_meta={"session_mode": "general"},
-            )
-        ),
+        MemoryManagerEngine(mgr).recall(MemoryQuery("project memory")),
     )
 
-    assert session.sessionId in agent._sessions
+    assert any("project memory" in entry.text for entry in recall.entries)
 
 
 @pytest.mark.asyncio

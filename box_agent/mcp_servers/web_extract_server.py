@@ -1,7 +1,5 @@
 """Expose Box-Agent's direct web extractor as a stdio MCP server."""
 
-from __future__ import annotations
-
 from functools import lru_cache
 
 from mcp.server.fastmcp import FastMCP
@@ -9,7 +7,7 @@ from mcp.server.fastmcp import FastMCP
 from box_agent.config import Config
 from box_agent.llm import LLMClient
 from box_agent.mcp_servers.web_extract import WebExtractTool
-from box_agent.retry import RetryConfig
+from box_agent.llm.retry import RetryConfig
 from box_agent.schema import LLMProvider
 
 

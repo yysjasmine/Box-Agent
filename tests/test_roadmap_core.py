@@ -36,7 +36,7 @@ def _run(
     return subprocess.run(
         [str(NODE), str(SCRIPTS_DIR / script), *args],
         capture_output=True,
-        text=True,
+        encoding="utf-8",
         check=False,
         cwd=SKILL_DIR,
         env=env,
@@ -89,7 +89,7 @@ console.log(JSON.stringify(core[process.argv[3]](value)));
             function_name,
         ],
         capture_output=True,
-        text=True,
+        encoding="utf-8",
         check=False,
         cwd=SKILL_DIR,
     )
@@ -631,7 +631,7 @@ def test_html_runtime_scripts_are_valid_javascript() -> None:
         result = subprocess.run(
             [str(NODE), "--check", str(script)],
             capture_output=True,
-            text=True,
+            encoding="utf-8",
             check=False,
         )
         assert result.returncode == 0, f"{script}: {result.stderr}"
@@ -1019,6 +1019,15 @@ def test_roadmap_output_rolls_back_when_parent_changes_during_publication(
 ) -> None:
     if NODE is None:
         pytest.skip("Node.js is required to test Roadmap output publication")
+    symlink_probe_target = tmp_path / "symlink-probe-target"
+    symlink_probe = tmp_path / "symlink-probe"
+    symlink_probe_target.mkdir()
+    try:
+        symlink_probe.symlink_to(symlink_probe_target, target_is_directory=True)
+    except (NotImplementedError, OSError) as error:
+        pytest.skip(f"symlinks are unavailable in this environment: {error}")
+    else:
+        symlink_probe.unlink()
     output_dir = tmp_path / "output"
     nested_dir = output_dir / "nested"
     outside_dir = tmp_path / "outside"
@@ -1061,7 +1070,7 @@ try {
             str(moved_dir),
         ],
         capture_output=True,
-        text=True,
+        encoding="utf-8",
         check=False,
         cwd=SKILL_DIR,
         env={**os.environ, "BOX_AGENT_OUTPUT_DIR": str(output_dir)},
@@ -1155,7 +1164,7 @@ try {
             str(replacement),
         ],
         capture_output=True,
-        text=True,
+        encoding="utf-8",
         check=False,
         cwd=SKILL_DIR,
     )
@@ -1204,7 +1213,7 @@ try {
             str(moved_dir),
         ],
         capture_output=True,
-        text=True,
+        encoding="utf-8",
         check=False,
         cwd=SKILL_DIR,
         env={**os.environ, "BOX_AGENT_SCRATCH_DIR": str(scratch_root)},
@@ -1442,7 +1451,7 @@ console.log(JSON.stringify({ p90: samples[5], max: samples[6] }));
             str(source),
         ],
         capture_output=True,
-        text=True,
+        encoding="utf-8",
         check=False,
         cwd=SKILL_DIR,
     )

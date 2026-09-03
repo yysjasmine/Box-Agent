@@ -3,7 +3,6 @@ from types import SimpleNamespace
 import pytest
 
 from box_agent.config import ToolLimitsConfig
-from box_agent.core import _maybe_summarize
 from box_agent.loop_guards import CompletionGate
 from box_agent.schema import LLMResponse, Message
 from box_agent.tools.skill_loader import SkillLoader
@@ -366,34 +365,3 @@ def test_explicit_skill_stays_primary_when_another_skill_requires_it(tmp_path) -
         ("pptx", "primary"),
         ("html-templates", "primary"),
     ]
-
-
-@pytest.mark.asyncio
-async def test_layer_two_summary_preserves_active_skills_in_system_prompt() -> None:
-    active_system = build_active_skills_prompt(
-        "base system",
-        {"pptx": "# Skill: pptx\n\nMANDATORY_SKILL_RULE"},
-    )
-    messages = [
-        Message(role="system", content=active_system),
-        Message(role="user", content="build a deck"),
-        Message(role="assistant", content="working"),
-        Message(
-            role="tool",
-            name="bash",
-            tool_call_id="tool-1",
-            content="x" * 500,
-        ),
-    ]
-
-    summarized, _, _ = await _maybe_summarize(
-        SummaryLLM(),
-        messages,
-        token_limit=1,
-        api_total_tokens=0,
-        skip_check=False,
-    )
-
-    assert summarized is not None
-    assert "MANDATORY_SKILL_RULE" in summarized[0].content
-    assert summarized[0].content.endswith("MANDATORY_SKILL_RULE")

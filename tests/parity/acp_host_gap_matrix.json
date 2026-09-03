@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "retired_suite": "tests/test_acp.py",
+  "purpose": "Auditable replacement map for the removed BoxACPAgent monolith tests. Every category binds an old host behavior to tests at its new owning boundary.",
+  "categories": {
+    "session_contract_and_identity": {
+      "status": "covered",
+      "behaviors": ["new/load session", "immutable host identity", "workspace defaults", "bounded continuation", "user decision normalization"],
+      "replacement_tests": [
+        "tests/test_acp_kernel_adapter.py::test_kernel_acp_negotiates_and_seeds_bounded_continuation_once",
+        "tests/test_acp_kernel_adapter.py::test_kernel_acp_keeps_session_workspace_and_system_prompt_host_immutable",
+        "tests/test_acp_kernel_adapter.py::test_kernel_acp_applies_session_metadata_plugin_defaults_before_persistence",
+        "tests/test_acp_kernel_adapter.py::test_kernel_acp_inserts_decision_as_typed_user_message",
+        "tests/test_kernel_service.py::test_kernel_service_loads_persisted_session_before_start_after_restart"
+      ]
+    },
+    "workspace_context_and_action_hints": {
+      "status": "covered",
+      "behaviors": ["project/output execution guidance", "saved workspace profile", "skill catalog", "action-hint stream normalization"],
+      "replacement_tests": [
+        "tests/test_acp_auto_mode.py::test_workspace_execution_context_uses_artifact_mode_as_single_policy_source",
+        "tests/test_workspace_session_metadata.py::test_saved_code_workspace_contributes_code_project_defaults",
+        "tests/test_context_engine.py::test_kernel_composer_sends_registered_skill_catalog_to_model",
+        "tests/test_action_hints.py::test_action_hint_guidance_is_a_context_plugin",
+        "tests/test_acp_kernel_adapter.py::test_kernel_acp_normalizes_split_action_hint_at_rendering_boundary"
+      ]
+    },
+    "permissions_environment_and_attachments": {
+      "status": "covered",
+      "behaviors": ["fail-closed session permissions", "full-access distinction", "tool preflight", "host runtime environment", "typed attachment inspection"],
+      "replacement_tests": [
+        "tests/test_session_capabilities.py::test_invalid_permission_mode_fails_closed",
+        "tests/test_session_capabilities.py::test_workspace_tool_builder_distinguishes_full_access_from_unrestricted",
+        "tests/test_tool_engine.py::test_builtin_bash_permission_is_checked_before_executor",
+        "tests/test_session_capabilities.py::test_environment_context_contributor_uses_same_permission_resolution",
+        "tests/test_attachment_workflow.py::test_attachment_result_enters_model_context_through_workflow_policy"
+      ]
+    },
+    "mcp_lifecycle": {
+      "status": "covered_with_intentional_change",
+      "behaviors": ["auth refresh", "catalog replacement", "disconnect restoration", "active-run graph stability"],
+      "intentional_change": "MCP reconnect/disconnect cannot mutate an active Run plugin graph; refreshed tools become visible to the next Run so checkpoints remain replayable.",
+      "replacement_tests": [
+        "tests/test_mcp.py::test_auth_refresh_reconnects_structured_401_and_403_failures",
+        "tests/test_acp_kernel_adapter.py::test_mcp_host_extensions_replace_kernel_tool_generation",
+        "tests/test_acp_kernel_adapter.py::test_mcp_host_extension_rejects_graph_change_during_active_run"
+      ]
+    },
+    "controls_cleanup_and_lifecycle": {
+      "status": "covered",
+      "behaviors": ["inject/cancel idempotency", "session-scoped tool disposal", "background process cleanup", "staged write rollback"],
+      "replacement_tests": [
+        "tests/test_acp_kernel_adapter.py::test_kernel_acp_uses_operation_identity_independent_of_injection_identity",
+        "tests/test_kernel_service.py::test_service_notifies_session_lifecycle_plugins_on_close",
+        "tests/test_bash_tool.py::test_background_processes_are_scoped_and_cleaned_by_owner",
+        "tests/test_staged_file_write_tool.py::test_staged_write_cleanup_discards_uncommitted_transactions"
+      ]
+    },
+    "events_rendering_and_usage": {
+      "status": "covered",
+      "behaviors": ["model streaming", "tool cards", "sub-agent progress", "skill/MCP/tool attribution", "authoritative turn usage"],
+      "replacement_tests": [
+        "tests/test_acp_kernel_adapter.py::test_kernel_acp_agent_renders_normalized_service_events",
+        "tests/test_acp_kernel_adapter.py::test_kernel_acp_renders_native_plan_snapshot_as_tool_card",
+        "tests/test_acp_kernel_adapter.py::test_kernel_acp_renders_subagent_progress_and_artifacts_from_stable_events",
+        "tests/test_acp_projection.py::test_acp_projection_accumulates_tools_mcp_skills_and_model_usage",
+        "tests/test_acp_projection.py::test_acp_projection_final_usage_is_authoritative_without_double_counting"
+      ]
+    },
+    "goal_plan_and_autopilot": {
+      "status": "covered",
+      "behaviors": ["goal control", "plan approval", "native snapshots", "checkpoint replay", "autopilot stop guards"],
+      "replacement_tests": [
+        "tests/test_workflow_parity_fixtures.py::test_goal_fixture_matches_legacy_prompt_and_progress_contract",
+        "tests/test_workflow_parity_fixtures.py::test_plan_event_fixture_matches_native_pause_and_checkpoint_stream",
+        "tests/test_workflow_plugins.py::test_native_plan_pause_rehydrates_across_service_restart_and_approval",
+        "tests/test_workflow_parity_fixtures.py::test_autopilot_event_fixture_preserves_checkpointed_continuation_stream"
+      ]
+    },
+    "presentation_skill_and_completion": {
+      "status": "covered",
+      "behaviors": ["presentation selection", "Skill lifecycle", "completion evidence gate", "pause/reload/resume", "artifact publication"],
+      "replacement_tests": [
+        "tests/test_workflow_parity_fixtures.py::test_presentation_event_fixture_runs_finalizer_before_model_and_publishes_artifact",
+        "tests/test_workflow_parity_fixtures.py::test_skill_event_fixture_matches_native_pause_checkpoint_and_terminal",
+        "tests/test_workflow_parity_fixtures.py::test_completion_gate_event_fixture_matches_recoverable_pause_stream",
+        "tests/test_acp_kernel_adapter.py::test_kernel_acp_presentation_pause_resumes_after_session_reload"
+      ]
+    },
+    "artifact_lineage_and_task_terminal_state": {
+      "status": "covered",
+      "behaviors": ["stable artifact identity", "revision lineage", "publication before host event", "registry failure blocks false completion"],
+      "replacement_tests": [
+        "tests/test_task_registry.py::test_artifact_envelope_exposes_canonical_lineage",
+        "tests/test_task_registry.py::test_native_artifact_processor_persists_lineage_before_publication",
+        "tests/test_task_registry.py::test_native_artifact_processor_records_run_terminal_state",
+        "tests/test_agent_loop_kernel.py::test_artifact_registry_failure_cannot_publish_success"
+      ]
+    },
+    "durability_and_recovery": {
+      "status": "covered",
+      "behaviors": ["atomic event/checkpoint/outbox", "effect fence", "lease fencing", "resume at model/context/tool/memory/continuation boundaries"],
+      "replacement_tests": [
+        "tests/test_durable_boundaries.py::test_event_checkpoint_and_outbox_commit_as_one_durable_boundary",
+        "tests/test_fault_recovery.py::test_tool_crash_effect_fence_prevents_duplicate_execution",
+        "tests/test_persistence_recovery.py::test_lease_fencing_prevents_two_workers_from_running_one_run",
+        "tests/test_fault_recovery.py::test_continuation_boundary_crash_resumes_next_step_without_repeating_turn"
+      ]
+    },
+    "model_failures_and_repair": {
+      "status": "covered",
+      "behaviors": ["structured provider errors", "truncated tool-call repair", "oversized argument failure", "repair replay"],
+      "replacement_tests": [
+        "tests/test_error_messages.py::test_points_insufficient_error_preserves_structured_business_code",
+        "tests/test_error_messages.py::test_unsupported_model_returns_structured_configuration_error",
+        "tests/test_kernel_model_recovery.py::test_kernel_discards_truncated_tool_attempt_and_injects_bounded_repair",
+        "tests/test_kernel_model_recovery.py::test_kernel_resumes_after_crash_at_persisted_model_recovery_boundary"
+      ]
+    },
+    "plugin_and_adapter_boundaries": {
+      "status": "covered",
+      "behaviors": ["typed registries", "third-party workflow selection", "SDK/ACP shared service", "API import isolation", "single ACP runtime entry"],
+      "replacement_tests": [
+        "tests/test_plugin_registry.py::test_default_plugin_host_exposes_all_capability_registries",
+        "tests/test_plugin_registry.py::test_kernel_composer_selects_requested_third_party_workflow_key",
+        "tests/test_service_adapter.py::test_sdk_adapter_uses_the_same_service_contract_without_rendering",
+        "tests/test_api_import_boundary.py::test_kernel_import_does_not_load_application_adapters",
+        "tests/test_runtime_entry.py::test_runtime_entry_rejects_retired_runtime_flag"
+      ]
+    },
+    "memory": {
+      "status": "covered",
+      "behaviors": ["context recall", "event-driven extraction", "durable write boundary", "proposal list/apply"],
+      "replacement_tests": [
+        "tests/test_context_memory_permission_replay.py::test_kernel_emits_context_manifest_permission_and_memory_write_boundaries",
+        "tests/test_memory_extraction_hook.py::test_memory_extraction_hook_builds_transcript_from_kernel_events",
+        "tests/test_context_memory_permission_replay.py::test_recovery_does_not_repeat_a_committed_memory_write",
+        "tests/test_acp_memory_proposal.py::test_memory_proposal_apply_pins_and_returns_core"
+      ]
+    }
+  }
+}

@@ -16,10 +16,11 @@ from pathlib import Path
 from typing import Any, Callable
 from uuid import uuid4
 
+from ..api import AgentEvent as KernelAgentEvent
+from ..api import ToolExecutionContext
 from ..config import AgentConfig, ToolLimitsConfig
-from ..events import (
+from ..compat.events import (
     ArtifactEvent,
-    DoneEvent,
     ErrorEvent,
     LLMOutputEvent,
     ProgressEvent,
@@ -30,6 +31,7 @@ from ..events import (
     WebSearchEvent,
 )
 from ..llm.model_routing import resolve_model_client
+from ..llm.binding import bind_session_llm
 from ..schema import Message
 from .base import EventEmittingTool, Tool, ToolResult
 from .schema_validation import ToolArgumentIssue
@@ -47,11 +49,6 @@ from .sub_agent_capabilities import (
 )
 
 _DEFERRED_MCP_HEADING = "## Deferred MCP tools\n"
-_CHILD_MCP_BOUNDARY = (
-    "## Inherited MCP capability boundary\n"
-    "The parent agent owns deferred MCP discovery. Use only the real MCP tools "
-    "already present in this child tool list; `tool_search` is not available here."
-)
 
 
 def _child_safe_parent_prompt(system_prompt: str) -> str:
@@ -69,7 +66,7 @@ def _child_safe_parent_prompt(system_prompt: str) -> str:
         section_start = heading_index - 2
     next_section = system_prompt.find("\n\n## ", heading_index + len(_DEFERRED_MCP_HEADING))
     suffix = system_prompt[next_section:] if next_section >= 0 else ""
-    return f"{system_prompt[:section_start].rstrip()}\n\n{_CHILD_MCP_BOUNDARY}{suffix}"
+    return f"{system_prompt[:section_start].rstrip()}{suffix}"
 
 _EXPLICIT_SUB_AGENT_SYSTEM_PROMPT = """\
 You are a focused sub-agent executing one explicitly delegated task.
@@ -261,6 +258,7 @@ class SubAgentTool(EventEmittingTool):
         artifact_detection_enabled: bool = True,
         artifact_root_dir: str | None = None,
         provider_stale_seconds: float | None = None,
+        child_runner: Any | None = None,
     ):
         super().__init__()
         self._llm = llm
@@ -294,6 +292,7 @@ class SubAgentTool(EventEmittingTool):
         # Inherit the parent's provider-stale cutoff so slow-model configs also
         # apply to child agents. None lets run_agent_loop resolve env/default.
         self._provider_stale_seconds = provider_stale_seconds
+        self._child_runner = child_runner
 
     def set_parent_system_prompt(self, system_prompt: str) -> None:
         """Attach parent constraints without advertising parent-only MCP search."""
@@ -322,6 +321,22 @@ class SubAgentTool(EventEmittingTool):
     def set_permission_negotiator(self, negotiator: Any | None) -> None:
         """Use the parent session's broker for child permission escalation."""
         self._permission_negotiator = negotiator
+
+    def set_child_runner(self, runner: Any) -> None:
+        """Inject the execution owner used for isolated child runs."""
+
+        if not callable(getattr(runner, "run", None)):
+            raise TypeError("child runner must provide run(...)")
+        self._child_runner = runner
+
+    def _resolve_child_runner(self) -> Any:
+        if self._child_runner is None:
+            # Standalone Tool construction remains useful to third parties and
+            # tests. Production composition injects the same runner explicitly.
+            from box_agent.services.delegation import KernelChildAgentRunner
+
+            self._child_runner = KernelChildAgentRunner()
+        return self._child_runner
 
     def _resolve_child_tools(self) -> dict[str, Tool]:
         """Return the child toolset: live parent map minus ``sub_agent``."""
@@ -496,6 +511,22 @@ class SubAgentTool(EventEmittingTool):
         ErrorEvent,
     )
 
+    _KERNEL_PROGRESS_TYPES = frozenset(
+        {
+            "step.started",
+            "model.content.delta",
+            "model.thinking.delta",
+            "model.response.completed",
+            "tool.call.requested",
+            "tool.progress",
+            "tool.call.completed",
+            "artifact.created",
+            "run.completed",
+            "run.cancelled",
+            "run.failed",
+        }
+    )
+
     async def execute_with_event_context(
         self,
         *,
@@ -508,6 +539,19 @@ class SubAgentTool(EventEmittingTool):
             _event_queue=event_queue,
             _parent_tool_call_id=parent_tool_call_id,
         )
+
+    async def _invoke_validated(
+        self,
+        arguments: dict[str, Any],
+        *,
+        context: Any | None,
+    ) -> ToolResult:
+        if isinstance(context, ToolExecutionContext):
+            return await self.execute(
+                **arguments,
+                _runtime_context=context,
+            )
+        return await super()._invoke_validated(arguments, context=context)
 
     def _explicit_messages(
         self,
@@ -655,8 +699,12 @@ class SubAgentTool(EventEmittingTool):
         if usage is None:
             return {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
         if isinstance(usage, dict):
-            prompt_tokens = int(usage.get("prompt_tokens", 0) or 0)
-            completion_tokens = int(usage.get("completion_tokens", 0) or 0)
+            prompt_tokens = int(
+                usage.get("input_tokens", usage.get("prompt_tokens", 0)) or 0
+            )
+            completion_tokens = int(
+                usage.get("output_tokens", usage.get("completion_tokens", 0)) or 0
+            )
             total_tokens = int(usage.get("total_tokens", 0) or 0)
         else:
             prompt_tokens = int(getattr(usage, "prompt_tokens", 0) or 0)
@@ -695,6 +743,153 @@ class SubAgentTool(EventEmittingTool):
             )
         )
 
+    @staticmethod
+    def _legacy_events_for_kernel(event: KernelAgentEvent) -> tuple[Any, ...]:
+        """Translate stable child facts only for the retiring Loop consumers."""
+
+        payload = event.payload
+        if event.type == "step.started":
+            return (
+                StepStart(
+                    step=int(payload.get("step", 0) or 0),
+                    max_steps=int(payload.get("max_steps", 0) or 0),
+                ),
+            )
+        if event.type == "model.response.completed":
+            raw_usage = payload.get("usage")
+            usage = None
+            if isinstance(raw_usage, dict):
+                usage = {
+                    "prompt_tokens": int(raw_usage.get("input_tokens", 0) or 0),
+                    "completion_tokens": int(
+                        raw_usage.get("output_tokens", 0) or 0
+                    ),
+                    "total_tokens": int(raw_usage.get("total_tokens", 0) or 0),
+                }
+            return (
+                LLMOutputEvent(
+                    step=0,
+                    content=str(payload.get("content", "") or ""),
+                    thinking=str(payload.get("thinking", "") or "") or None,
+                    tool_calls=None,
+                    finish_reason=str(payload.get("finish_reason", "stop") or "stop"),
+                    usage=usage,
+                    provider_request_id=(
+                        str(payload.get("provider_request_id"))
+                        if payload.get("provider_request_id")
+                        else None
+                    ),
+                ),
+            )
+        if event.type == "tool.call.requested":
+            return (
+                ToolCallStart(
+                    tool_call_id=str(payload.get("call_id", "")),
+                    tool_name=str(payload.get("tool_name", "tool")),
+                    arguments=dict(payload.get("arguments", {}) or {}),
+                ),
+            )
+        if event.type == "tool.call.completed":
+            error = payload.get("error")
+            error_text = (
+                str(error.get("message", "") or "")
+                if isinstance(error, dict)
+                else str(error or "")
+            )
+            completed = ToolCallResult(
+                tool_call_id=str(payload.get("call_id", "")),
+                tool_name=str(payload.get("tool_name", "tool")),
+                success=payload.get("status") == "succeeded",
+                content=str(payload.get("content", "") or ""),
+                error=error_text or None,
+                raw_output=(
+                    dict(payload["output"])
+                    if isinstance(payload.get("output"), dict)
+                    else None
+                ),
+            )
+            values: list[Any] = [completed]
+            if completed.tool_name == "web_search" and completed.content:
+                try:
+                    web_payload = json.loads(completed.content)
+                except (TypeError, ValueError):
+                    web_payload = None
+                if isinstance(web_payload, dict) and isinstance(
+                    web_payload.get("refs"), list
+                ):
+                    values.append(
+                        WebSearchEvent(
+                            tool_call_id=completed.tool_call_id,
+                            payload=web_payload,
+                        )
+                    )
+            return tuple(values)
+        if event.type == "artifact.created":
+            return (
+                ArtifactEvent(
+                    tool_call_id=str(payload.get("call_id", "")),
+                    kind=str(payload.get("kind", "file") or "file"),
+                    filename=str(payload.get("filename", "") or ""),
+                    rel_path=str(payload.get("rel_path", "") or ""),
+                    abs_path=str(payload.get("abs_path", "") or ""),
+                    uri=str(payload.get("uri", "") or ""),
+                    mime=str(
+                        payload.get("mime", "application/octet-stream")
+                        or "application/octet-stream"
+                    ),
+                    size=int(payload.get("size", -1) or -1),
+                    sha256=str(payload.get("sha256", "") or ""),
+                    produced_at=str(payload.get("produced_at", "") or ""),
+                    layout_id=str(payload.get("layout_id", "") or ""),
+                    edit_mode=str(payload.get("edit_mode", "") or ""),
+                ),
+            )
+        if event.type == "run.failed":
+            error = payload.get("error")
+            return (
+                ErrorEvent(
+                    message=(
+                        str(error.get("message", "") or "")
+                        if isinstance(error, dict)
+                        else str(error or "child run failed")
+                    ),
+                    is_fatal=True,
+                ),
+            )
+        return ()
+
+    async def _forward_kernel_event(
+        self,
+        event: KernelAgentEvent,
+        *,
+        queue: asyncio.Queue | None,
+        runtime_context: ToolExecutionContext | None,
+        parent_tool_call_id: str,
+        task_preview: str,
+        sub_agent_id: str,
+        title: str,
+    ) -> None:
+        if runtime_context is not None and event.type in self._KERNEL_PROGRESS_TYPES:
+            await runtime_context.publish_progress(
+                "subagent.event",
+                {
+                    "sub_agent_id": sub_agent_id,
+                    "title": title,
+                    "task_preview": task_preview,
+                    "event": event.to_dict(),
+                },
+            )
+        for nested in self._legacy_events_for_kernel(event):
+            if isinstance(nested, self._FORWARD_TYPES):
+                self._put_sub_event(
+                    queue,
+                    parent_tool_call_id=parent_tool_call_id,
+                    task_preview=task_preview,
+                    sub_agent_id=sub_agent_id,
+                    title=title,
+                    event=nested,
+                )
+
     async def _run_general_loop(
         self,
         *,
@@ -709,58 +904,64 @@ class SubAgentTool(EventEmittingTool):
         task_preview: str,
         sub_agent_id: str,
         title: str,
+        runtime_context: ToolExecutionContext | None,
     ) -> ToolResult:
-        # Import lazily because the runtime facade initializes the core, which
-        # imports tool contracts while this module may still be loading.
-        from ..runtime import run_agent_loop
-
         final_content = ""
         pending_child_tc: dict[str, str] = {}
         model_calls = 0
         tool_calls = 0
         usage = {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
+
+        async def on_child_event(event: KernelAgentEvent) -> None:
+            nonlocal model_calls, tool_calls
+            if event.type == "tool.call.requested":
+                call_id = str(event.payload.get("call_id", ""))
+                tool_name = str(event.payload.get("tool_name", "tool"))
+                pending_child_tc[call_id] = tool_name
+                tool_calls += 1
+            elif event.type == "tool.call.completed":
+                pending_child_tc.pop(str(event.payload.get("call_id", "")), None)
+            elif event.type == "model.response.completed":
+                model_calls += 1
+                self._accumulate_usage(
+                    usage,
+                    self._usage_payload(event.payload.get("usage")),
+                )
+            await self._forward_kernel_event(
+                event,
+                queue=queue,
+                runtime_context=runtime_context,
+                parent_tool_call_id=parent_tool_call_id,
+                task_preview=task_preview,
+                sub_agent_id=sub_agent_id,
+                title=title,
+            )
+
         try:
-            async for event in run_agent_loop(
+            result = await self._resolve_child_runner().run(
                 llm=llm,
                 messages=messages,
                 tools=child_tools,
                 max_steps=max_steps,
                 max_tool_calls=max_tool_calls,
-                tool_limits=self._tool_limits,
-                token_limit=self._token_limit,
-                workspace_dir=self._workspace_dir,
-                provider_stale_seconds=self._provider_stale_seconds,
-                no_progress_limit=self._no_progress_limit,
-                artifact_detection_enabled=self._artifact_detection_enabled,
-                artifact_root_dir=self._artifact_root_dir,
+                max_parallel_tools=_DEFAULT_AGENT_CONFIG.max_parallel_tools,
+                context_budget=self._token_limit,
                 permission_negotiator=self._permission_negotiator,
-                cache_fingerprint_context={
+                session_id=sub_agent_id,
+                turn_id=f"{sub_agent_id}:turn-1",
+                metadata={
+                    "workspace_dir": self._workspace_dir,
+                    "provider_stale_seconds": self._provider_stale_seconds,
+                    "no_progress_limit": self._no_progress_limit,
+                    "artifact_detection_enabled": self._artifact_detection_enabled,
+                    "artifact_root_dir": self._artifact_root_dir,
+                    "call_kind": "subagent_step",
                     "sub_agent_strategy": diagnostic.get("strategy"),
                     "resolved_skills": diagnostic.get("resolved_skills", []),
                 },
-                call_kind="subagent_step",
-            ):
-                if isinstance(event, ToolCallStart):
-                    pending_child_tc[event.tool_call_id] = event.tool_name
-                    if event.user_visible:
-                        tool_calls += 1
-                elif isinstance(event, ToolCallResult):
-                    pending_child_tc.pop(event.tool_call_id, None)
-                elif isinstance(event, LLMOutputEvent):
-                    model_calls += 1
-                    self._accumulate_usage(usage, self._usage_payload(event.usage))
-
-                if isinstance(event, DoneEvent):
-                    final_content = event.final_content
-                elif isinstance(event, self._FORWARD_TYPES):
-                    self._put_sub_event(
-                        queue,
-                        parent_tool_call_id=parent_tool_call_id,
-                        task_preview=task_preview,
-                        sub_agent_id=sub_agent_id,
-                        title=title,
-                        event=event,
-                    )
+                emit=on_child_event,
+            )
+            final_content = result.final_message
         except Exception as exc:
             for tc_id, tool_name in pending_child_tc.items():
                 self._put_sub_event(
@@ -798,6 +999,26 @@ class SubAgentTool(EventEmittingTool):
             "tool_calls": tool_calls,
             "usage": usage,
         }
+        if result.status == "failed":
+            message = (
+                result.error.message
+                if result.error is not None
+                else "Sub-agent execution failed."
+            )
+            from ..llm.error_messages import classify_llm_error
+
+            friendly = classify_llm_error(RuntimeError(message)).message
+            return ToolResult(
+                success=False,
+                content=friendly,
+                error=message,
+                raw_output={
+                    **raw_output,
+                    "run_status": result.status,
+                    "stop_reason": result.stop_reason,
+                    "error": result.error.to_dict() if result.error else None,
+                },
+            )
         if not final_content:
             return ToolResult(
                 success=False,
@@ -819,6 +1040,7 @@ class SubAgentTool(EventEmittingTool):
         task_preview: str,
         sub_agent_id: str,
         title: str,
+        runtime_context: ToolExecutionContext | None,
     ) -> ToolResult:
         files = list(bundle.spec.files)
         read_tool = bundle.tools["read_file"]
@@ -965,28 +1187,45 @@ class SubAgentTool(EventEmittingTool):
             )
         messages[-1].content = f"{messages[-1].content}\n\n" + "\n".join(blocks)
 
-        self._put_sub_event(
-            queue,
-            parent_tool_call_id=parent_tool_call_id,
-            task_preview=task_preview,
-            sub_agent_id=sub_agent_id,
-            title=title,
-            event=StepStart(step=1, max_steps=1),
-        )
+        async def on_child_event(event: KernelAgentEvent) -> None:
+            await self._forward_kernel_event(
+                event,
+                queue=queue,
+                runtime_context=runtime_context,
+                parent_tool_call_id=parent_tool_call_id,
+                task_preview=task_preview,
+                sub_agent_id=sub_agent_id,
+                title=title,
+            )
+
         try:
-            synthesis = llm.generate(
+            synthesis = self._resolve_child_runner().run(
+                llm=llm,
                 messages=messages,
-                tools=None,
-                thinking_enabled=False,
-                call_kind="subagent_step",
+                tools={},
+                max_steps=1,
+                max_tool_calls=None,
+                max_parallel_tools=1,
+                context_budget=self._token_limit,
+                permission_negotiator=None,
+                session_id=sub_agent_id,
+                turn_id=f"{sub_agent_id}:turn-1",
+                metadata={
+                    "title": title,
+                    "call_kind": "subagent_step",
+                    "sub_agent_strategy": diagnostic.get("strategy"),
+                    "resolved_skills": diagnostic.get("resolved_skills", []),
+                },
+                prefer_generate=True,
+                emit=on_child_event,
             )
             if self._batch_synthesis_timeout_seconds > 0:
-                response = await asyncio.wait_for(
+                run_result = await asyncio.wait_for(
                     synthesis,
                     timeout=self._batch_synthesis_timeout_seconds,
                 )
             else:
-                response = await synthesis
+                run_result = await synthesis
         except asyncio.TimeoutError:
             payload = {
                 **diagnostic,
@@ -1021,26 +1260,9 @@ class SubAgentTool(EventEmittingTool):
                 },
             )
 
-        content = getattr(response, "content", "") or ""
-        usage = self._usage_payload(getattr(response, "usage", None))
-        self._put_sub_event(
-            queue,
-            parent_tool_call_id=parent_tool_call_id,
-            task_preview=task_preview,
-            sub_agent_id=sub_agent_id,
-            title=title,
-            event=LLMOutputEvent(
-                step=1,
-                content=content,
-                thinking=getattr(response, "thinking", None),
-                tool_calls=None,
-                finish_reason=getattr(response, "finish_reason", "stop") or "stop",
-                usage={
-                    "prompt_tokens": usage["input_tokens"],
-                    "completion_tokens": usage["output_tokens"],
-                    "total_tokens": usage["total_tokens"],
-                },
-            ),
+        content = run_result.final_message or ""
+        usage = self._usage_payload(
+            run_result.usage.to_dict() if run_result.usage is not None else None
         )
         raw_output = {
             **diagnostic,
@@ -1049,6 +1271,25 @@ class SubAgentTool(EventEmittingTool):
             "usage": usage,
             "aggregate_chars": aggregate_chars,
         }
+        if run_result.status == "failed":
+            message = (
+                run_result.error.message
+                if run_result.error is not None
+                else "Sub-agent batch synthesis failed."
+            )
+            return ToolResult(
+                success=False,
+                content="",
+                error=message,
+                raw_output={
+                    **raw_output,
+                    "run_status": run_result.status,
+                    "stop_reason": run_result.stop_reason,
+                    "error": (
+                        run_result.error.to_dict() if run_result.error else None
+                    ),
+                },
+            )
         if not content.strip():
             return ToolResult(
                 success=False,
@@ -1061,6 +1302,7 @@ class SubAgentTool(EventEmittingTool):
     def _resolve_task_llm(
         self,
         *,
+        llm: Any | None = None,
         task: str,
         strategy: str,
         required_tools: tuple[str, ...] = (),
@@ -1068,7 +1310,7 @@ class SubAgentTool(EventEmittingTool):
         files: tuple[str, ...] = (),
     ) -> tuple[Any, dict[str, Any]]:
         return resolve_model_client(
-            self._llm,
+            llm if llm is not None else self._llm,
             task=task,
             strategy=strategy,
             required_tools=required_tools,
@@ -1088,6 +1330,7 @@ class SubAgentTool(EventEmittingTool):
         *,
         _event_queue: asyncio.Queue | None = None,
         _parent_tool_call_id: str | None = None,
+        _runtime_context: ToolExecutionContext | None = None,
         **unexpected: Any,
     ) -> ToolResult:
         invalid_top_level = sorted(unexpected)
@@ -1166,7 +1409,18 @@ class SubAgentTool(EventEmittingTool):
             "type": "sub_agent_delegation",
             **resolved.diagnostic_payload(),
         }
+        run_llm = self._llm
+        if _runtime_context is not None:
+            run_llm = bind_session_llm(
+                self._llm,
+                dict(_runtime_context.metadata),
+                session_id=_runtime_context.session_id,
+                turn_id=_runtime_context.turn_id,
+                title=title,
+                call_kind="sub_agent",
+            )
         child_llm, model_routing = self._resolve_task_llm(
+            llm=run_llm,
             task=parsed.task,
             strategy=parsed.strategy,
             required_tools=(
@@ -1190,6 +1444,7 @@ class SubAgentTool(EventEmittingTool):
                 task_preview=task_preview,
                 sub_agent_id=sub_agent_id,
                 title=sub_title,
+                runtime_context=_runtime_context,
             )
 
         return await self._run_general_loop(
@@ -1204,4 +1459,5 @@ class SubAgentTool(EventEmittingTool):
             task_preview=task_preview,
             sub_agent_id=sub_agent_id,
             title=sub_title,
+            runtime_context=_runtime_context,
         )

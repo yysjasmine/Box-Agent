@@ -6,6 +6,8 @@ import io
 import json
 import sys
 
+import pytest
+
 from box_agent.acp import runtime_entry
 from box_agent.mcp_servers import web_extract_server
 from box_agent.tools import mcp_bootstrap
@@ -54,3 +56,25 @@ def test_runtime_entry_dispatches_web_extract_mcp(monkeypatch, tmp_path) -> None
             assert called == [True]
             assert sys.stdout is protocol_stdout
             assert protocol_stdout.closed is False
+
+
+def test_runtime_entry_starts_the_only_agent_runtime(monkeypatch) -> None:
+    seen: dict[str, object] = {}
+
+    async def fake_run_acp_server():
+        seen["called"] = True
+
+    import box_agent.acp as acp_module
+
+    monkeypatch.setattr(acp_module, "run_acp_server", fake_run_acp_server)
+    monkeypatch.setattr(sys, "argv", ["box-agent-acp"])
+    runtime_entry.main()
+
+    assert seen["called"] is True
+
+
+def test_runtime_entry_rejects_retired_runtime_flag(monkeypatch) -> None:
+    monkeypatch.setattr(sys, "argv", ["box-agent-acp", "--runtime=legacy"])
+
+    with pytest.raises(SystemExit, match="unrecognized arguments"):
+        runtime_entry.main()

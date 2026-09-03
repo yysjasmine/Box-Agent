@@ -1,6 +1,5 @@
 """Anthropic LLM client implementation."""
 
-import inspect
 import logging
 from collections.abc import AsyncIterator
 from time import monotonic
@@ -8,7 +7,8 @@ from typing import Any
 
 import anthropic
 
-from ..retry import RetryConfig, StreamInterrupted, async_retry, is_retryable_stream_error
+from .retry import RetryConfig, StreamInterrupted, async_retry, is_retryable_stream_error
+from .async_utils import await_if_needed
 from ..schema import FunctionCall, LLMResponse, Message, StreamEvent, TokenUsage, ToolCall
 from ..tools.argument_limits import (
     PROVIDER_STREAM_ACTIVITY_INTERVAL_SECONDS,
@@ -30,13 +30,6 @@ logger = logging.getLogger(__name__)
 # larger than this rarely improve answer quality for agentic workflows and
 # waste tokens. Tune here if we ever expose it as config.
 _THINKING_BUDGET = 8000
-
-
-async def _await_if_needed(value: Any) -> Any:
-    """Return awaitable SDK values and direct SDK values through one path."""
-    if inspect.isawaitable(value):
-        return await value
-    return value
 
 
 class AnthropicClient(LLMClientBase):
@@ -136,7 +129,7 @@ class AnthropicClient(LLMClientBase):
         log_llm_request(provider="anthropic", mode="completion", api_base=self.api_base, params=params)
 
         try:
-            raw_response = await _await_if_needed(
+            raw_response = await await_if_needed(
                 self.client.messages.with_raw_response.create(**params)
             )
             log_llm_response_meta(
@@ -145,12 +138,12 @@ class AnthropicClient(LLMClientBase):
                 request_id=getattr(raw_response, "request_id", None),
                 headers=getattr(raw_response, "headers", None),
             )
-            response = await _await_if_needed(raw_response.parse())
+            response = await await_if_needed(raw_response.parse())
         except AttributeError:
             # Test doubles and older SDK-compatible clients may not expose
             # ``with_raw_response``. Keep the request log and fall back to the
             # existing behavior, but request-id metadata will be unavailable.
-            response = await _await_if_needed(self.client.messages.create(**params))
+            response = await await_if_needed(self.client.messages.create(**params))
         except Exception as exc:
             log_llm_error_meta(provider="anthropic", mode="completion", exc=exc)
             raise

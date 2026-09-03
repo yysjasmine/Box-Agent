@@ -1,6 +1,7 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with
+code in this repository.
 
 ## Response Language
 
@@ -8,162 +9,187 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Implementation Principles
 
-实现功能时必须同时考虑 macOS、Windows、Linux 三端，以及 CLI 与 ACP runtime 两种入口。核心功能应在共享核心逻辑中实现，CLI 和 ACP runtime 只作为包装层接入，不应各自维护分叉实现。
+实现功能时必须同时考虑 macOS、Windows、Linux 三端，以及 CLI 与 ACP runtime
+两种入口。共享行为应通过 API、Kernel、Service、Plugin 或 capability 模块实现；
+CLI、ACP 和 SDK 只做协议适配，不维护分叉的 Agent 循环。
+
+修改前先运行 `git status --short --branch`，保留工作区里与当前任务无关的修改。
+分析、审查和状态查询保持只读；没有明确授权时，不提交、推送、发布或安装 runtime。
 
 ## Code Discovery With Understand Anything
 
-When investigating code paths, ownership, architecture, dependencies, or impact scope, first check whether `.understand-anything/` exists. This repository expects agents to use Understand Anything as the first navigation layer when it is available, before falling back to broad manual search.
+调查代码路径、所有权、架构、依赖或影响范围时，先检查已提交的
+`.understand-anything/knowledge-graph.json`，并比较图谱与
+`.understand-anything/meta.json` 记录的 `gitCommitHash` 和当前源码。图谱只用于
+导航，结论必须通过 `rg`、源码直读、聚焦测试、日志或运行探针确认。
 
-Treat Understand Anything output as an index and orientation aid, not the final source of truth. Always verify conclusions against the real source code with `rg`, direct file reads, focused tests, or runtime evidence before explaining behavior or making edits.
-
-In multi-developer environments, do not assume every checkout has a usable local graph. If `.understand-anything/` or the required Understand Anything tooling is missing, say so briefly and recommend installing/initializing Understand Anything for this repository, then continue with normal source search if the task can still proceed. If the graph appears stale, incomplete, or inconsistent with source code, call that out and verify with source files.
-
-Do not make code changes based only on the graph, and do not launch dashboards or long-running indexing commands unless the task explicitly needs them.
+共享图谱、metadata 与 fingerprints 必须由 Understand Anything 一起生成，不得
+手工修改。若图谱缺失或过期，应说明限制；任务仍可继续时使用常规源码搜索。
+除非任务明确要求，不启动 dashboard 或长时间索引。具体维护流程见
+`docs/UNDERSTAND_ANYTHING_CN.md`。
 
 ## Collaboration and Review Rules
 
-For every non-trivial change, keep the TPR frame explicit:
+非简单改动使用 TPR 框架：
 
-- Task: what behavior is changing, which entry points are affected, and what is intentionally out of scope.
-- Proof: the exact tests, probes, logs, screenshots, generated manifests, or runtime checks that prove the change.
-- Risk: compatibility, packaging/runtime, migration, config/secrets, rollback, and cross-repository impacts.
+- Task：改什么行为、影响哪些入口、哪些内容不在范围内；
+- Proof：准确列出测试、探针、日志、截图、生成产物或 runtime 证据；
+- Risk：兼容性、打包/runtime、迁移、配置/密钥、回滚和跨仓库影响。
 
-Prefer small PRs with one behavioral purpose. Shared behavior belongs in shared core logic; CLI and ACP should stay thin adapters unless the request is entry-point-specific. If a source change affects officev3 or any packaged runtime path, explicitly state whether the runtime was rebuilt/installed/probed or whether verification is source-only.
+共享行为只实现一次。稳定 Kernel 不应承载可由 Tool、Skill、Hook、事件消费者、
+运行选项、Completion Gate 或 `WorkflowPolicy` 表达的产品特定逻辑。
 
 ## Project Overview
 
-Box-Agent is a minimal yet professional AI agent framework supporting multiple LLM providers (Anthropic, OpenAI-compatible, DeepSeek, SiliconFlow, and any third-party API). It features interleaved thinking, tool calling, MCP support, and a Claude Skills system.
+Box-Agent 是一个支持 Anthropic、OpenAI-compatible 及第三方端点的 Agent runtime，
+具备流式思考、工具调用、MCP、Skills、持久化会话、权限协商、Context/Memory、
+工作流策略以及 CLI/ACP/SDK 多宿主适配能力。
 
-## Build & Run Commands
+## Build and Run
 
 ```bash
 # Setup
 uv sync
-git submodule update --init --recursive  # Load skills
 
-# Run (development)
+# Development CLI
 uv run python -m box_agent.cli
-# Run (installed)
+uv run python -m box_agent.cli --help
+
+# Installed entry points
 box-agent
-
-# Non-interactive mode
-box-agent --task "do something"
-
-# CLI subcommands
-box-agent setup             # Interactive setup wizard
-box-agent config            # Show current configuration
-box-agent config --edit     # Open config in editor
-box-agent doctor            # Check environment & API connectivity
-box-agent log               # Open log directory
-
-# Tests
-pytest tests/ -v                         # All tests
-pytest tests/test_agent.py -v            # Single test file
-pytest tests/test_agent.py::TestAgent::test_method -v  # Single test
-pytest --cov                             # With coverage
-
-# ACP server
 box-agent-acp
+
+# Non-interactive and diagnostics
+box-agent --task "do something"
+box-agent setup
+box-agent config
+box-agent doctor
+box-agent trace-viewer
+
+# Focused architecture checks
+uv run pytest tests/test_agent_loop_kernel.py tests/test_kernel_service.py -q
+uv run pytest tests/test_acp_kernel_adapter.py tests/test_acp_projection.py -q
+
+# Full suite
+uv run pytest tests/ -v
 ```
+
+Pytest 配置已启用 `asyncio_mode = "auto"`，异步测试无需重复添加 marker。
 
 ## Architecture
 
-**Execution core** (`core.py`): `run_agent_loop()` is the single source of truth for the agent loop. It is an `AsyncGenerator[AgentEvent, None]` that yields structured events (`StepStart`, `ThinkingEvent`, `ContentEvent`, `ToolCallStart`, `ToolCallResult`, `DoneEvent`, `ArtifactEvent`, etc.) defined in `events.py`. No `print()` or `input()` calls — all I/O is delegated to consumers. Two-layer context compression: Layer 1 micro-compact (zero-cost, replaces old tool results with placeholders every step) + Layer 2 token-aware summarization (LLM summary at 80k threshold). Cancellation support and universal artifact detection (regex-based + workspace diff-based).
+运行时只有一个执行所有者：`box_agent/kernel/loop.py` 中的
+`AgentLoopKernel`。`box_agent/services/kernel.py` 的 `KernelAgentService`
+负责会话、Run、事件提交与重放、控制命令、租约和恢复。CLI、ACP、SDK 与历史
+`Agent.run_events()` API 都提交 `box_agent.api` 契约，并只渲染或投影
+`AgentEvent`。
 
-**Agent** (`agent.py`): Public API wrapper. `Agent.run_events()` returns the raw event stream; `Agent.run()` is a backward-compatible method that consumes events and renders them to the terminal via `_render_event()`.
+```text
+box_agent/
+├─ api/              稳定 DTO、事件、控制命令、端口和句柄
+├─ kernel/           唯一 AgentLoopKernel、工作流组合与 run-scope DI
+├─ services/         会话/运行生命周期、重放、控制、租约和子任务委派
+├─ plugins/          manifest、类型化注册表、激活与释放
+├─ adapters/         CLI、ACP、SDK 的协议适配层
+├─ context/          Context SPI、贡献器与确定性压缩
+├─ memory_engine/    Memory SPI、存储、抽取、整合与维护
+├─ permissions/      默认拒绝的权限策略与协商 gateway
+├─ persistence/      Session/Event/Checkpoint/Effect/Lease 持久层
+├─ tools/            注册表驱动的工具引擎及具体工具
+├─ workflows/        Goal、Plan、PPT、Skill、Completion Gate 等策略
+├─ llm/              Provider 客户端、重试、流式响应与 usage
+├─ observability/    日志、session trace 与请求指纹
+├─ acp/              ACP bootstrap、协议与 runtime 组装
+└─ compat/           历史 API/import 形状到 Kernel 的兼容层
+```
 
-**ACP bridge** (`acp/`): Consumes `run_agent_loop()` events and translates them to ACP protocol updates (`sessionUpdate`). Streaming deltas (thinking/content) are forwarded in real-time — each delta triggers an immediate `update_agent_thought`/`update_agent_message` send (no accumulation). Supports `session_mode` via ACP `_meta` (currently `data_analysis` and `code_agent`); when omitted, no mode prompt is applied (general mode) — `session_mode` must be supplied explicitly by the caller. Mode-specific system prompts are injected via `_build_session_prompt()` using the `_MODE_PROMPT_MAP` dict (`data_analysis → analysis_prompt_path`, `code_agent → code_prompt_path`). Automatically inherits summarization, logging, and safety from the shared core.
+根目录的 `core.py`、`agent.py`、`runtime.py`、`events.py`、`cli.py` 以及若干
+持久化模块是兼容或可执行 facade，不是第二套实现。详细所有权和依赖方向见
+`docs/ARCHITECTURE_CN.md`，当前能力清单见
+`docs/runtime-capability-matrix.md`。
 
-**LLM layer** (`llm/`): Multi-provider via `LLMClient` wrapper. `AnthropicClient` handles Anthropic-protocol APIs; `OpenAIClient` handles OpenAI-protocol APIs. Both implement `LLMClientBase`. The `api_base` is used as-is (no automatic URL suffix), so any third-party endpoint works directly. Both clients accept a session-level `thinking_enabled` kwarg: Anthropic sends `thinking={"type": "enabled", "budget_tokens": 8000}`; Providers that don't recognize the fields silently ignore them.
+## Runtime Invariants
 
-**Tool system** (`tools/`): Abstract `Tool` base class with `to_schema()` (Anthropic format), `to_openai_schema()`, and `parallel_safe` attribute. `EventEmittingTool(Tool)` adds real-time progress event emission via `asyncio.Queue` — used by `SubAgentTool`. Built-in tools: `ReadTool`, `WriteTool`, `EditTool`, `BashTool`, `BashOutputTool`, `BashKillTool`, `TodoWriteTool`, `TodoReadTool`, `SubAgentTool`, `MemoryWriteTool`, `MemoryReadTool`, `MemorySearchTool`. MCP tools loaded via `mcp_loader.py`. Skills loaded from `SKILL.md` files with YAML frontmatter via `skill_loader.py`.
+- `box_agent/api/` 只放稳定、可序列化、与宿主无关的契约。
+- Kernel 不导入 CLI、ACP 或具体工作流；`kernel/composer.py` 从
+  `PluginHost` 的类型化注册表解析一次运行所需能力。
+- Tool 固定经过：Schema 校验 → 权限预检 → `Hook.before_tool` → 修改后重验
+  → effect fence → executor → `Hook.after_tool` → 结果归一化。
+- Context、Memory、Permission、LLM、Tool、Workflow、Hook 与持久层都通过
+  public port/registry 组合。第三方插件使用 `box_agent.plugins` entry point。
+- 未注册的显式 `workflow_id`、未知 capability、plugin/schema replay 不匹配都
+  fail closed，不静默降级为另一条执行路径。
+- Event 具有稳定 identity 与单调 sequence；终态只出现一次。`attach()` 只观察，
+  `resume()` 才显式取得执行租约。
+- Session/Event/Checkpoint/Effect/Lease 持久化的是可重放事实，不保存 Python
+  调用栈；恢复不得重复已经确认的副作用。
+- 权限范围默认受 workspace 限制。宿主协商批准后才能重试被拒工具；非交互运行
+  不得隐式放宽权限。
+- 产物统一进入 `{workspace}/output/`。宿主只信任该目录下经过校验的 artifact
+  envelope。
+- ACP stdout 只允许协议帧，所有日志与第三方诊断输出写入 stderr。
+- Goal、Plan、PPT、Skill、Completion Gate 和 Autopilot 都是原生 workflow
+  plugin；parity 状态以 `tests/parity/migration_status.json` 为准。
+- 内置 Skills 通过 `box_agent/skills/_manifest.json` 加载。修改后运行
+  `uv run python scripts/generate_skills_manifest.py` 并检查 diff。
+- LibreOffice (`soffice`) 和 Playwright Chromium 是外部运行依赖，不应假定已安装。
 
-**Memory system** (`memory.py`): Dual-file architecture — `MEMORY.md` (core: user identity/preferences, always injected into system prompt) + `CONTEXT.md` (searchable: project context/task patterns, retrieved on demand via `memory_search` tool). `MemoryExtractor` runs as background `asyncio.create_task` at three lifecycle points: before context compression, every N steps, and at agent loop end (`DoneEvent`). Writes only to CONTEXT.md with line-level exact-match merges. One-time LLM-filtered import from `~/.openclaw/` (USER.md + MEMORY.md) into core on first startup. `append_context()` enforces code-level dedup against core — lines already in MEMORY.md are automatically filtered. Config: `enable_memory_extraction`, `memory_extraction_cooldown`, `memory_extraction_step_interval`. Per-session `MemoryExtractor` instances in ACP to avoid cross-session state leaks.
+## Change Ownership and Proof
 
-**Sandbox** (`tools/jupyter_tool.py`): Dual-mode execution environment. In normal mode: subprocess kernel in isolated venv (`SandboxEnvironment` + `JupyterKernelSession`). In frozen/runtime mode: in-process kernel (`InProcessKernelSession` via `ipykernel.inprocess`) with bundled packages. `IS_FROZEN` flag (from `sys.frozen`) selects the mode. Runtime package installs go to `~/.box-agent/runtime-packages/` via pip-as-library, gated by `ALLOWED_RUNTIME_PACKAGES` whitelist. Structured error codes: `SANDBOX_INIT_FAILED`, `KERNEL_START_FAILED`, `KERNEL_DIED`, `PACKAGE_NOT_ALLOWED`, `PACKAGE_NOT_AVAILABLE`. All kernel `execute()` calls run in `run_in_executor` + `asyncio.wait_for` to avoid blocking the event loop; pip install operations have a 120s timeout.
+- API、Kernel、调度、取消、安全不变量：聚焦回归测试后运行相关 Kernel/ACP
+  suite，条件允许时再跑全量测试。
+- Tool：覆盖成功路径与重要失败路径；不要直接调用 executor 绕过工具引擎。
+- Provider/LLM wire：覆盖正常、畸形响应和错误响应。
+- Context/Memory/Persistence：覆盖配置开关、恢复、重放与持久化边界。
+- CLI-only：使用聚焦 CLI 测试或捕获输出，并确认没有在 ACP 重复实现。
+- ACP/host metadata：验证协议投影以及 stdout/stderr 边界。
+- MCP：运行 loader/config 测试和有边界的状态或连接探针。
+- 文档：检查路径、链接、命令，并运行 `git diff --check`。
 
-**Safety layer** (`tools/safety.py`): Dangerous command detection (rm, sudo, kill, etc.) with user confirmation prompt (supports Chinese). Workspace path validation blocks access outside workspace when `allow_full_access: false`. Auto-backup to `~/.box-agent/trash/{timestamp}/` before file modifications. Non-interactive mode (`--task`) rejects dangerous commands outright.
-
-**Loop guards** (`loop_guards.py`): Per-tool call budgets, no-progress / near-limit wrap-up nudges injected into the conversation, and `CompletionGate` / `build_auto_completion_gate()` — the engine behind the `--no-completion-gate` flag and goal-autopilot "no progress" stop logic. Imported by `core.py`, `cli.py`, `agent.py`, and `acp/`.
-
-**Experts** (`experts.py`): Expert / expert-team session metadata for host integrations (`ExpertProfile`, `ExpertTeamProfile`, `ExpertSessionContext`, workflow stages). Each renders prompt fragments via `render_prompt()` that `acp/` injects into the system prompt. ACP-only (host-supplied via `_meta`).
-
-**Auth** (`auth.py`): Bearer-token / hosted-gateway auth headers (`resolve_auth_token`, `bearer_auth_headers`, `should_attach_auth_header`, `request_auth_headers`). Consumed by `llm/base.py`, `config.py`, `mcp_loader.py`, and `image_generation_tool.py`.
-
-**Shared types** (`schema/`): Core Pydantic/Enum definitions (`LLMProvider`, `Message`, `ToolCall`, `LLMResponse`, `TokenUsage`, `StreamEvent`) re-exported via `schema/__init__.py`. `utils/terminal_utils.py` holds CJK-aware terminal width helpers (`calculate_display_width`, `truncate_with_ellipsis`, `pad_to_width`).
-
-**Config** (`config.py`): Pydantic models. Load priority: `box_agent/config/` (dev) → `~/.box-agent/config/` (installed) → package directory (fallback). Main files: `config.yaml`, `system_prompt.md`, `analysis_prompt.md`, `code_prompt.md`, `mcp.json`.
-
-**CLI** (`cli.py`): Interactive mode with prompt_toolkit. In-session commands: `/help`, `/clear`, `/history`, `/stats`, `/log`, `/exit`. Subcommands: `setup`, `config`, `doctor`, `log`. Auto-launches setup wizard on first run or when API connection fails.
-
-## Key Patterns
-
-- All LLM and tool calls are async
-- Retry with exponential backoff (`retry.py`, `@async_retry` decorator)
-- Tools return `ToolResult` (Pydantic model with success/content/error)
-- Skills use progressive disclosure: YAML metadata loaded first, full content on-demand
-- Skills discovery is off the ACP boot critical path: `initialize_base_tools(defer_skills=True)` returns a background `skill_task` (see `box_agent/tools/setup.py::await_skill_discovery`) so stdio setup — and the host's `initialize` RPC — never wait on `rglob("SKILL.md")` + `yaml.safe_load` of a poisoned skills directory. `BoxACPAgent._ensure_skills_loaded()` awaits the task before `newSession` (and again on the first `prompt` as a safety net). During in-flight discovery, `_skills_meta()` returns `None` — the host reads the catalog off `session/new._meta.skills` instead. Parse failures across all SKILL.md files are collected into `SkillLoader.parse_errors` and emitted as ONE aggregate stderr line per `discover_skills` call, not one per file (Windows syscall storm was the timeout root cause). CLI keeps the inline `discover_skills()` call so users still see the "Loading Claude Skills..." status
-- Broken skill fallback (Hermes parity): a `SKILL.md` that exists but fails to parse (bad YAML, missing name/description, non-mapping frontmatter, unreadable file) stays in the catalog as a **broken placeholder** — `Skill(name=<parent-dir-name>, description="(SKILL.md malformed — <reason>)", content="", broken=True, broken_reason=<reason>)`. The alternative — silently dropping the entry — leaves skill authors chasing a skill that "vanished" from `## Available Skills`. Broken skills score only by `name_overlap` in `filter_by_query` (their diagnostic description contains generic tokens like "error"/"parse" that would incorrectly match unrelated queries otherwise); `get_skills_metadata_prompt` prefixes them with `⚠️ ` so the model won't confuse them for real skills; `GetSkillTool.execute` renders an `UNAVAILABLE` diagnostic prompt (never empty content) and attaches `raw_output={broken, broken_reason, skill_path}` for host UIs. A missing SKILL.md file is still skipped (Hermes parity: only "file present but malformed" gets the fallback)
-- Agent workspace defaults to CWD; logs go to `~/.box-agent/log/`
-- `asyncio_mode = "auto"` in pytest config — async tests work without markers
-- Safety: dangerous commands require confirmation; workspace scope enforced by default; files auto-backed up before modification
-- Permission negotiation: in-band blocking flow for out-of-workspace access. `GrantStore` tracks grants at prompt/session scope; `PermissionEngine` consults grant store before policy check. `run_agent_loop()` accepts `permission_negotiator` — on tool denial with `permission_request`, negotiator is called and tool retried on grant. CLI uses interactive terminal prompt (`cli_permissions.py`, `termios`+`run_in_executor`); ACP uses `session/request_permission` reverse RPC (`_PermissionNegotiator` in `acp/__init__.py`, 120s timeout). `officev3_permissions_override` in `session/new._meta` is deprecated (parsed but ignored)
-- Artifact pipeline: every artifact lands under `{workspace}/output/` — the sandbox kernel chdirs there, `write_file` resolves `output/<name>` relative paths there, and the host's file panel only trusts this directory. Detection is two-layer: regex scans tool output for `[filename.ext]` references that resolve under `output/`, workspace diff catches files created by any tool. Both emit a single `ArtifactEvent` (kind/filename/rel_path/abs_path/uri/mime/size/sha256/produced_at). ACP serializes via `_artifact_envelope()` with stable `type: "artifact"` discriminator on `tool_call_update.rawOutput`. Helpers in `core.py`: `ensure_output_dir()`, `safe_output_name()`, `avoid_collision()`, `_make_artifact()`
-- LibreOffice (`soffice`) is a system dependency, NOT auto-installed. Excel export defaults to pandas + openpyxl. `recalc.py` gracefully handles missing soffice
-- Image watermark: `generate_image` stamps a text watermark (`AI 生成` by default) onto the bitmap **before writing to disk**, so a single call site in `image_generation_tool.py::execute()` covers text-to-image + image-to-image and CLI + ACP alike. Logic lives in `box_agent/tools/watermark.py::apply_text_watermark(image_bytes, mime_type, text)` — bottom-right, semi-transparent white fill + contrast stroke (readable on light/dark), font size = `0.022 × short_edge`. Per-call params: `watermark: false` disables (the PPTX skill always passes this — PPT carries its own watermark), `watermark_text` overrides the wording. The param description is intentionally strict so the model does NOT disable it for "test"/"solid color"/"no text" images. PIL is lazy-imported and **degrades gracefully** — missing Pillow, SVG/GIF (`_RASTERIZABLE_MIME`), or a decode error returns the original bytes with `applied: False`, never failing generation; status rides on `raw_output["watermark"]` and the result text. JPEG (no alpha) is flattened onto white before re-encode. Bundled CJK font `box_agent/skills/canvas-design/canvas-fonts/NotoSansSC-Regular.otf` (ships via `skills/**/*`) is the primary font, then system fonts, then `ImageFont.load_default(size=)`. **Pillow is a MAIN dependency** (not the `runtime` extra) because watermarking is on by default; the frozen runtime's `external_python_sandbox` mode must keep `PIL` bundled (it is NOT in `build_runtime.py`'s exclude sets) since the watermark runs in the ACP main process, not the external sandbox
-- Browser automation (Playwright MCP): `@playwright/mcp` is registered in `mcp-example.json` as `playwright`, `disabled: true` by default. Chromium cache defaults to `~/.box-agent/browsers/` (shared by CLI install and ACP runtime). `box-agent install-browser` runs `playwright install chromium` with `PLAYWRIGHT_BROWSERS_PATH` pinned to this path, then flips `disabled` to `false` in `~/.box-agent/config/mcp.json`. `run_acp_server()` calls `os.environ.setdefault("PLAYWRIGHT_BROWSERS_PATH", "~/.box-agent/browsers")` at startup — hosts that want a different cache export the env var before spawning `box-agent-acp`. If Chromium is absent, Playwright MCP tool calls fail with its own error; we don't wrap. `doctor` reports runtime status
-- Frozen/runtime mode: `IS_FROZEN` flag selects in-process kernel, skips venv creation, routes package installs through whitelist + `~/.box-agent/runtime-packages/`
-- Sub-agent: `SubAgentTool` runs tasks in isolated message contexts via `run_agent_loop()`. Child tools exclude `sub_agent` itself (no recursion). Multiple sub-agents execute in parallel via `asyncio.gather` (tools with `parallel_safe = True`)
-- EventEmittingTool: base class for tools that emit real-time progress events via an `asyncio.Queue` that core.py drains in the foreground generator. Both sequential and parallel execution blocks support this pattern. SubAgentTool emits `SubAgentEvent` directly.
-- PPT support: Provided entirely through the `ppt` skill (loaded from `SKILL.md` via `skill_loader.py`). The agent invokes general-purpose tools; there are no dedicated PPT modes/tools/prompts in box-agent core.
-- Context compression: Layer 1 `_micro_compact()` runs every step, replaces tool results older than last 3 with `[Previous result from {tool}: {first_line}...]` (token-aware: keep window shrinks if recent results themselves blow the budget). Layer 2 `_maybe_summarize()` triggers an LLM summary when estimated tokens exceed `context_token_limit` (derived as `0.9 × (context_window − max_output_tokens)`; defaults are 180000/63999 ≈ 104k for user-configured endpoints and 180000/80000 ≈ 90k for hosted xiaohuanxiong endpoints). Logger captures originals — no data loss. Full design: `docs/CONTEXT_COMPRESSION.md` (中文版 `docs/CONTEXT_COMPRESSION_CN.md`)
-- Memory: dual-file `MEMORY.md` (core, always injected) + `CONTEXT.md` (searchable on demand). Two write paths — skill-guided LLM calls `memory_write` for explicit user intent, `MemoryExtractor` auto-extracts to CONTEXT.md in background (`asyncio.create_task`). Core/Context dedup enforced at code level (`append_context()` filters lines present in core). OpenClaw import is one-time LLM-filtered bootstrap into core
-- Memory maintenance: `MemoryMaintainer` (memory_maintainer.py) runs at CLI/ACP startup, guarded by `.maintainer_last_run` (24h interval). Three phases on `CONTEXT.md` — decay (hits=0 + last_used > `memory_decay_days` → `CONTEXT.archive.md`), cleanup (archive > decay+`memory_archive_days` → `~/.box-agent/memory/trash/<date>/`), dedup (greedy Jaccard at `memory_dedup_jaccard`, winner = higher hits / older created; metadata merged). `ContextEntry` carries HTML-comment header metadata (id/created/last_used/hits/source/confidence + optional core_status/last_proposed); legacy line-based CONTEXT.md auto-migrates on first write
-- Memory promotion gate: `run_agent_loop` emits `MemoryProposalEvent` before terminal `DoneEvent` when `memory_promotion_proposal_enabled` and there are entries with `hits >= memory_promotion_hit_threshold`, not rejected, not in cooldown. `consume_core_proposal({id: pin/skip/reject})` — pin moves entry to MEMORY.md (line-dedup), reject sets `core_status="rejected"` (permanent, never re-proposed), skip is no-op (cooldown bumped at emit). CLI: termios prompts via `CLIMemoryProposalNegotiator` + `/memory review` slash command (bypasses cooldown). ACP: `_MemoryProposalNegotiator` calls `extMethod("session/memory_proposal", payload)` with 120s timeout; host opt-in via `_session/memory_proposal` JSON-RPC, returns `{decisions: {id: "pin"|"skip"|"reject"}}`; method_not_found degrades to skip-all
-- ACP stdout guard: `sys.stdout = sys.stderr` in ACP mode (must use direct assignment, NOT `TextIOWrapper(sys.stderr.buffer)` which destroys stderr on GC). `_real_stdout = sys.__stdout__` (not `sys.stdout`, which may be pre-guarded by `runtime_entry.py`). Real stdout restored only for the stdio transport setup, then re-guarded. All diagnostics and third-party output go to stderr
-- ACP stdin buffer ceiling: do NOT call upstream `acp.stdio_streams()` — it builds `asyncio.StreamReader()` without a `limit`, defaulting to 64 KiB. A single inbound JSON-RPC frame larger than that (e.g. `session/prompt` with base64-inlined images, a large pasted document, or host-injected `_meta`) raises `asyncio.LimitOverrunError` inside `Connection._receive_loop`; the loop's `except` only catches `CancelledError`, so it dies silently and every later RPC future is rejected with `ConnectionError("Connection closed")` — the symptom on the host side. Use `box_agent.acp.stdio_compat.stdio_streams_largebuf()` instead, which replicates the upstream POSIX/Windows stdio helpers verbatim and passes `limit=4 * 1024 * 1024` (4 MiB) to the reader. Everything else in `acp` (Connection, AgentSideConnection, dispatcher, schemas) is still used unchanged. If the 4 MiB ceiling ever bites, raise `_READ_LIMIT` in `stdio_compat.py` — do not switch back to the upstream helper
-- Session mode: ACP caller passes `_meta.session_mode` on `session/new` (`data_analysis` or `code_agent`). `_build_session_prompt()` looks up `_MODE_PROMPT_MAP` and injects the matching mode prompt (`analysis_prompt_path` / `code_prompt_path`) into `messages[0]`, preserving the workspace-info footer and the cached `memory_block`. When omitted, no mode prompt is applied (general mode). There is NO auto-classification — the earlier `intent_classifier.py` / `auto_classify_pending` / `_apply_session_mode` path was removed (hosted gateways supply the mode explicitly)
-- Deep-think / extended thinking: session-level toggle via `_meta.deep_think: bool` on `session/new`. Threaded as `thinking_enabled` through `Agent.__init__` → `run_agent_loop` → `LLMClient.generate_stream`. Anthropic path: `thinking={"type": "enabled", "budget_tokens": 8000}` (only `enabled`/`disabled` are valid; no `adaptive`). Budget is hardcoded 8000 tokens. Classifier and summary LLM calls always run with `thinking_enabled=False`. Caveat: some models (e.g. MiniMax M2 series) emit thinking blocks unconditionally as part of their default output; the toggle is honored by the wire protocol but cannot suppress provider-side reasoning behavior
-- Goal autopilot / completion gate: a persistent goal (`--goal` flag, `box-agent goal ...` subcommand, `/goal` slash command, or ACP `_meta`) drives the agent toward a stated objective across multiple turns. `loop_guards.CompletionGate` checks whether the goal's gaps are closed; `build_auto_completion_gate()` wires it up. Autopilot re-prompts itself until the gate is satisfied or a stop condition hits, governed by `config.py` keys `goal_autopilot_enabled` (default `true`), `goal_autopilot_max_turns` (`3`), `goal_autopilot_max_seconds` (`14400.0`), `goal_autopilot_no_progress_turns` (`2`). Disable per-run with `--no-goal-autopilot`; disable the gate with `--no-completion-gate`
-- Cancellation: cooperative — `is_cancelled` callback is checked at five points: top of each step, between LLM stream chunks, after stream completes, before tools, and after each tool. CLI installs a key listener that flips a flag on Esc; ACP flips `state.cancelled` from `cancel()` notification. Mid-stream cancellation breaks the chunk loop and yields `DoneEvent(stop_reason=CANCELLED)` immediately rather than waiting for the LLM to finish
-- CLI input: simple Esc-to-cancel listener while the agent runs (`termios` cbreak in a daemon thread, no scroll-region UI). The `inject_queue` plumbing in `run_agent_loop` is preserved for ACP only — ACP exposes `_inject` extension method (turn-active guarded, stale queue drained per turn). CLI does not currently wire up inject
-- Lightweight LLM endpoint: ACP extension method `_llm/prompt` for title/summary/classification-style one-shot calls. Bypasses `newSession` entirely — no session, no tools, no skills, no MCP wait, no memory recall/extraction, no conversation history. Backed by `box_agent/llm/lightweight.py::run_lightweight_prompt(llm, prompt, system_prompt=None, timeout=30.0)` which wraps `LLMClient.generate(tools=None, thinking_enabled=False)` in `asyncio.wait_for`. Request: `{prompt, systemPrompt?, timeoutMs?, workspaceLabel?, _meta?: {purpose?}}`. Success: `{text, finishReason, usage:{inputTokens,outputTokens}, durationMs}`. Failure: `{error:{code,message}}` with codes `invalid_args` / `timeout` / `lightweight_failed`. Logs purpose/duration/token counts but never the prompt body
-- Per-turn token total: `box_agent/llm/token_meter.py` is a context-local accumulator. `LLMClient.generate`/`generate_stream` (the single choke point all LLM calls funnel through — main multi-step loop, Layer-2 summarization, background `MemoryExtractor`) call `record_usage(usage)`. ACP `_prompt` wraps `_run_turn` with `start_token_meter()`/`reset_token_meter()` and returns the turn total on `PromptResponse._meta.usage.totalTokens` (host-side telemetry; officev3 埋点 reads it). Per-turn scoped (resets each turn, not cumulative). `asyncio.create_task` children copy the context and mutate the same accumulator, so in-turn memory extraction is counted — but fire-and-forget extractions (notably `loop_end`) that finish after the turn returns are NOT reflected (best-effort for memory, exact for main loop + summarization). The `_llm/prompt` lightweight endpoint runs outside any turn, so no meter is active there (no double counting). Tests: `tests/test_token_meter.py`, `tests/test_acp.py::test_acp_prompt_response_reports_turn_token_total`
+对于 officev3 或其他打包宿主，分别报告：源码修改、源码测试、runtime 构建、
+runtime 安装、探针、宿主重启、全新 live task。源码测试不能证明已安装 runtime
+行为。
 
 ## Configuration
 
-Run `box-agent setup` for interactive configuration, or manually copy `box_agent/config/config-example.yaml` to `box_agent/config/config.yaml`. Provider field (`anthropic` or `openai`) determines which client is used. The `api_base` is passed through directly — supports any compatible endpoint.
+运行 `box-agent setup` 交互配置，或以
+`box_agent/config/config-example.yaml` 为示例创建用户配置。Provider 选择和
+`api_base` 会传给对应 LLM 客户端；第三方兼容端点的具体差异见
+`docs/THIRD_PARTY_API_COMPATIBILITY.md`。MCP 示例位于
+`box_agent/config/mcp-example.json`，实际用户配置位于
+`~/.box-agent/config/mcp.json`。
 
 ## Publishing
 
+没有用户明确授权时，不执行以下发布动作。
+
 ```bash
-# Bump version in pyproject.toml and box_agent/__init__.py
-# Regenerate the builtin skills whitelist so orphan SKILL.md files left
-# behind by downstream installers (e.g. officev3) are filtered out at runtime.
-python scripts/generate_skills_manifest.py  # writes box_agent/skills/_manifest.json
+# 同步 pyproject.toml 与 box_agent/__init__.py 中的版本
+uv run python scripts/generate_skills_manifest.py
 uv build
 uvx twine upload dist/box_agent-<version>*
-gh release create v<version> dist/box_agent-<version>* --repo Raccoon-Office/Box-Agent --title "v<version>"
+gh release create v<version> dist/box_agent-<version>* \
+  --repo Raccoon-Office/Box-Agent --title "v<version>"
 ```
 
 ### Standalone Runtime Build
 
 ```bash
-# Build PyInstaller binary for current platform
 uv run python scripts/build_runtime.py
-# Output: dist/runtime/box-agent-runtime-v{version}-{platform}-{arch}.tar.gz
+# dist/runtime/box-agent-runtime-v{version}-{platform}-{arch}.tar.gz
 
-# Upload runtime artifact to the same GitHub Release
-gh release upload v<version> dist/runtime/box-agent-runtime-*.tar.gz --repo Raccoon-Office/Box-Agent
+gh release upload v<version> dist/runtime/box-agent-runtime-*.tar.gz \
+  --repo Raccoon-Office/Box-Agent
 ```
 
-Runtime structure: `box-agent-runtime/{manifest.json, VERSION, bin/box-agent-acp, runtimes/node}` on macOS. The binary communicates via ACP JSON-RPC over stdio. Hard constraint: stdout = pure ACP protocol, all diagnostics go to stderr.
+Runtime 结构以生成的 manifest 为准；ACP binary 通过 stdio JSON-RPC 通信，
+stdout 必须保持纯协议输出。关键入口：
 
-Key files:
-
-- `scripts/build_runtime.py` — PyInstaller build script, auto-detects platform
-- `box_agent/acp/runtime_entry.py` — Clean entry point for standalone binary
-- `box_agent/acp/debug_logger.py` — Structured logger (stderr + optional file, env-var controlled)
+- `scripts/build_runtime.py`：runtime 构建；
+- `box_agent/acp/runtime_entry.py`：独立 runtime 入口；
+- `box_agent/observability/logger.py`：共享日志；
+- `box_agent/observability/session_trace.py`：可脱敏 JSONL trace。
 
 PyPI: https://pypi.org/project/box-agent/
+
 GitHub: https://github.com/Raccoon-Office/Box-Agent

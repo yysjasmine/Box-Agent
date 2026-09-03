@@ -103,6 +103,19 @@ directly, but no OfficeV3-specific registration step is required:
 }
 ```
 
+Before embedding a runtime, run the deterministic ACP smoke and end-to-end
+cases locally. They require no credentials and include a static event report:
+
+```bash
+python tests/e2e/run_acp_cases.py --report tests/e2e/report.json
+python -m pytest tests/e2e -q
+python -m http.server 8765 --directory tests/e2e
+```
+
+Open `http://localhost:8765/report.html` to inspect event ordering,
+permission-before-executor, plugin manifests, workflow continuation, and
+durable resume evidence.
+
 #### Spawning from Host Process
 
 ```typescript
@@ -171,7 +184,23 @@ uv run box-agent-build-runtime --version X.Y.Z --install-officev3
 
 The command auto-detects the usual `Dev/frontend/officev3` checkout. Use
 `--install-officev3 /path/to/officev3` or set `BOX_AGENT_OFFICEV3_DIR` for a
-different layout.
+different layout. This one-command path requires the host checkout to provide
+`scripts/install-box-agent-runtime.js`; otherwise copy the assembled directory
+as described below.
+
+For Windows hosts that provide their own Python/Node sandbox, use the external
+sandbox mode to keep the ACP artifact small:
+
+```powershell
+python scripts/build_runtime.py --external-python-sandbox --version X.Y.Z
+```
+
+Copy `dist/runtime/box-agent-runtime` to officev3's
+`build-resources/box-agent-runtime`. A development client may probe that path.
+For a packaged Electron app, the host must also declare it in
+`build.extraResources` and probe `process.resourcesPath/box-agent-runtime`;
+copying the directory alone does not put it into the installer.
+`BOX_AGENT_ACP_COMMAND` remains the explicit override.
 
 Supported platforms: `darwin-arm64`, `darwin-x64`, `linux-x64`, `linux-arm64`, `win32-x64`.
 

@@ -103,8 +103,8 @@ def test_session_history_management(mock_llm_client, temp_workspace):
     assert agent.messages[0].role == "system"
 
 
-def test_active_goal_is_injected_into_user_turn(mock_llm_client, temp_workspace):
-    """Test that an active goal is included with subsequent user messages."""
+def test_active_goal_does_not_mutate_the_user_turn(mock_llm_client, temp_workspace):
+    """Goal context belongs to WorkflowPolicy, not persisted user input."""
     agent = Agent(
         llm_client=mock_llm_client,
         system_prompt="System",
@@ -119,12 +119,8 @@ def test_active_goal_is_injected_into_user_turn(mock_llm_client, temp_workspace)
 
     assert len(agent.messages) == 2
     assert agent.messages[1].role == "user"
-    assert "## Active Goal" in agent.messages[1].content
-    assert "Make the focused test suite pass" in agent.messages[1].content
-    assert "## Latest User Message" in agent.messages[1].content
-    assert "goal_write" in agent.messages[1].content
-    assert "/goal complete" not in agent.messages[1].content
-    assert "Run the next check" in agent.messages[1].content
+    assert agent.messages[1].content == "Run the next check"
+    assert agent.goal is goal
 
 
 @pytest.mark.asyncio
@@ -224,6 +220,44 @@ def test_paused_goal_is_not_injected_into_user_turn(mock_llm_client, temp_worksp
 
     assert agent.goal is paused
     assert agent.messages[1].content == "Answer a side question"
+
+
+def test_legacy_agent_and_goal_tools_share_canonical_store(
+    mock_llm_client,
+    temp_workspace,
+):
+    """Legacy lifecycle methods and Goal tools must mutate one canonical state."""
+    agent = Agent(
+        llm_client=mock_llm_client,
+        system_prompt="System",
+        tools=[],
+        workspace_dir=temp_workspace,
+    )
+
+    goal = agent.set_goal("Keep the compatibility API on the canonical store")
+
+    assert agent._goal_store.__class__.__module__ == "box_agent.compat.goal"
+    assert agent.tools["goal_read"]._store is agent._goal_store
+    assert agent.tools["goal_write"]._store is agent._goal_store
+    assert agent.goal is goal
+    assert agent.pause_goal() is goal
+    assert agent.goal is goal
+    assert goal.status == "paused"
+
+
+def test_legacy_block_without_goal_preserves_noop_semantics(
+    mock_llm_client,
+    temp_workspace,
+):
+    """Missing Goal wins over blocked-reason validation in the mature API."""
+    agent = Agent(
+        llm_client=mock_llm_client,
+        system_prompt="System",
+        tools=[],
+        workspace_dir=temp_workspace,
+    )
+
+    assert agent.block_goal("") is None
 
 
 def test_get_history(mock_llm_client, temp_workspace):

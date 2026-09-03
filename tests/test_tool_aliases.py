@@ -31,7 +31,18 @@ class SequenceLLM:
         self.offered_names: list[list[str]] = []
 
     async def generate_stream(self, messages, tools=None, **_):
-        self.offered_names.append([tool.name for tool in tools or []])
+        names = []
+        for tool in tools or []:
+            if isinstance(tool, dict):
+                function = tool.get("function")
+                names.append(
+                    function.get("name", "")
+                    if isinstance(function, dict)
+                    else tool.get("name", "")
+                )
+            else:
+                names.append(tool.name)
+        self.offered_names.append(names)
         response = self._responses.pop(0)
         if response.content:
             yield StreamEvent(type="text", delta=response.content)

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import tempfile
 from pathlib import Path
 
 import httpx
@@ -322,6 +321,7 @@ async def test_anthropic_client_uses_configured_api_key_without_auth_json(tmp_pa
 @pytest.mark.asyncio
 async def test_mcp_loader_adds_dynamic_auth_for_hosted_url_servers(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
 ) -> None:
     captured: list[tuple[dict[str, str], object]] = []
 
@@ -331,8 +331,9 @@ async def test_mcp_loader_adds_dynamic_auth_for_hosted_url_servers(
 
     monkeypatch.setattr(mcp_loader.MCPServerConnection, "connect", fake_connect)
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-        json.dump(
+    config_file = tmp_path / "mcp.json"
+    config_file.write_text(
+        json.dumps(
             {
                 "mcpServers": {
                     "remote": {
@@ -340,18 +341,15 @@ async def test_mcp_loader_adds_dynamic_auth_for_hosted_url_servers(
                         "url": "https://mcp.xiaohuanxiong.com/sse",
                     }
                 }
-            },
-            f,
-        )
-        f.flush()
-
-        try:
-            auth_file = Path(f.name).with_name("auth.json")
-            auth_file.write_text('{"access_token": "login-token"}\n', encoding="utf-8")
-            await mcp_loader.load_mcp_tools_async(f.name, auth_file=str(auth_file))
-        finally:
-            auth_file.unlink(missing_ok=True)
-            Path(f.name).unlink()
+            }
+        ),
+        encoding="utf-8",
+    )
+    auth_file = tmp_path / "auth.json"
+    auth_file.write_text('{"access_token": "login-token"}\n', encoding="utf-8")
+    await mcp_loader.load_mcp_tools_async(
+        str(config_file), auth_file=str(auth_file)
+    )
 
     assert captured[0][0] == {}
     assert isinstance(captured[0][1], mcp_loader.DynamicBearerAuth)
@@ -376,6 +374,7 @@ def test_dynamic_mcp_auth_reads_auth_json_for_each_request(tmp_path: Path) -> No
 @pytest.mark.asyncio
 async def test_mcp_loader_skips_auth_header_for_non_xiaohuanxiong_servers(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
 ) -> None:
     captured: list[dict[str, str]] = []
 
@@ -385,8 +384,9 @@ async def test_mcp_loader_skips_auth_header_for_non_xiaohuanxiong_servers(
 
     monkeypatch.setattr(mcp_loader.MCPServerConnection, "connect", fake_connect)
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-        json.dump(
+    config_file = tmp_path / "mcp.json"
+    config_file.write_text(
+        json.dumps(
             {
                 "mcpServers": {
                     "remote": {
@@ -394,18 +394,15 @@ async def test_mcp_loader_skips_auth_header_for_non_xiaohuanxiong_servers(
                         "url": "https://mcp.example.com/sse",
                     }
                 }
-            },
-            f,
-        )
-        f.flush()
-
-        try:
-            auth_file = Path(f.name).with_name("auth.json")
-            auth_file.write_text('{"access_token": "login-token"}\n', encoding="utf-8")
-            await mcp_loader.load_mcp_tools_async(f.name, auth_file=str(auth_file))
-        finally:
-            auth_file.unlink(missing_ok=True)
-            Path(f.name).unlink()
+            }
+        ),
+        encoding="utf-8",
+    )
+    auth_file = tmp_path / "auth.json"
+    auth_file.write_text('{"access_token": "login-token"}\n', encoding="utf-8")
+    await mcp_loader.load_mcp_tools_async(
+        str(config_file), auth_file=str(auth_file)
+    )
 
     assert captured == [{}]
 
@@ -413,6 +410,7 @@ async def test_mcp_loader_skips_auth_header_for_non_xiaohuanxiong_servers(
 @pytest.mark.asyncio
 async def test_mcp_loader_does_not_override_configured_auth_header(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
 ) -> None:
     captured: list[dict[str, str]] = []
 
@@ -422,8 +420,9 @@ async def test_mcp_loader_does_not_override_configured_auth_header(
 
     monkeypatch.setattr(mcp_loader.MCPServerConnection, "connect", fake_connect)
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-        json.dump(
+    config_file = tmp_path / "mcp.json"
+    config_file.write_text(
+        json.dumps(
             {
                 "mcpServers": {
                     "remote": {
@@ -432,14 +431,12 @@ async def test_mcp_loader_does_not_override_configured_auth_header(
                         "headers": {"Authorization": "Bearer mcp-token"},
                     }
                 }
-            },
-            f,
-        )
-        f.flush()
-
-        try:
-            await mcp_loader.load_mcp_tools_async(f.name, auth_token="login-token")
-        finally:
-            Path(f.name).unlink()
+            }
+        ),
+        encoding="utf-8",
+    )
+    await mcp_loader.load_mcp_tools_async(
+        str(config_file), auth_token="login-token"
+    )
 
     assert captured == [{"Authorization": "Bearer mcp-token"}]

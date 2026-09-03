@@ -165,6 +165,25 @@ class StagedFileWriteTool(Tool):
                 return ToolResult(success=False, error=error)
         return None
 
+    async def preflight(self, arguments: dict[str, Any], *, context=None) -> ToolResult | None:
+        """Authorize external source/target paths before staged I/O begins."""
+
+        del context
+        action = str(arguments.get("action", ""))
+        if action == "begin" and arguments.get("path"):
+            return self._permission_error(
+                self._resolve(str(arguments["path"])), "filesystem.write"
+            )
+        if action == "append_file" and arguments.get("path"):
+            return self._permission_error(
+                self._resolve(str(arguments["path"])), "filesystem.read"
+            )
+        if action == "commit" and arguments.get("write_id"):
+            state = self._writes.get(str(arguments["write_id"]))
+            if state is not None:
+                return self._permission_error(state.target, "filesystem.write")
+        return None
+
     def _begin(
         self,
         path: str | None,
@@ -405,6 +424,11 @@ class StagedFileWriteTool(Tool):
             self._writes.pop(write_id, None)
             cleaned.append(write_id)
         return cleaned
+
+    def end_run(self) -> None:
+        """Discard transactions that were not explicitly committed this Run."""
+
+        self.cleanup_pending_writes()
 
     def _cleanup_stale_files(self) -> None:
         if not self._staging_dir.is_dir():

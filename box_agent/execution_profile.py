@@ -1,19 +1,6 @@
-"""Execution-policy profile shared by host adapters and orchestration."""
+"""Stable import facade for :mod:`box_agent.workflows.execution_profile`."""
 
-from __future__ import annotations
+from importlib import import_module
+import sys
 
-from typing import Final, Literal, cast
-
-ExecutionProfile = Literal["fast", "standard", "deep"]
-
-DEFAULT_EXECUTION_PROFILE: Final[ExecutionProfile] = "standard"
-FAST_OPTIONAL_SKILLS: Final[frozenset[str]] = frozenset({"research-synthesis"})
-
-
-def normalize_execution_profile(value: object) -> ExecutionProfile:
-    """Normalize host metadata without changing legacy session behavior."""
-    if isinstance(value, str):
-        normalized = value.strip().casefold()
-        if normalized in {"fast", "standard", "deep"}:
-            return cast(ExecutionProfile, normalized)
-    return DEFAULT_EXECUTION_PROFILE
+sys.modules[__name__] = import_module("box_agent.workflows.execution_profile")

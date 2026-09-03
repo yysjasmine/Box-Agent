@@ -40,27 +40,32 @@
 
 ```
 box-agent/
-├── box_agent/              # 核心源代码
-│   ├── core.py              # 执行核心 — run_agent_loop()（Agent 循环本体）
-│   ├── agent.py             # 公共 API 封装（Agent 类）
-│   ├── runtime.py           # 组装入口与 Core 稳定桥接
-│   ├── completion.py        # 通用交付物路由组装
-│   ├── delivery.py          # 通用交付意图判断
-│   ├── workflow_policy.py   # Core 使用的稳定工作流契约
-│   ├── workflows/           # 工作流路由、checkpoint 与策略实现
-│   ├── artifacts.py         # 共享产物契约工具
-│   ├── turn_policy.py       # 共享轮次分类策略
-│   ├── llm/                 # Provider 客户端和 LLM 包装器
-│   ├── acp/                 # ACP 服务与宿主对接
-│   ├── cli.py               # 命令行接口
-│   ├── config.py            # 配置加载
-│   ├── tools/               # 工具实现（文件、Bash、MCP、技能等）
-│   └── skills/              # 内置 Skills 与 manifest
-├── tests/                   # 测试代码
-├── docs/                    # 文档
-├── workspace/               # 工作目录
-└── pyproject.toml           # 项目配置
+├── box_agent/
+│   ├── api/                 # 稳定 DTO、事件、控制命令、端口与句柄
+│   ├── kernel/              # 唯一 AgentLoopKernel 与单次运行组装
+│   ├── services/            # 会话/运行生命周期、重放、租约和委派
+│   ├── plugins/             # 类型化注册表与插件生命周期
+│   ├── adapters/            # CLI、ACP、SDK 的薄协议适配层
+│   ├── context/             # Context provider、贡献器与压缩
+│   ├── memory_engine/       # Memory SPI、存储、抽取与维护
+│   ├── permissions/         # 默认拒绝的权限策略与协商
+│   ├── persistence/         # 会话、事件、checkpoint、effect 与租约
+│   ├── tools/               # 工具引擎以及内置/MCP 工具实现
+│   ├── workflows/           # Goal、Plan、PPT、Skill 与完成策略
+│   ├── llm/                 # Provider 客户端与流式包装器
+│   ├── acp/                 # ACP 启动和协议支持
+│   ├── compat/              # 基于 Kernel 的历史 API/import 兼容层
+│   └── skills/              # 内置 Skills 与生成的 manifest
+├── tests/                   # 单元、parity 与 E2E 覆盖
+├── docs/                    # 维护与集成文档
+├── workspace/               # 运行时临时空间，不应提交
+└── pyproject.toml
 ```
+
+`AgentLoopKernel` 是唯一执行所有者；`KernelAgentService` 负责会话、运行、重放、
+控制和恢复。CLI、ACP、SDK 以及兼容 `Agent` API 都提交同一套 `box_agent.api`
+请求，只负责渲染或投影事件。根目录的 `core.py`、`agent.py`、`cli.py` 仅用于兼容
+或可执行入口，不应在其中新增第二套循环。
 
 ## 2. 基础使用
 
@@ -142,10 +147,13 @@ box-agent goal complete --evidence "uv run pytest tests/ -q passed"
 
 #### 步骤
 
-1.  在 `box_agent/tools/` 目录下创建一个新的 Python 文件。
-2.  在文件中定义一个新类，并继承 `Tool` 基类。
-3.  在类中实现所需的属性和方法。
-4.  在 Agent 初始化时注册你的新工具。
+1. 在 `box_agent/tools/` 下创建内置工具，或在第三方包中实现工具。
+2. 实现 `Tool`，或提供包含 `name`、`description`、`parameters` 与
+   `execute`/`invoke` 的兼容对象。
+3. 在 `tools.executors` 注册表中注册执行器；只有模型侧 Schema 独立维护时，
+   才需要另外写入 `tools.descriptors`。
+4. 通过 `KernelAgentService.from_plugin_host(host)` 组装运行时，或使用
+   `box_agent.plugins` entry-point 暴露可分发插件。共享工具不应分别修改 CLI 与 ACP。
 
 运行时通过 `Tool.invoke(arguments)` 校验参数 Schema，再调用工具的
 `execute()`。如果 ACP 等适配器必须在 Agent loop 之外确定性调用工具，而且该
@@ -254,22 +262,23 @@ class MyTool(Tool):
                 content=f"错误: {str(e)}"
             )
 
-# 在 cli.py 或 Agent 的初始化代码中
+# 在组装边界注册
+from box_agent.plugins import PluginHost
+from box_agent.services import KernelAgentService
 from box_agent.tools.my_tool import MyTool
 
-# 创建 Agent 实例时，将新工具加入列表
-tools = [
-    ReadTool(workspace_dir),
-    WriteTool(workspace_dir),
-    MyTool(),  # 添加您的自定义工具
-]
-
-agent = Agent(
-    llm=llm,
-    tools=tools,
-    max_steps=100
+host = PluginHost()
+host.registries["tools.executors"].register(
+    "my_tool", MyTool(), source="acme.my-tool", version="1.0.0"
 )
+# 还需要注册 LLM/Context/Memory/Permission/持久化能力，
+# 或激活提供这些能力的插件。
+service = KernelAgentService.from_plugin_host(host)
 ```
+
+Kernel 工具边界固定为：Schema 校验 → 权限预检 → `Hook.before_tool` → Hook
+修改后重新校验 → effect fence → 执行器 → `Hook.after_tool` → 结果归一化。
+请保留这条路径；直接调用执行器会绕过安全、重放和可观测性保证。
 
 CLI `--task` 模式和 ACP 会话会对持久 goal 启用有边界的自动续跑。如果一轮自然结束但 goal 仍是 `active`，Box-Agent 会注入内部 continuation，直到模型调用 `goal_write complete`、调用 `goal_write block`、用户取消，达到 `goal_autopilot_max_turns` / `goal_autopilot_max_seconds` 配置预算，或连续 `goal_autopilot_no_progress_turns` 个自动续跑轮次没有记录到 goal 进展。
 
@@ -303,7 +312,7 @@ CLI `--task` 模式和 ACP 会话会对持久 goal 启用有边界的自动续�
 内置 skills 已提交在 `box_agent/skills/` 下，并通过 `box_agent/skills/_manifest.json` 加载。
 正常开发不需要执行 git submodule 初始化。
 
-当前 manifest 列出 32 个内置 skills，包括：
+生成的 manifest 是内置 skills 的权威清单，主要包括：
 
 - 📄 **文档处理**：轻松创建和编辑 PDF、DOCX、XLSX、PPTX 等格式的文档。
 - 🎨 **设计创作**：生成富有创意的艺术作品、海报和 GIF 动画。
@@ -445,15 +454,13 @@ Failed to load MCP server
 
 #### 启用 Debug 日志
 
-```python
-# 在 cli.py 或相关测试文件的开头添加以下代码：
-import logging
-
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+```bash
+BOX_AGENT_LOG_LEVEL=DEBUG box-agent --task "复现问题"
+BOX_AGENT_LLM_DEBUG=1 box-agent --task "检查 Provider 调用"
 ```
+
+Provider debug 日志默认会脱敏凭据并只保留 payload 摘要。包含生产提示词或客户数据时，
+不要开启 full-payload logging。
 
 #### 使用 Python 调试器
 
@@ -467,9 +474,11 @@ import ipdb; ipdb.set_trace()
 
 #### 监控工具调用
 
-```python
-# 在 Agent 代码中添加日志，以便实时查看工具的调用详情：
-logger.debug(f"工具调用: {tool_call.name}")
-logger.debug(f"工具参数: {tool_call.arguments}")
-logger.debug(f"工具结果: {result.content[:200]}")
+```bash
+box-agent trace-viewer
+# 需要目录实时刷新时使用开发服务：
+uv run python -m box_agent.trace_viewer.server --port 8766
 ```
+
+只读 viewer 会消费 `~/.box-agent/log/sessions/` 中经过脱敏的 JSONL trace。
+需要程序化观测时注册 Hook，不要在 Kernel、CLI 或 ACP 路径临时加入 `print()`。

@@ -36,7 +36,7 @@ keeps the existing utility-model behavior and returns text.
 
 The native strategy validates, orientation-normalizes, and downsamples the same
 bounded PNG/JPEG inputs as the proxy path. It then returns provider-neutral
-`input_image` blocks through an internal ToolResult field. Core accepts that
+`input_image` blocks through an internal `ToolResult` field. The runtime accepts that
 field only from an explicitly opted-in Tool, validates the active model
 capability, and applies one aggregate request-only budget capped at 30% of the
 safe input limit. Image cost is estimated conservatively from width and height,
@@ -63,7 +63,10 @@ bytes.
 
 ## Oversized tool-result storage
 
-`ToolResultStorage` in `box_agent/tool_result_storage.py` owns persistence, preview rendering, and per-conversation deduplication. The shared loop invokes it for both sequential and parallel tools; CLI and ACP do not duplicate this policy.
+`ToolResultStorage` in `box_agent/tools/result_storage.py` owns persistence,
+preview rendering, and per-conversation deduplication. It is composed as a
+shared runtime capability; CLI and ACP do not duplicate this policy. The root
+`box_agent/tool_result_storage.py` module is a compatibility facade.
 
 ### Immediate per-result check
 
@@ -140,7 +143,7 @@ then keeps 10% of the remaining input budget as headroom for estimation drift
 and the summary request.
 
 ACP model bindings may override both values with the selected model's
-`contextWindow` and `maxTokens`. The Agent derives its input limit when the
+`contextWindow` and `maxTokens`. Context/runtime composition derives the input limit when the
 session is created and recomputes it whenever the binding changes between
 turns. Missing binding capabilities fall back to `config.yaml`, which remains
 the capability source for user-configured model presets.
@@ -199,7 +202,10 @@ Write/edit tool-call arguments remain verbatim until whole-history compaction su
 Direct regression coverage lives in:
 
 - `tests/test_tool_result_storage.py` for type handling, exclusive writes, previews, Read single-result opt-out, failures, deduplication, and aggregate ordering;
-- `tests/test_core.py` for pre-request enforcement, usage-plus-delta estimation, exact-prefix one-shot summarization, fallback estimation, bounded retention, and runtime-state restoration;
+- `tests/test_context_engine.py`, `tests/test_context_compaction_e2e.py`, and
+  `tests/test_agent_loop_kernel.py` for pre-request enforcement,
+  usage-plus-delta estimation, exact-prefix summarization, fallback estimation,
+  bounded retention, and runtime-state restoration;
 - `tests/test_auth.py` for the derived threshold.
 - `tests/test_image_inspection_tool.py`, `tests/test_multimodal_message_conversion.py`,
   `tests/test_session_trace.py`, and `tests/test_llm_debug_logging.py` for the

@@ -19,7 +19,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Mapping, Optional
 
-from ..artifacts import ensure_output_dir
+from ..persistence.artifacts import ensure_output_dir
 from ._win_job import assign_pid_to_job
 from .base import Tool, ToolResult
 
@@ -62,8 +62,6 @@ SANDBOX_DEFAULT_PACKAGES = [
     "chardet",          # encoding detection for text/CSV
 ]
 
-SANDBOX_BASE_DIR = Path.home() / ".box-agent" / "sandbox"
-
 # Keep generated tool-call JSON below provider completion caps. Match the file
 # chunk size so large static bodies do not migrate into Python string literals.
 MAX_EXECUTE_CODE_CHARS = 8_000
@@ -71,7 +69,37 @@ MAX_EXECUTE_CODE_CHARS_DISPLAY = f"{MAX_EXECUTE_CODE_CHARS:,}"
 
 # User-level directory for packages installed at runtime in frozen mode.
 # Survives across sessions; kept separate from the frozen binary itself.
-RUNTIME_PACKAGES_DIR = Path.home() / ".box-agent" / "runtime-packages"
+
+
+def _select_runtime_dir(name: str) -> Path:
+    """Choose a stable directory for sandbox runtime state.
+
+    Embedded desktop hosts can expose a readable but non-writable profile
+    directory. Resolve the location once at import time so kernelspecs, package
+    installs, and the write guard share one root; per-operation writes still
+    fall back when a stale child tree is not writable. The fallback stays under
+    the OS temp directory and remains process-stable while the host's normal
+    home directory is unavailable.
+    """
+
+    preferred = Path.home() / ".box-agent" / name
+    try:
+        preferred.mkdir(parents=True, exist_ok=True)
+        return preferred
+    except OSError:
+        fallback = Path(tempfile.gettempdir()) / ".box-agent" / name
+        try:
+            fallback.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            # Keep a deterministic path even if both parents are currently
+            # unavailable; callers surface a structured initialization error
+            # when a child operation cannot create its files.
+            pass
+        return fallback
+
+
+SANDBOX_BASE_DIR = _select_runtime_dir("sandbox")
+RUNTIME_PACKAGES_DIR = _select_runtime_dir("runtime-packages")
 
 
 async def _communicate_sandbox_process(
@@ -277,7 +305,17 @@ class SandboxEnvironment:
         self.venv_dir = self.base_dir / "venv"
         # Windows venv lays out python under Scripts/, Unix under bin/.
         if sys.platform == "win32":
-            self.python_path = self.venv_dir / "Scripts" / "python.exe"
+            windows_python = self.venv_dir / "Scripts" / "python.exe"
+            # Portable/host-provisioned sandboxes can retain a POSIX layout
+            # even when the ACP host itself runs on Windows. Prefer the native
+            # layout when present, but accept the portable path so runtime
+            # discovery and prompt contracts remain deterministic.
+            portable_python = self.venv_dir / "bin" / "python"
+            self.python_path = (
+                windows_python
+                if windows_python.exists() or not portable_python.exists()
+                else portable_python
+            )
         else:
             self.python_path = self.venv_dir / "bin" / "python"
         self._ready = False
@@ -722,12 +760,32 @@ class SandboxEnvironment:
 
     def get_kernel_spec_dir(self) -> Path:
         """Get path to the kernel spec directory, creating it if needed."""
-        spec_dir = self.base_dir / "kernelspec" / "box-agent-sandbox"
-        spec_dir.mkdir(parents=True, exist_ok=True)
-        spec_file = spec_dir / "kernel.json"
-        # Always write fresh spec (python path may change)
-        spec_file.write_text(json.dumps(self.get_kernel_spec(), indent=2))
-        return spec_dir
+        preferred = self.base_dir / "kernelspec" / "box-agent-sandbox"
+        fallback = (
+            Path(tempfile.gettempdir())
+            / ".box-agent"
+            / "sandbox"
+            / "kernelspec"
+            / "box-agent-sandbox"
+        )
+        spec_payload = json.dumps(self.get_kernel_spec(), indent=2)
+
+        for spec_dir in (preferred, fallback):
+            try:
+                spec_dir.mkdir(parents=True, exist_ok=True)
+                # Always write a fresh spec (the Python path may change), and
+                # use the actual write as the permission check.  A profile
+                # directory may allow mkdir while denying writes to an older
+                # kernelspec tree.
+                (spec_dir / "kernel.json").write_text(spec_payload, encoding="utf-8")
+                return spec_dir
+            except OSError:
+                continue
+
+        raise RuntimeError(
+            "Unable to create a writable Jupyter kernelspec directory; "
+            f"tried {preferred} and {fallback}"
+        )
 
     async def install_packages(self, packages: list[str]) -> tuple[bool, str]:
         """Install additional packages into the sandbox environment.

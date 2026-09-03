@@ -709,6 +709,23 @@ class GenerateImageTool(Tool):
                 return ToolResult(success=False, error=error)
         return None
 
+    async def preflight(self, arguments: dict[str, Any], *, context=None) -> ToolResult | None:
+        """Authorize output and reference paths before network or file I/O."""
+
+        del context
+        output_path = arguments.get("output_path")
+        if output_path:
+            if error := self._check_write_permission(
+                self._resolve_output_path(str(output_path))
+            ):
+                return error
+        for reference in arguments.get("reference_images") or ():
+            try:
+                self._resolve_readable_path(str(reference))
+            except ValueError as exc:
+                return ToolResult(success=False, error=str(exc))
+        return None
+
     def _resolve_readable_path(self, image_path: str) -> Path:
         path = Path(image_path).expanduser()
         if not path.is_absolute():
@@ -928,15 +945,15 @@ class GenerateImageTool(Tool):
 
     def _display_path(self, target: Path) -> str:
         try:
-            return str(target.relative_to(self.workspace_dir))
+            return target.relative_to(self.workspace_dir).as_posix()
         except ValueError:
             try:
-                return str(target.relative_to(self.output_dir))
+                return target.relative_to(self.output_dir).as_posix()
             except ValueError:
-                return str(target)
+                return target.as_posix()
 
     def _artifact_display_path(self, target: Path) -> str:
         try:
-            return str(target.relative_to(self.output_dir))
+            return target.relative_to(self.output_dir).as_posix()
         except ValueError:
             return self._display_path(target)

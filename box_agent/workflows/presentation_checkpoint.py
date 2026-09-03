@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import shlex
 from collections.abc import Iterable
@@ -10,8 +11,8 @@ from pathlib import Path
 from typing import Final
 from urllib.parse import urlsplit
 
-from ..artifacts import OUTPUT_SUBDIR, artifact_scan_root
-from ..loop_guards import CompletionGate
+from ..persistence.artifacts import OUTPUT_SUBDIR, artifact_scan_root
+from .guards import CompletionGate
 from .presentation_contract import (
     CHECKPOINT_MARKER,
     IMAGE_GENERATION_EXPLICIT_RETRY,
@@ -40,6 +41,19 @@ _RESEARCH_SYNTHESIS_SCRIPTS_DIR: Final = (
 def _controlled_pptx_command(script_name: str, arguments: str) -> str:
     script_path = shlex.quote(str(_CONTROLLED_PPTX_SCRIPTS_DIR / script_name))
     return f"${{BOX_AGENT_NODE:-node}} {script_path} {arguments}"
+
+
+def _research_handoff_path(path: Path) -> str:
+    """Render a research handoff path accepted by Windows model commands.
+
+    Keep simple drive-letter paths unquoted for compatibility with existing
+    hosts (and their persisted checkpoints); quote paths containing whitespace
+    so the command remains safe when a workspace is installed elsewhere.
+    """
+    value = str(path)
+    if os.name == "nt" and not any(char.isspace() for char in value):
+        return value
+    return shlex.quote(value)
 
 
 CONTROLLED_PRESENTATION_CHECKPOINT_MARKER: Final = CHECKPOINT_MARKER
@@ -1619,7 +1633,7 @@ def build_checkpoint_text(
             artifact_root / "research" / "qa" / "research_status.json"
         )
     research_report_argument = (
-        f" --research-handoff {shlex.quote(str(research_report_path))}"
+        f" --research-handoff {_research_handoff_path(research_report_path)}"
         if research_report_path is not None
         else ""
     )
@@ -2175,7 +2189,16 @@ def build_checkpoint_text(
                 # may remain, so their presence cannot prove the patch is stale.
                 patch_mtime = patch_path.stat().st_mtime_ns
                 deck_mtime = deck_path.stat().st_mtime_ns
-                patch_needs_apply = patch_mtime > deck_mtime
+                # When the host filesystem reports equal nanosecond mtimes
+                # (common on coarse/virtualized Windows volumes), existence of
+                # a valid patch is the only reliable signal that it still
+                # needs to be compiled.  Preserve a fresh actionable deck
+                # spec repair, however: that report is the more specific
+                # next action and must not be shadowed by an ambiguous mtime.
+                patch_needs_apply = patch_mtime > deck_mtime or (
+                    patch_mtime == deck_mtime
+                    and report_states["deck_spec.json"] != "failed"
+                )
             except OSError:
                 patch_needs_apply = False
         redesign_exists = redesign_path.is_file() and redesign_path.stat().st_size > 0
@@ -2518,11 +2541,11 @@ def build_checkpoint_text(
                     else {}
                 ),
                 "files": [
-                    str(
+                    (
                         path.relative_to(output_root)
                         if path.is_relative_to(output_root)
                         else path.relative_to(Path(workspace_dir))
-                    )
+                    ).as_posix()
                     for path in (research_files if not research_fallback else ())
                 ],
                 "verified_facts": (

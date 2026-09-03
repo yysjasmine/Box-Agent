@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-import box_agent.agent as agent_module
+import box_agent.compat.agent as agent_module
 from box_agent.agent import Agent
 from box_agent.config import ToolLimitsConfig
 from box_agent.context_resources import ResourceClass, ResourceDescriptor

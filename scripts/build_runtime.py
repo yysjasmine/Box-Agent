@@ -165,13 +165,70 @@ def pyinstaller_hidden_imports(*, external_python_sandbox: bool = False) -> list
     """Return PyInstaller hidden imports for the ACP runtime build."""
     hidden_imports = [
         "box_agent",
+        # New runtime kernel and plugin-composition surface.  Most of these
+        # modules are loaded from registries/factories at runtime, so relying
+        # only on PyInstaller's static import graph would silently omit them
+        # from frozen ACP/CLI bundles.
+        "box_agent.api",
+        "box_agent.api.contracts",
+        "box_agent.api.controls",
+        "box_agent.api.errors",
+        "box_agent.api.events",
+        "box_agent.api.handles",
+        "box_agent.api.permissions",
+        "box_agent.api.ports",
+        "box_agent.adapters",
+        "box_agent.adapters.acp_kernel",
+        "box_agent.adapters.acp_metadata",
+        "box_agent.adapters.acp_projection",
+        "box_agent.adapters.capabilities",
+        "box_agent.adapters.hosts",
+        "box_agent.adapters.plugin_host",
+        "box_agent.adapters.service",
+        "box_agent.acp.kernel_runtime",
         "box_agent.acp",
         "box_agent.acp.debug_logger",
         "box_agent.agent",
         "box_agent.cli",
         "box_agent.config",
         "box_agent.core",
+        "box_agent.compat",
+        "box_agent.context",
+        "box_agent.context.api",
+        "box_agent.context.composite",
+        "box_agent.context.in_memory",
+        "box_agent.context.model_history",
+        "box_agent.context.resource_ledger",
+        "box_agent.context.task",
         "box_agent.events",
+        "box_agent.kernel",
+        "box_agent.kernel.composer",
+        "box_agent.kernel.loop",
+        "box_agent.kernel.model_recovery",
+        "box_agent.kernel.model_stream",
+        "box_agent.memory_engine",
+        "box_agent.memory_engine.api",
+        "box_agent.memory_engine.composite",
+        "box_agent.memory_engine.in_memory",
+        "box_agent.permissions",
+        "box_agent.permissions.gateway",
+        "box_agent.persistence",
+        "box_agent.persistence.api",
+        "box_agent.persistence.artifact_processor",
+        "box_agent.persistence.checkpoints",
+        "box_agent.persistence.effects",
+        "box_agent.persistence.event_log",
+        "box_agent.persistence.leases",
+        "box_agent.persistence.sessions",
+        "box_agent.persistence.sqlite",
+        "box_agent.plugins",
+        "box_agent.plugins.api",
+        "box_agent.plugins.host",
+        "box_agent.plugins.registry",
+        "box_agent.services",
+        "box_agent.services.delegation",
+        "box_agent.services.kernel",
+        "box_agent.observability",
         "box_agent.llm",
         "box_agent.llm.anthropic_client",
         "box_agent.llm.openai_client",
@@ -183,12 +240,24 @@ def pyinstaller_hidden_imports(*, external_python_sandbox: bool = False) -> list
         "box_agent.retry",
         "box_agent.schema",
         "box_agent.tools",
+        "box_agent.tools.engine",
+        "box_agent.tools.mcp_exposure_engine",
+        "box_agent.tools.runtime_context",
         "box_agent.tools.bash_tool",
         "box_agent.tools.file_tools",
         "box_agent.tools.jupyter_tool",
         "box_agent.tools.mcp_loader",
         "box_agent.tools.skill_tool",
         "box_agent.utils",
+        "box_agent.workflows",
+        "box_agent.workflows.completion_gate",
+        "box_agent.workflows.composite",
+        "box_agent.workflows.contract",
+        "box_agent.workflows.external_skill",
+        "box_agent.workflows.goal",
+        "box_agent.workflows.hooks",
+        "box_agent.workflows.plan",
+        "box_agent.workflows.routing",
         # Third-party
         "tiktoken",
         "tiktoken_ext",
@@ -260,8 +329,17 @@ def pyinstaller_hidden_imports(*, external_python_sandbox: bool = False) -> list
 def pyinstaller_collect_args(*, external_python_sandbox: bool = False) -> list[str]:
     """Return flattened PyInstaller collect args for the ACP runtime build."""
     collect_groups = [
+        # Plugin registries and package-level lazy exports load modules by
+        # name. Collect the complete application package so a new plugin
+        # module cannot be omitted merely because it is not statically
+        # imported by the frozen entry point.
+        ("--collect-submodules", "box_agent"),
         ("--collect-all", "tiktoken"),
         ("--collect-all", "tiktoken_ext"),
+        # jsonschema optionally discovers rfc3987-syntax for IRI validation.
+        # Its grammar is loaded with Path(__file__), so static import analysis
+        # sees the Python package but otherwise omits the required .lark file.
+        ("--collect-data", "rfc3987_syntax"),
         ("--collect-all", "jupyter_client"),
         ("--collect-all", "ipykernel"),
         ("--collect-all", "jupyter_core"),
@@ -387,6 +465,29 @@ def pyinstaller_target_arch_args(*, plat: str, arch: str) -> list[str]:
         return []
     target_arch = "x86_64" if arch == "x64" else arch
     return ["--target-arch", target_arch]
+
+
+def pyinstaller_binary_args(
+    *,
+    plat: str,
+    python_prefix: str | Path | None = None,
+) -> list[str]:
+    """Collect Conda's shared Windows runtime libraries into the bundle.
+
+    Conda stores extension-module dependencies such as ``libexpat.dll`` and
+    OpenSSL under ``Library/bin`` rather than beside ``python.exe``. Adding
+    that directory to ``PATH`` helps analysis, but PyInstaller does not
+    reliably copy those transitive DLLs. An explicit wildcard makes the
+    frozen runtime self-contained without naming environment-specific DLLs.
+    """
+
+    if plat != "win32":
+        return []
+    prefix = Path(python_prefix) if python_prefix is not None else Path(sys.prefix)
+    library_bin = prefix / "Library" / "bin"
+    if not library_bin.is_dir() or not any(library_bin.glob("*.dll")):
+        return []
+    return ["--add-binary", f"{library_bin / '*.dll'}{os.pathsep}."]
 
 
 def bundled_stable_runtime_components(
@@ -521,6 +622,18 @@ def build_runtime(
     """Build the runtime artifact and return the archive path."""
     plat, arch = parse_target(target)
     require_supported_build_process(plat, arch)
+    if plat == "win32":
+        # Conda keeps OpenSSL/expat beside the interpreter under
+        # ``Library/bin``. PyInstaller's dependency scanner follows PATH, so
+        # add that directory when present; system/venv Python installations do
+        # not have it and retain their normal search behavior.
+        library_bin = Path(sys.prefix) / "Library" / "bin"
+        if library_bin.is_dir():
+            path_entries = os.environ.get("PATH", "").split(os.pathsep)
+            if str(library_bin) not in path_entries:
+                os.environ["PATH"] = os.pathsep.join(
+                    [str(library_bin), *path_entries]
+                )
     if plat in {"darwin", "linux"}:
         external_python_sandbox = True
     project_root = PROJECT_ROOT
@@ -589,6 +702,7 @@ def build_runtime(
         *hidden_args,
         *collect_args,
         *exclude_args,
+        *pyinstaller_binary_args(plat=plat),
         *pyinstaller_target_arch_args(plat=plat, arch=arch),
         str(entry_point),
     ]

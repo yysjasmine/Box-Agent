@@ -2,7 +2,17 @@
 
 ## Project Structure & Module Organization
 
-`box_agent/` contains the application code: `agent.py` drives the execution loop, `cli.py` exposes the CLI, `llm/` wraps model providers, `tools/` holds built-in tools, `acp/` hosts the ACP server, and `config/` stores example config files. `tests/` contains the automated test suite, with files such as `test_agent.py` and `test_mcp.py`. `examples/` provides runnable demos, while `docs/` and `docs/assets/` hold contributor-facing documentation and images. Treat `workspace/` as runtime scratch space, not committed source.
+`box_agent/` contains the application code. `api/` defines stable contracts,
+`kernel/` owns the single `AgentLoopKernel`, `services/` owns session and run
+lifecycle, `plugins/` provides typed capability registries, and `adapters/`
+contains the CLI, ACP, and SDK protocol facades. Capability implementations
+live in `context/`, `memory_engine/`, `permissions/`, `persistence/`, `tools/`,
+`workflows/`, and `llm/`; `acp/` contains ACP bootstrap and protocol support.
+Root modules such as `agent.py`, `core.py`, and `cli.py` are compatibility or
+executable facades, not independent execution owners. `tests/` contains unit,
+parity, and E2E coverage. `docs/` and `docs/assets/` hold contributor-facing
+documentation and images. Treat `workspace/` as runtime scratch space, not
+committed source.
 
 ## Code Discovery & Understand Anything
 
@@ -160,7 +170,8 @@ Use `uv` for local development.
 - `pytest tests/ -v`: run the full test suite.
 - `pytest tests/test_agent.py -v`: run a focused subset while iterating.
 
-If you need bundled skills, run `git submodule update --init --recursive` before testing skill-related changes.
+Built-in Skills are committed under `box_agent/skills/`; use
+`box_agent/skills/_manifest.json` as the authoritative runtime catalog.
 
 ## Coding Style & Naming Conventions
 
@@ -200,4 +211,4 @@ Before reviewing a pull request:
 
 ## Commit & Pull Request Guidelines
 
-Recent history uses conventional-style subjects such as `feat(cli): ...`, `fix(skill): ...`, and `docs: ...`. Keep commits small and scoped. For pull requests, include a clear summary, link related issues when applicable, note config or skill-submodule impacts, and list the test command(s) you ran. Update `README.md`, `CONTRIBUTING.md`, or `docs/` when user-facing behavior changes.
+Recent history uses conventional-style subjects such as `feat(cli): ...`, `fix(skill): ...`, and `docs: ...`. Keep commits small and scoped. For pull requests, include a clear summary, link related issues when applicable, note config, Skill manifest, or packaging impacts, and list the test command(s) you ran. Update `README.md`, `CONTRIBUTING.md`, or `docs/` when user-facing behavior changes.

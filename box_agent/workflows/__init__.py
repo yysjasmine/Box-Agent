@@ -6,10 +6,13 @@ from pathlib import Path
 from typing import Any
 
 from ..config import ToolLimitsConfig
-from ..loop_guards import CompletionGate
-from ..workflow_policy import WorkflowPolicy
-from ..workflow_checkpoint_store import load_workflow_checkpoint
-from ..workflow_owner_store import WorkflowOwner
+from .guards import CompletionGate
+from .contract import WorkflowPolicy, is_natural_end_reason
+from .browser import BrowserIntentWorkflowPolicy
+from .response_continuation import ResponseContinuationWorkflowPolicy
+from .attachment import AttachmentInspectionPolicy
+from ..persistence.workflow_checkpoint_store import load_workflow_checkpoint
+from ..persistence.workflow_owner_store import WorkflowOwner
 from .controlled_presentation import RESEARCH_ROUND_LIMIT, ControlledPresentationPolicy
 from .external_skill import (
     EXTERNAL_SKILL_WORKFLOW_KIND,
@@ -17,6 +20,7 @@ from .external_skill import (
     build_external_skill_completion_gate,
     build_external_skill_completion_gate_from_options,
     external_skill_policy_from_options,
+    external_skill_workflow_selection,
     resolve_explicit_skill_invocation,
 )
 from .presentation_contract import (
@@ -26,6 +30,7 @@ from .presentation_contract import (
     WORKFLOW_KIND as CONTROLLED_PRESENTATION_WORKFLOW_KIND,
 )
 from .presentation_preflight import (
+    PresentationPreflightService,
     build_presentation_preflight_analysis_text,
     build_presentation_preflight_result,
     build_presentation_recommendation_prompt,
@@ -36,6 +41,50 @@ from .presentation_provider import (
     resolve_presentation_skill_provider,
 )
 from .presentation_routing import build_presentation_completion_gate
+from ..kernel.workflow_composite import CompositeWorkflowPolicy
+from .goal import (
+    GoalReadTool,
+    GoalState,
+    GoalStore,
+    GoalToolStore,
+    GoalWorkflowPolicy,
+    GoalWriteTool,
+    apply_goal_action,
+    build_goal_tools,
+    extend_goal_items,
+    goal_action_from_metadata,
+    goal_autopilot_progress_signature,
+    goal_autopilot_prompt,
+    goal_autopilot_terminal_message,
+    goal_items,
+    goal_payload,
+    goal_snapshot,
+    goal_state_from_payload,
+    should_continue_goal_autopilot,
+)
+from .plan import (
+    PlanWorkflowPolicy,
+    SessionPlanReadTool,
+    SessionPlanStore,
+    SessionPlanWriteTool,
+    build_plan_tools,
+)
+from .hooks import WorkflowEventHook
+from .completion_gate import (
+    CompletionGateWorkflowPolicy,
+    completion_gate_from_payload,
+    completion_gate_to_payload,
+)
+from .routing import text_requests_native_plan
+from .selection import (
+    CompletionGateWorkflowSelector,
+    ExternalSkillWorkflowSelector,
+    PresentationWorkflowSelector,
+    WorkflowSelector,
+    WorkflowSelectorChain,
+    prompt_text,
+    workflow_selector_from_registry,
+)
 
 
 def create_workflow_policy(
@@ -45,6 +94,7 @@ def create_workflow_policy(
     artifact_root_dir: str | Path | None,
     workflow_options: Mapping[str, Any] | None = None,
     available_tool_names: frozenset[str] | None = None,
+    skill_loader: Any | None = None,
 ) -> WorkflowPolicy | None:
     """Create a per-run policy without exposing implementations to the kernel."""
     if workflow_kind == ControlledPresentationPolicy.kind:
@@ -74,6 +124,7 @@ def create_workflow_policy(
                 else None
             ),
             available_tool_names=available_tool_names,
+            skill_loader=skill_loader,
         )
         resume_checkpoint = load_workflow_checkpoint(
             workspace_dir=workspace_dir,
@@ -88,6 +139,8 @@ def create_workflow_policy(
             artifact_root_dir=artifact_root_dir,
             workflow_options=workflow_options,
         )
+        if skill_loader is not None:
+            policy.skill_loader = skill_loader
         resume_checkpoint = load_workflow_checkpoint(
             workspace_dir=workspace_dir,
             workflow_kind=workflow_kind,
@@ -176,19 +229,60 @@ def completion_gate_from_owner(
 
 
 __all__ = [
+    "BrowserIntentWorkflowPolicy",
+    "ResponseContinuationWorkflowPolicy",
+    "CompositeWorkflowPolicy",
+    "CompletionGateWorkflowPolicy",
+    "CompletionGateWorkflowSelector",
+    "completion_gate_from_payload",
+    "completion_gate_to_payload",
     "ControlledPresentationPolicy",
     "completion_gate_from_owner",
     "CONTROLLED_PRESENTATION_WORKFLOW_KIND",
     "EXTERNAL_SKILL_WORKFLOW_KIND",
     "ExternalSkillRunPolicy",
+    "ExternalSkillWorkflowSelector",
+    "GoalReadTool",
+    "GoalState",
+    "GoalStore",
+    "GoalToolStore",
+    "GoalWorkflowPolicy",
+    "GoalWriteTool",
+    "apply_goal_action",
+    "WorkflowEventHook",
+    "is_natural_end_reason",
+    "PlanWorkflowPolicy",
+    "PresentationWorkflowSelector",
+    "PresentationPreflightService",
+    "SessionPlanReadTool",
+    "SessionPlanStore",
+    "SessionPlanWriteTool",
+    "WorkflowSelector",
+    "WorkflowSelectorChain",
     "build_external_skill_completion_gate",
+    "external_skill_workflow_selection",
     "build_presentation_preflight_analysis_text",
     "build_presentation_preflight_result",
     "build_presentation_recommendation_prompt",
+    "build_goal_tools",
+    "extend_goal_items",
+    "goal_action_from_metadata",
+    "goal_items",
+    "goal_payload",
+    "goal_snapshot",
+    "goal_state_from_payload",
+    "goal_autopilot_progress_signature",
+    "goal_autopilot_prompt",
+    "goal_autopilot_terminal_message",
+    "build_plan_tools",
     "create_workflow_policy",
     "load_presentation_preflight_config",
     "parse_host_presentation_config",
     "recover_completion_gate",
     "resolve_explicit_skill_invocation",
     "resolve_presentation_skill_provider",
+    "should_continue_goal_autopilot",
+    "text_requests_native_plan",
+    "prompt_text",
+    "workflow_selector_from_registry",
 ]

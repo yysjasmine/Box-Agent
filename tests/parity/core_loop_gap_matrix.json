@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "retired_suite": "tests/test_core.py",
+  "purpose": "Evidence that observable pre-Kernel loop behavior moved to stable Kernel or capability-owned tests; private implementation algorithms are not compatibility contracts.",
+  "categories": {
+    "model_stream_and_recovery": {
+      "status": "covered",
+      "replacement_tests": [
+        "tests/test_agent_loop_kernel.py::test_kernel_composes_context_memory_llm_and_tools",
+        "tests/test_kernel_model_recovery.py::test_kernel_discards_truncated_tool_attempt_and_injects_bounded_repair",
+        "tests/test_kernel_model_recovery.py::test_kernel_resumes_after_crash_at_persisted_model_recovery_boundary"
+      ]
+    },
+    "tool_validation_permissions_and_parallelism": {
+      "status": "covered",
+      "replacement_tests": [
+        "tests/test_tool_engine.py::test_permission_preflight_runs_before_executor",
+        "tests/test_tool_progress_contract.py::test_kernel_orders_tool_progress_inside_the_tool_call_boundary",
+        "tests/test_agent_loop_kernel.py::test_kernel_honors_parallel_tool_limit"
+      ]
+    },
+    "context_compaction_and_replay": {
+      "status": "covered_with_intentional_change",
+      "intentional_change": "The Loop no longer mutates provider message arrays or synthesizes dangling tool replies. ContextEngine compacts typed items, and restart reconstructs only committed model/tool facts from the event log.",
+      "replacement_tests": [
+        "tests/test_context_engine.py::test_context_engine_compacts_low_priority_items_with_stable_ids",
+        "tests/test_context_engine.py::test_context_engine_restores_an_evicted_item_by_resource_id",
+        "tests/test_kernel_service.py::test_plugin_composed_kernel_rebuilds_context_from_recovery_events"
+      ]
+    },
+    "memory": {
+      "status": "covered",
+      "replacement_tests": [
+        "tests/test_context_memory_permission_replay.py::test_kernel_emits_context_manifest_permission_and_memory_write_boundaries",
+        "tests/test_memory_extraction_hook.py::test_memory_extraction_hook_maps_step_and_compaction_boundaries",
+        "tests/test_fault_recovery.py::test_memory_flush_crash_retries_post_response_lifecycle"
+      ]
+    },
+    "workflow_gates": {
+      "status": "covered",
+      "replacement_tests": [
+        "tests/test_workflow_parity_fixtures.py::test_plan_event_fixture_matches_native_pause_and_checkpoint_stream",
+        "tests/test_workflow_parity_fixtures.py::test_completion_gate_event_fixture_matches_recoverable_pause_stream",
+        "tests/test_workflow_parity_fixtures.py::test_presentation_event_fixture_runs_finalizer_before_model_and_publishes_artifact",
+        "tests/test_workflow_parity_fixtures.py::test_skill_event_fixture_matches_native_pause_checkpoint_and_terminal"
+      ]
+    },
+    "controls_cancellation_and_limits": {
+      "status": "covered",
+      "replacement_tests": [
+        "tests/test_agent_loop_kernel.py::test_kernel_watches_control_stream_and_cancels_provider_wait",
+        "tests/test_agent_loop_kernel.py::test_kernel_applies_run_injection_to_next_model_boundary",
+        "tests/test_agent_loop_kernel.py::test_kernel_deadline_cancels_a_slow_provider"
+      ]
+    },
+    "artifacts_and_lineage": {
+      "status": "covered_with_intentional_change",
+      "intentional_change": "Artifact publication is explicit Tool/Workflow output processed before artifact.created; the Kernel no longer guesses deliverables by scanning arbitrary filesystem changes.",
+      "replacement_tests": [
+        "tests/test_agent_loop_kernel.py::test_kernel_persists_and_enriches_artifact_before_publication",
+        "tests/test_task_registry.py::test_native_artifact_processor_persists_lineage_before_publication",
+        "tests/test_agent_loop_kernel.py::test_artifact_registry_failure_cannot_publish_success"
+      ]
+    },
+    "durability": {
+      "status": "covered",
+      "replacement_tests": [
+        "tests/test_durable_boundaries.py::test_event_checkpoint_and_outbox_commit_as_one_durable_boundary",
+        "tests/test_fault_recovery.py::test_tool_crash_effect_fence_prevents_duplicate_execution",
+        "tests/test_fault_recovery.py::test_continuation_boundary_crash_resumes_next_step_without_repeating_turn"
+      ]
+    },
+    "compatibility_entry": {
+      "status": "covered",
+      "replacement_tests": [
+        "tests/test_workflow_policy.py::test_runtime_bridge_executes_the_plugin_composed_kernel",
+        "tests/test_architecture_boundaries.py::test_core_is_a_compatibility_facade_not_an_execution_owner",
+        "tests/test_architecture_boundaries.py::test_no_production_module_imports_retired_core_implementation"
+      ]
+    }
+  }
+}

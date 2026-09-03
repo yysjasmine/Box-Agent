@@ -91,13 +91,13 @@ Review Agent 默认只读。除非任务明确要求修复，否则不得提交�
 ## 5. Ownership 与架构边界
 
 - 共享 Agent 循环、事件、调度、取消、tool-call closure、goal 和 completion
-  gate 属于稳定核心，例如 `box_agent/core.py`、`box_agent/events.py` 和共享 helper。
+  gate 属于稳定核心，例如 `box_agent/kernel/`、`box_agent/services/`、`box_agent/api/` 和共享 contract。
 - CLI 只负责终端 UX、slash commands、渲染和本地提示，不应复制 ACP 也需要的行为。
 - ACP 负责把共享事件翻译成 protocol updates 和 host extension methods；stdout
   必须保持纯协议输出，诊断信息进入 stderr 或结构化日志。
 - Provider wire 行为属于 `box_agent/llm/`，不得扩散到 Tool、Skill、CLI 或 ACP。
 - Tool 语义属于 `box_agent/tools/`，并应返回结构化 `ToolResult`。
-- Skill 加载属于 `box_agent/skill_loader.py`、`box_agent/skills/` 和
+- Skill 加载属于 `box_agent/tools/skill_loader.py`、`box_agent/skills/` 和
   `box_agent/skills/_manifest.json`。
 - PPT/文档生成默认由 Skill 驱动；除非 contract 变化，不向核心循环添加隐藏的
   PPT 专用模式。
@@ -222,8 +222,8 @@ uv run pytest tests/ -q --tb=short \
   --deselect tests/test_mcp.py::test_connection_timeout_on_unreachable_server
 
 # 常见聚焦测试
-uv run pytest tests/test_core.py -q
-uv run pytest tests/test_acp.py -q
+uv run pytest tests/test_agent_loop_kernel.py tests/test_kernel_service.py -q
+uv run pytest tests/test_acp_kernel_adapter.py tests/test_acp_projection.py -q
 uv run pytest tests/test_memory.py -q
 
 # Skill manifest 与包构建

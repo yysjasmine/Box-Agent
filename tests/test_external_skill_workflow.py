@@ -10,6 +10,7 @@ from box_agent.workflows.external_skill import (
     ExternalSkillRunPolicy,
     build_external_skill_completion_gate,
     explicit_skill_invocation_name,
+    external_skill_workflow_selection,
     infer_skill_delivery_globs,
     resolve_explicit_skill_invocation,
 )
@@ -48,6 +49,29 @@ def test_resolve_explicit_skill_requires_an_installed_nonbroken_skill(tmp_path: 
     assert resolve_explicit_skill_invocation(loader, "/PPT-MASTER topic") is not None
     assert resolve_explicit_skill_invocation(loader, "/missing topic") is None
     assert resolve_explicit_skill_invocation(loader, "/broken topic") is None
+
+
+def test_external_skill_selection_returns_data_only_native_workflow_options(
+    tmp_path: Path,
+) -> None:
+    loader = SkillLoader(tmp_path)
+    skill = _skill(tmp_path)
+    loader.loaded_skills[skill.name] = skill
+
+    selection = external_skill_workflow_selection(
+        loader,
+        "/ppt-master create a season review",
+    )
+
+    assert selection is not None
+    assert selection["workflow_id"] == "external_skill"
+    options = selection["workflow_options"]
+    assert options["skill_name"] == "ppt-master"
+    assert options["skill_source"] == "user"
+    assert options["task_text"] == "/ppt-master create a season review"
+    assert "output/**/*.pptx" in options["artifact_globs"]
+    assert selection == dict(selection)
+    assert external_skill_workflow_selection(loader, "/missing task") is None
 
 
 def test_delivery_contract_is_inferred_only_from_static_authoring_metadata(

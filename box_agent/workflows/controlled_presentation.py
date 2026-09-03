@@ -10,31 +10,40 @@ import ast
 import hashlib
 import json
 import logging
+import os
 import re
 import shlex
 import unicodedata
+from copy import deepcopy
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, ClassVar, Final
 from urllib.parse import urlsplit
 
 from ..config import ToolLimitsConfig
-from ..artifacts import artifact_scan_root
-from ..evidence import (
+from ..persistence.artifacts import artifact_scan_root
+from ..context import ContextItem
+from ..context.evidence import (
     extract_http_urls,
     extract_search_result_evidence,
     normalize_search_url,
 )
 from ..tools.base import ToolResult
 from ..tools.browser_tool_names import is_browser_tool_name
-from ..workflow_policy import WorkflowAction, WorkflowCheckpointUpdate
-from ..workflow_checkpoint_store import (
+from ..tools.skill_loader import Skill, SkillLoader
+from .contract import WorkflowAction, WorkflowCheckpointUpdate
+from .state import workflow_state_from_recovery
+from ..persistence.workflow_checkpoint_store import (
     WorkflowPauseCheckpoint,
     checkpoint_resume_instruction,
 )
 from .presentation_checkpoint import build_checkpoint_text
 from .presentation_contract import (
     CHECKPOINT_MARKER,
+    IMAGE_GENERATION_POLICY_OPTION,
+    RESEARCH_MODE_OPTION,
+    RESEARCH_ROUND_LIMIT_OPTION,
     WORKFLOW_KIND,
 )
 
@@ -68,10 +77,56 @@ GATEWAY_RESEARCH_READ_TOOLS: Final[frozenset[str]] = frozenset(
 RESEARCH_READ_BATCH_SIZE: Final[int] = 1
 RESEARCH_DIRECT_READ_LIMIT: Final[int] = 5
 RESEARCH_UNPRODUCTIVE_DIRECT_READ_LIMIT: Final[int] = 2
+
+
+def _skill_instruction_hash(skill: Skill) -> str:
+    """Hash instructions without baking an installation-specific path in."""
+
+    identity = {
+        "name": skill.name,
+        "description": skill.description,
+        "content": skill.content,
+        "broken": skill.broken,
+        "broken_reason": skill.broken_reason,
+    }
+    return hashlib.sha256(
+        json.dumps(identity, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode(
+            "utf-8"
+        )
+    ).hexdigest()
 RESEARCH_DISCOVERY_ATTEMPT_LIMIT: Final[int] = 3
 RESEARCH_ROUND_LIMIT: Final[int] = ToolLimitsConfig().presentation.research_rounds
 
 _log = logging.getLogger(__name__)
+
+
+def _split_command(command: str) -> list[str]:
+    """Tokenize shell commands while preserving unquoted Windows paths.
+
+    ``shlex.split`` is POSIX-oriented and treats the backslashes in an
+    unquoted ``D:\\...`` path as escape characters.  Model tool calls commonly
+    emit exactly that form on Windows, while our generated commands use quoted
+    paths and should keep the normal POSIX tokenization.  Fall back to the
+    Windows-preserving tokenizer only when the POSIX result lost every
+    absolute script path.
+    """
+    tokens = shlex.split(command)
+    if os.name != "nt" or any(Path(token).is_absolute() for token in tokens):
+        return tokens
+    try:
+        windows_tokens = shlex.split(command, posix=False)
+    except ValueError:
+        return tokens
+    normalized: list[str] = []
+    for token in windows_tokens:
+        if len(token) >= 2 and token[0] == token[-1] and token[0] in {"'", '"'}:
+            token = token[1:-1]
+        normalized.append(token)
+    return (
+        normalized
+        if any(Path(token).is_absolute() for token in normalized)
+        else tokens
+    )
 
 _CONTENT_PATCH_BLOCKED_TOOLS: Final[frozenset[str]] = frozenset(
     {"read_file", "execute_code", "bash"}
@@ -463,7 +518,7 @@ def _finalize_error(
     if tool_name != "bash" or not isinstance(command, str):
         return _FINALIZE_TOOL_ERROR
     try:
-        tokens = shlex.split(command)
+        tokens = _split_command(command)
     except ValueError:
         return _FINALIZE_TOOL_ERROR
     script_indexes = [
@@ -534,7 +589,7 @@ def _is_outline_validation_call(
     if not isinstance(command, str):
         return False
     try:
-        tokens = shlex.split(command)
+        tokens = _split_command(command)
     except ValueError:
         return False
     script_tokens = [
@@ -563,7 +618,7 @@ def _outline_validation_failure_signature(
     report_candidates: list[Path] = []
     command = arguments.get("command")
     try:
-        tokens = shlex.split(command) if isinstance(command, str) else []
+        tokens = _split_command(command) if isinstance(command, str) else []
     except ValueError:
         tokens = []
     if "--report" in tokens:
@@ -791,7 +846,7 @@ def _apply_patch_error(
     if tool_name != "bash" or not isinstance(command, str):
         return _APPLY_PATCH_REPAIR_TOOL_ERROR if repair_allowed else _APPLY_PATCH_TOOL_ERROR
     try:
-        tokens = shlex.split(command)
+        tokens = _split_command(command)
     except ValueError:
         return _APPLY_PATCH_REPAIR_TOOL_ERROR if repair_allowed else _APPLY_PATCH_TOOL_ERROR
     if tokens and tokens[-1] == "2>&1":
@@ -886,7 +941,7 @@ def _apply_redesign_error(
     if tool_name != "bash" or not isinstance(command, str):
         return _APPLY_REDESIGN_TOOL_ERROR
     try:
-        tokens = shlex.split(command)
+        tokens = _split_command(command)
     except ValueError:
         return _APPLY_REDESIGN_TOOL_ERROR
     script_indexes = [
@@ -986,7 +1041,7 @@ def _image_policy_rebase_error(
     if tool_name != "bash" or not isinstance(command, str):
         return _IMAGE_POLICY_REBASE_TOOL_ERROR
     try:
-        tokens = shlex.split(command)
+        tokens = _split_command(command)
     except ValueError:
         return _IMAGE_POLICY_REBASE_TOOL_ERROR
     script_indexes = [
@@ -1113,7 +1168,7 @@ def _research_validation_ledger(
         return None
     command = arguments.get("command")
     try:
-        tokens = shlex.split(command)
+        tokens = _split_command(command)
     except ValueError:
         return None
     if "--research-dir" not in tokens or "--topic" not in tokens:
@@ -1163,7 +1218,7 @@ def _research_validation_report(
         return None
     command = arguments.get("command")
     try:
-        tokens = shlex.split(command)
+        tokens = _split_command(command)
     except ValueError:
         return None
     if "--report" not in tokens:
@@ -1210,7 +1265,7 @@ def _is_research_validation_call(
     if not isinstance(command, str):
         return False
     try:
-        tokens = shlex.split(command)
+        tokens = _split_command(command)
     except ValueError:
         return False
     return any(
@@ -1652,7 +1707,7 @@ def _research_artifact_target_error(
         if not isinstance(command, str):
             return None
         try:
-            tokens = shlex.split(command)
+            tokens = _split_command(command)
         except ValueError:
             return None
         if not any(Path(token).name in {"mkdir", "mkdir.exe"} for token in tokens):
@@ -1686,8 +1741,8 @@ def _research_artifact_target_error(
         return None
     return (
         f"{_RESEARCH_ARTIFACT_TARGET_TOOL_ERROR} "
-        f"actual_path={candidate!r}; expected_path='research/...'; "
-        f"artifact_root={str(root)!r}."
+        f"actual_path='{candidate}'; expected_path='research/...'; "
+        f"artifact_root='{root}'."
     )
 
 
@@ -1722,8 +1777,8 @@ def _outline_target_error(
     )
     return (
         f"{_OUTLINE_TARGET_TOOL_ERROR} "
-        f"actual_path={candidate!r}; expected_path='outline.json'; "
-        f"artifact_root={str(root) if root is not None else None!r}."
+        f"actual_path='{candidate}'; expected_path='outline.json'; "
+        f"artifact_root='{root if root is not None else None}'."
     )
 
 
@@ -1813,7 +1868,7 @@ def _scaffold_error(
     if "\n" in command or "\r" in command:
         return _SCAFFOLD_TOOL_ERROR
     try:
-        tokens = shlex.split(command)
+        tokens = _split_command(command)
     except ValueError:
         return _SCAFFOLD_TOOL_ERROR
     script_indexes = [
@@ -2136,6 +2191,7 @@ class ControlledPresentationPolicy:
     _research_successful_direct_read_attempts: int = 0
     _research_consecutive_unproductive_direct_reads: int = 0
     _research_failed_validation_attempts: int = 0
+    _research_validation_just_completed: bool = False
     _research_calls_since_checkpoint: int = 0
     _research_rounds_without_handoff: int = 0
     _research_json_reads_since_mutation: set[str] = field(default_factory=set)
@@ -2152,6 +2208,18 @@ class ControlledPresentationPolicy:
     _no_progress_mutation_streak: int = 0
     _previous_outline_issue_classes: frozenset[str] = frozenset()
     _previous_outline_issue_count: int | None = None
+    # The host may supply the live Skill catalog so the native workflow gets
+    # the same full presentation authoring instructions as the legacy preload
+    # path. Only identity/options enter checkpoints; the loader remains an
+    # injected capability.
+    skill_loader: SkillLoader | None = field(default=None, repr=False, compare=False)
+    skill_content_hash: str | None = field(default=None, repr=False, compare=False)
+    presentation_skill_name: str = "pptx"
+    # Default delivery budget exposed through the generic Kernel.  A caller's
+    # explicit RunOptions.max_tool_calls remains the stricter per-run override.
+    max_tool_calls: int = field(
+        default_factory=lambda: ToolLimitsConfig().presentation.max_tool_calls
+    )
 
     kind: ClassVar[str] = WORKFLOW_KIND
     checkpoint_injection_id: ClassVar[str] = CHECKPOINT_MARKER
@@ -2162,6 +2230,183 @@ class ControlledPresentationPolicy:
         """Freeze configured tool availability."""
         if self.available_tool_names is not None:
             self.available_tool_names = frozenset(self.available_tool_names)
+
+    def for_run(self, request: Any, bundle: Any | None = None) -> "ControlledPresentationPolicy":
+        """Clone the policy and restore bounded state for one native Run."""
+
+        # Keep the host-owned loader by identity.  Besides avoiding duplicate
+        # mutable catalogs, this supports loaders that own locks/file handles
+        # and are intentionally not deep-copyable.
+        bound = deepcopy(
+            self,
+            {id(self.skill_loader): self.skill_loader}
+            if self.skill_loader is not None
+            else {},
+        )
+        bound.skill_loader = self.skill_loader
+        metadata = getattr(request, "metadata", {})
+        if isinstance(metadata, Mapping):
+            workspace = metadata.get("workspace_dir")
+            if isinstance(workspace, str) and workspace:
+                bound.workspace_dir = workspace
+        options = getattr(getattr(request, "options", None), "workflow_options", {})
+        if isinstance(options, Mapping):
+            presentation_skill_name = options.get("presentation_skill_name")
+            if (
+                isinstance(presentation_skill_name, str)
+                and presentation_skill_name.strip()
+            ):
+                bound.presentation_skill_name = presentation_skill_name.strip()
+            research_mode = options.get(RESEARCH_MODE_OPTION)
+            if isinstance(research_mode, str) and research_mode.strip():
+                bound.research_mode = research_mode.strip()
+            research_round_limit = options.get(RESEARCH_ROUND_LIMIT_OPTION)
+            if isinstance(research_round_limit, str) and research_round_limit.strip().isdigit():
+                research_round_limit = int(research_round_limit.strip())
+            if (
+                isinstance(research_round_limit, int)
+                and not isinstance(research_round_limit, bool)
+                and research_round_limit > 0
+            ):
+                bound.research_round_limit = research_round_limit
+            image_policy = options.get(IMAGE_GENERATION_POLICY_OPTION)
+            if isinstance(image_policy, str) and image_policy.strip():
+                bound.image_generation_policy = image_policy.strip()
+        state = workflow_state_from_recovery(bundle, self.kind)
+        if isinstance(state, Mapping):
+            bound._restore_native_state(state)
+        return bound
+
+    def build_checkpoint_payload(self) -> dict[str, Any]:
+        """Persist bounded policy state; artifacts remain the source of truth."""
+
+        skill = self._resolve_presentation_skill()
+        if skill is not None and self.skill_content_hash is None:
+            self.skill_content_hash = _skill_instruction_hash(skill)
+
+        counter_names = (
+            "_step_failure_streak",
+            "_repair_failure_streak",
+            "_policy_rejection_streak",
+            "_research_tool_attempts",
+            "_research_successful_attempts",
+            "_research_failed_attempts",
+            "_research_empty_attempts",
+            "_research_discovery_attempts",
+            "_research_successful_discovery_attempts",
+            "_research_failed_discovery_attempts",
+            "_research_empty_discovery_attempts",
+            "_research_direct_read_attempts",
+            "_research_successful_direct_read_attempts",
+            "_research_consecutive_unproductive_direct_reads",
+            "_research_failed_validation_attempts",
+            "_research_rounds_without_handoff",
+            "_no_progress_mutation_streak",
+        )
+        flags = {
+            name: bool(getattr(self, name))
+            for name in (
+                "has_patch_input",
+                "has_scaffold_input",
+                "has_image_input",
+                "has_repair_input",
+                "repair_stalled",
+                "image_auth_blocked",
+                "research_search_exhausted",
+                "apply_patch_repair_allowed",
+            )
+        }
+        counters = {
+            name.lstrip("_"): max(0, int(getattr(self, name) or 0))
+            for name in counter_names
+        }
+        state = {
+            "stage": self.stage,
+            "research_mode": self.research_mode,
+            "research_round_limit": self.research_round_limit,
+            "image_generation_policy": self.image_generation_policy,
+            # Keep only the selected instruction digest.  The prompt itself
+            # remains an injected Context contribution and is reloaded on
+            # resume, so checkpoints stay bounded and data-only.
+            "skill_content_hash": self.skill_content_hash,
+            "image_policy_rebase_policy": self.image_policy_rebase_policy,
+            "flags": flags,
+            "counters": counters,
+            "scaffold_input": deepcopy(self.scaffold_input),
+            "image_input": deepcopy(self.image_input),
+            "research_revalidation": deepcopy(self.research_revalidation),
+            "observed_direct_reads": [
+                list(item) for item in sorted(self._research_direct_read_keys)
+            ][:128],
+            "last_direct_source_url": self._research_last_direct_source_url,
+        }
+        return {self.kind: state}
+
+    def _restore_native_state(self, state: Mapping[str, Any]) -> None:
+        for name in (
+            "stage",
+            "research_mode",
+            "image_generation_policy",
+            "image_policy_rebase_policy",
+            "last_direct_source_url",
+        ):
+            value = state.get(name)
+            if isinstance(value, str) or value is None:
+                target = "_research_last_direct_source_url" if name == "last_direct_source_url" else name
+                setattr(self, target, value)
+        round_limit = state.get("research_round_limit")
+        if isinstance(round_limit, int) and round_limit > 0:
+            self.research_round_limit = round_limit
+        content_hash = state.get("skill_content_hash")
+        if isinstance(content_hash, str) and content_hash:
+            self.skill_content_hash = content_hash
+        flags = state.get("flags")
+        if isinstance(flags, Mapping):
+            for name in (
+                "has_patch_input",
+                "has_scaffold_input",
+                "has_image_input",
+                "has_repair_input",
+                "repair_stalled",
+                "image_auth_blocked",
+                "research_search_exhausted",
+                "apply_patch_repair_allowed",
+            ):
+                if name in flags:
+                    setattr(self, name, bool(flags[name]))
+        counters = state.get("counters")
+        if isinstance(counters, Mapping):
+            for name, value in counters.items():
+                target = "_" + str(name)
+                if hasattr(self, target) and isinstance(value, int) and value >= 0:
+                    setattr(self, target, value)
+        for name in ("scaffold_input", "image_input", "research_revalidation"):
+            value = state.get(name)
+            if isinstance(value, dict) or value is None:
+                setattr(self, name, deepcopy(value))
+        reads = state.get("observed_direct_reads")
+        if isinstance(reads, (list, tuple)):
+            self._research_direct_read_keys = {
+                (str(item[0]), str(item[1]))
+                for item in reads
+                if isinstance(item, (list, tuple)) and len(item) == 2
+            }
+
+    def on_event(self, event: Any) -> None:
+        """Restore structured state when the policy is installed as a Hook."""
+
+        event_type = getattr(event, "type", None)
+        payload = getattr(event, "payload", None)
+        if isinstance(event, Mapping):
+            event_type = event.get("type", event_type)
+            payload = event.get("payload", payload)
+        if event_type != "workflow.checkpoint" or not isinstance(payload, Mapping):
+            return
+        state = payload.get("workflow_state")
+        if isinstance(state, Mapping):
+            value = state.get(self.kind)
+            if isinstance(value, Mapping):
+                self._restore_native_state(value)
 
     def hidden_tool_names(self) -> frozenset[str]:
         """Return tools that cannot contribute to the current deck stage."""
@@ -2432,6 +2677,94 @@ class ControlledPresentationPolicy:
             )
             return None
 
+    def context_items(self, context: Any) -> tuple[ContextItem, ...]:
+        """Expose the stage checkpoint through the shared context SPI."""
+
+        checkpoint = (
+            context.get("checkpoint_text")
+            if isinstance(context, Mapping)
+            and isinstance(context.get("checkpoint_text"), str)
+            else self.build_checkpoint()
+        )
+        if not checkpoint:
+            return ()
+        items = [
+            ContextItem(
+                item_id="workflow:controlled-presentation",
+                kind="workflow",
+                content=checkpoint,
+                priority=900,
+                pinned=True,
+                metadata={
+                    "role": "system",
+                    "workflow_context": True,
+                    "workflow": self.kind,
+                },
+            ),
+        ]
+        skill = self._resolve_presentation_skill()
+        if skill is not None:
+            from ..tools.skill_preload import resolve_skill_preload_attributions
+
+            attributions = resolve_skill_preload_attributions(
+                self.skill_loader,
+                [skill.name],
+            )
+            for index, attribution in enumerate(attributions):
+                resolved = self.skill_loader.get_skill(attribution.skill_name)
+                if resolved is None:
+                    continue
+                prompt = resolved.to_prompt()
+                content_hash = _skill_instruction_hash(resolved)
+                metadata = {
+                    "role": "system",
+                    "workflow_context": True,
+                    "workflow": self.kind,
+                    "skill_name": resolved.name,
+                    "skill_source": resolved.source,
+                    "skill_content_hash": content_hash,
+                    "skill_prompt_hash": hashlib.sha256(
+                        prompt.encode("utf-8")
+                    ).hexdigest(),
+                    "skill_usage_role": attribution.usage_role,
+                    "dependency_of": attribution.dependency_of,
+                }
+                if resolved.name == skill.name:
+                    expected_hash = self.skill_content_hash
+                    if expected_hash is None:
+                        self.skill_content_hash = content_hash
+                    elif expected_hash != content_hash:
+                        metadata["skill_content_hash_mismatch"] = True
+                items.append(
+                    ContextItem(
+                        item_id=f"workflow:skill:{resolved.name}",
+                        kind="skill",
+                        content=prompt,
+                        priority=880 - index,
+                        pinned=True,
+                        metadata=metadata,
+                    )
+                )
+        return tuple(items)
+
+    def _resolve_presentation_skill(self) -> Skill | None:
+        loader = self.skill_loader
+        requested = self.presentation_skill_name
+        if loader is None or not requested:
+            return None
+        try:
+            canonical = next(
+                (
+                    name
+                    for name in loader.list_skills()
+                    if isinstance(name, str) and name.casefold() == requested.casefold()
+                ),
+                None,
+            )
+            return loader.get_skill(canonical) if canonical is not None else None
+        except Exception:
+            return None
+
     def update_checkpoint(
         self,
         checkpoint_text: str,
@@ -2585,6 +2918,14 @@ class ControlledPresentationPolicy:
 
     def next_deterministic_action(self) -> WorkflowAction | None:
         """Construct the next trusted workflow command from checkpoint state."""
+        # A validator may normalize its evidence ledger after writing the QA
+        # report.  That bookkeeping can make the ledger look newer than the
+        # report for one checkpoint even though the validation just succeeded;
+        # let the model observe the fresh report before scheduling another
+        # identical deterministic call.
+        if self._research_validation_just_completed:
+            self._research_validation_just_completed = False
+            return None
         artifact_root = artifact_scan_root(
             self.workspace_dir,
             self.artifact_root_dir,
@@ -2869,8 +3210,8 @@ class ControlledPresentationPolicy:
         if "\n" in command or "\r" in command:
             return _RESEARCH_REVALIDATION_REQUIRED_TOOL_ERROR
         try:
-            actual_tokens = shlex.split(command)
-            expected_tokens = shlex.split(expected)
+            actual_tokens = _split_command(command)
+            expected_tokens = _split_command(expected)
         except ValueError:
             return _RESEARCH_REVALIDATION_REQUIRED_TOOL_ERROR
         if actual_tokens == expected_tokens:
@@ -3398,14 +3739,17 @@ class ControlledPresentationPolicy:
                     "controlled_presentation/research_evidence_downgraded rows=%d",
                     downgraded,
                 )
-            if _research_validation_failed(
+            validation_failed = _research_validation_failed(
                 tool_name,
                 arguments,
                 result,
                 self.workspace_dir,
                 self.artifact_root_dir,
-            ):
+            )
+            if validation_failed:
                 self._research_failed_validation_attempts += 1
+            elif result.success:
+                self._research_validation_just_completed = True
             # The validator writes a fresh JSON report even when it exits non-zero.
             # Let the model inspect that report and the ledger once for repair.
             self._research_json_reads_since_mutation.clear()
@@ -3587,6 +3931,55 @@ class ControlledPresentationPolicy:
 
     def allows_completion_continuation(self) -> bool:
         return self.stage not in {"complete", "repair_stalled", "image_auth_blocked"}
+
+    def pause_after_tool(self, tool_name: str, result: Any) -> str | None:
+        """Expose user-decision pauses through the generic Kernel boundary."""
+
+        if (
+            tool_name not in {"request_user_input", "request_user_decision"}
+            or not bool(getattr(result, "success", False))
+        ):
+            return None
+        return (
+            "The presentation workflow is waiting for a user decision. "
+            "Progress was checkpointed; continue this session after answering."
+        )
+
+    def terminal_metadata(self, stop_reason: str, final_content: str) -> dict[str, Any]:
+        """Publish bounded presentation state without exposing prompt text."""
+
+        del final_content
+        return {
+            "controlledPresentation": {
+                "stage": self.stage,
+                "repairStalled": self.repair_stalled,
+                "imageAuthBlocked": self.image_auth_blocked,
+                "researchMode": self.research_mode,
+                "researchRoundLimit": self.research_round_limit,
+                "imageGenerationPolicy": self.image_generation_policy,
+                "lastStopReason": stop_reason,
+                "skillContentHash": self.skill_content_hash,
+            }
+        }
+
+    def terminal_message(self, stop_reason: str, final_content: str) -> str | None:
+        """Return a stable host-facing message for unrecoverable workflow stops."""
+
+        del final_content
+        if self.repair_stalled:
+            return (
+                "The presentation workflow stopped after repeated repair failures. "
+                "Progress and diagnostics were checkpointed for the next run."
+            )
+        if self.image_auth_blocked:
+            return (
+                "The presentation workflow stopped because image generation is "
+                "not authorized. Progress was checkpointed; continue without "
+                "images or update the image policy."
+            )
+        if stop_reason == "checkpoint_paused":
+            return "The presentation workflow is paused at a durable checkpoint."
+        return None
 
     def suppresses_generic_final_summary(self) -> bool:
         return self.stage not in {

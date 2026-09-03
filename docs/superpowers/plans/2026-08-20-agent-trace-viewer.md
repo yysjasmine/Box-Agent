@@ -16,7 +16,7 @@
 - Keep trace contents in browser memory; do not persist them to localStorage or IndexedDB.
 - Treat every trace value as untrusted text and render it with `textContent`/text nodes, never `innerHTML`.
 - Preserve unknown events and fields; invalid lines produce warnings while valid later lines continue loading.
-- Keep `box_agent/core.py`, `box_agent/session_trace.py`, agent events, and ACP protocol unchanged for the MVP.
+- Keep the Agent Kernel, `box_agent/observability/session_trace.py`, agent events, and ACP protocol unchanged for the MVP.
 - Do not commit, stage, push, or publish without explicit user authority.
 
 ---
@@ -370,7 +370,7 @@ Run: `git status --short --branch`
 
 Run: `git diff --stat`
 
-Run: `git diff -- box_agent/core.py box_agent/session_trace.py box_agent/acp`
+Run: `git diff -- box_agent/kernel box_agent/observability/session_trace.py box_agent/acp`
 
 Expected: no stable-kernel, trace-writer, or ACP changes.
 

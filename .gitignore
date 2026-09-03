@@ -25,6 +25,8 @@ venv/
 ENV/
 env/
 .venv
+.venv-*/
+.uv-cache/
 
 # graphify
 graphify-out
@@ -53,8 +55,12 @@ workspace/
 
 # Local test, browser, and rendered-artifact output
 output/
+.tmp-tests/
 .playwright-cli/
 .pytest_cache/
+
+# Generated local ACP E2E report (the static viewer consumes this file)
+/tests/e2e/report.json
 
 # OS
 .DS_Store

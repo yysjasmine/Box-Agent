@@ -36,7 +36,6 @@ from box_agent.tools.jupyter_tool import (
     SandboxEnvironment,
     SandboxStatusTool,
 )
-from box_agent.tools.mcp_loader import load_mcp_tools_async, set_mcp_timeout_config
 from box_agent.tools.mcp_bootstrap import bootstrap_managed_mcp_config
 from box_agent.tools.mcp_tool_catalog import get_mcp_tool_catalog
 from box_agent.tools.memory_tool import MemoryReadTool, MemorySearchTool, MemoryWriteTool
@@ -56,6 +55,27 @@ from box_agent.tools.image_inspection_tool import ImageInspectionTool
 
 if TYPE_CHECKING:
     from box_agent.tools.permissions import PermissionEngine
+
+
+def set_mcp_timeout_config(**kwargs: Any) -> None:
+    """Lazily forward MCP timeout configuration when the SDK is available."""
+
+    try:
+        from box_agent.tools.mcp_loader import set_mcp_timeout_config as configure
+    except ModuleNotFoundError:
+        # MCP is an optional capability.  Base-tool setup can still be used
+        # for a host that intentionally omits the SDK.
+        return
+
+    configure(**kwargs)
+
+
+async def load_mcp_tools_async(*args: Any, **kwargs: Any) -> list[Tool]:
+    """Lazily load MCP tools without making the setup module import MCP."""
+
+    from box_agent.tools.mcp_loader import load_mcp_tools_async as load
+
+    return await load(*args, **kwargs)
 
 
 def _image_capable_llm(llm: Any | None) -> Any | None:
@@ -254,6 +274,9 @@ async def initialize_base_tools(
         when ``defer_skills=True``, otherwise ``None`` (discovery already ran
         inline). See :func:`await_skill_discovery`.
     """
+    # MCP is optional and its SDK is intentionally loaded only when discovery
+    # is requested.  Importing the setup module must remain safe for the
+    # kernel/tool registry boundary on hosts that do not install MCP support.
     _out = output or print
 
     tools = []
@@ -773,6 +796,8 @@ def add_workspace_tools(tools: List[Tool], config: Config, workspace_dir: Path, 
 
     # Sub-agent tool — must be registered last so it can reference all other tools
     if config.tools.enable_sub_agent and llm is not None:
+        from box_agent.services.delegation import KernelChildAgentRunner
+
         parent_tools = {t.name: t for t in tools}
         tool_limits = getattr(config, "tool_limits", ToolLimitsConfig())
         sub_agent_tool = SubAgentTool(
@@ -787,6 +812,7 @@ def add_workspace_tools(tools: List[Tool], config: Config, workspace_dir: Path, 
             artifact_detection_enabled=artifact_root is not None,
             artifact_root_dir=str(artifact_root) if artifact_root else None,
             provider_stale_seconds=config.agent.provider_stale_seconds,
+            child_runner=KernelChildAgentRunner(),
         )
         if skill_loader is not None:
             sub_agent_tool.set_skill_provider(lambda: skill_loader)

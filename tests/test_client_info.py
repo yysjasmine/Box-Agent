@@ -2,9 +2,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from box_agent.acp import BoxACPAgent
+from box_agent.adapters import KernelACPAgent, build_kernel_service
 from box_agent.client_info import ClientInfo, current_client_headers, scoped_client_info
-from box_agent.config import AgentConfig, Config, LLMConfig, ToolsConfig
 from box_agent.schema import StreamEvent
 
 
@@ -78,7 +77,8 @@ class _ClientHeaderCaptureLLM:
     def __init__(self) -> None:
         self.headers: dict[str, str] = {}
 
-    async def generate_stream(self, _messages, _tools=None, **_kwargs):
+    async def generate_stream(self, messages, tools=None, **_kwargs):
+        del messages, tools
         self.headers = current_client_headers(
             "https://xiaohuanxiong.com/api/web/llm/v2"
         )
@@ -88,17 +88,13 @@ class _ClientHeaderCaptureLLM:
 
 @pytest.mark.asyncio
 async def test_acp_session_inherits_client_info_from_initialize(tmp_path) -> None:
-    config = Config(
-        llm=LLMConfig(api_key="test-key"),
-        agent=AgentConfig(
-            max_steps=2,
-            workspace_dir=str(tmp_path),
-            enable_memory_extraction=False,
-        ),
-        tools=ToolsConfig(enable_todo=False, enable_sub_agent=False),
-    )
     llm = _ClientHeaderCaptureLLM()
-    agent = BoxACPAgent(_DummyConn(), config, llm, [], "system")
+    service = build_kernel_service(llm=llm)
+    agent = KernelACPAgent(
+        _DummyConn(),
+        service,
+        workspace_dir=str(tmp_path),
+    )
     await agent.initialize(
         SimpleNamespace(
             field_meta={

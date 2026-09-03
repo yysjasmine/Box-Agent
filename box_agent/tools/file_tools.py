@@ -15,8 +15,8 @@ from fnmatch import fnmatch
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Iterator
 
-from ..events import ProgressEvent
-from ..model_history import is_model_history_placeholder
+from ..compat.events import ProgressEvent
+from ..context.model_history import is_model_history_placeholder
 from .base import EventEmittingTool, Tool, ToolResult
 from .argument_limits import MAX_GENERATED_BODY_CHARS
 from .file.path_candidates import home_relative_path_candidates
@@ -251,6 +251,12 @@ class SearchFilesTool(EventEmittingTool):
             if error:
                 return ToolResult(success=False, error=error)
         return None
+
+    async def preflight(self, arguments: dict[str, Any], *, context=None) -> ToolResult | None:
+        """Authorize the search root before traversing the filesystem."""
+
+        del context
+        return self._permission_error(self._resolve_path(str(arguments.get("path", "."))))
 
     def _can_inspect_home_path_candidates(self) -> bool:
         """Return whether the current policy already permits reading Home."""
@@ -800,6 +806,12 @@ class WriteTool(Tool):
                 return ToolResult(success=False, error=error)
         return None
 
+    async def preflight(self, arguments: dict[str, Any], *, context=None) -> ToolResult | None:
+        """Authorize the target before creating a transaction or file."""
+
+        del context
+        return self._permission_error(self._target(str(arguments["path"])))
+
     @staticmethod
     def _write_bytes(path: Path, data: bytes, *, append: bool) -> None:
         with path.open("ab" if append else "wb") as stream:
@@ -1049,6 +1061,11 @@ class WriteTool(Tool):
         self._committed.clear()
         return cleaned
 
+    def end_run(self) -> None:
+        """Discard incomplete chunked writes at the terminal Run boundary."""
+
+        self.cleanup_pending_writes()
+
 
 class AppendTool(Tool):
     """Append content to a file."""
@@ -1104,31 +1121,45 @@ class AppendTool(Tool):
             "required": ["path", "content"],
         }
 
+    def _target(self, path: str) -> Path:
+        return _resolve_from_active_root(
+            path,
+            workspace_dir=self.workspace_dir,
+            relative_root_dir=self.relative_root_dir,
+        )
+
+    def _permission_error(self, target: Path) -> ToolResult | None:
+        if self._perm:
+            decision = self._perm.check(
+                capability="filesystem.write",
+                resource={"path": str(target)},
+                tool_name=self.name,
+            )
+            if not decision.allowed:
+                return ToolResult(
+                    success=False,
+                    error=decision.reason,
+                    permission_request=decision.permission_request,
+                )
+        elif not self.allow_full_access:
+            error = validate_path_in_workspace(target, self.workspace_dir)
+            if error:
+                return ToolResult(success=False, content="", error=error)
+        return None
+
+    async def preflight(self, arguments: dict[str, Any], *, context=None) -> ToolResult | None:
+        """Authorize the target before reading or appending file contents."""
+
+        del context
+        return self._permission_error(self._target(str(arguments["path"])))
+
     async def execute(self, path: str, content: str) -> ToolResult:
         """Execute append file."""
         try:
-            file_path = _resolve_from_active_root(
-                path,
-                workspace_dir=self.workspace_dir,
-                relative_root_dir=self.relative_root_dir,
-            )
+            file_path = self._target(path)
 
-            if self._perm:
-                decision = self._perm.check(
-                    capability="filesystem.write",
-                    resource={"path": str(file_path)},
-                    tool_name=self.name,
-                )
-                if not decision.allowed:
-                    return ToolResult(
-                        success=False,
-                        error=decision.reason,
-                        permission_request=decision.permission_request,
-                    )
-            elif not self.allow_full_access:
-                error = validate_path_in_workspace(file_path, self.workspace_dir)
-                if error:
-                    return ToolResult(success=False, content="", error=error)
+            if error := self._permission_error(file_path):
+                return error
 
             placeholder_error = _model_history_placeholder_error(content)
             if placeholder_error:
@@ -1216,37 +1247,52 @@ class EditTool(Tool):
             "required": ["path", "old_str", "new_str"],
         }
 
+    def _target(self, path: str) -> Path:
+        file_path = _resolve_from_active_root(
+            path,
+            workspace_dir=self.workspace_dir,
+            relative_root_dir=self.relative_root_dir,
+        )
+        if not file_path.exists() and not Path(path).is_absolute():
+            workspace_candidate = self.workspace_dir / path
+            if workspace_candidate.exists():
+                return workspace_candidate
+        return file_path
+
+    def _permission_error(self, target: Path) -> ToolResult | None:
+        if self._perm:
+            decision = self._perm.check(
+                capability="filesystem.write",
+                resource={"path": str(target)},
+                tool_name=self.name,
+            )
+            if not decision.allowed:
+                return ToolResult(
+                    success=False,
+                    error=decision.reason,
+                    permission_request=decision.permission_request,
+                )
+        elif not self.allow_full_access:
+            error = validate_path_in_workspace(target, self.workspace_dir)
+            if error:
+                return ToolResult(success=False, content="", error=error)
+        return None
+
+    async def preflight(self, arguments: dict[str, Any], *, context=None) -> ToolResult | None:
+        """Authorize the target before reading and replacing its contents."""
+
+        del context
+        return self._permission_error(self._target(str(arguments["path"])))
+
     async def execute(self, path: str, old_str: str, new_str: str) -> ToolResult:
         """Execute edit file."""
         try:
             # Resolve relative paths from the active project/artifact root.
-            file_path = _resolve_from_active_root(
-                path,
-                workspace_dir=self.workspace_dir,
-                relative_root_dir=self.relative_root_dir,
-            )
-            if not file_path.exists() and not Path(path).is_absolute():
-                workspace_candidate = self.workspace_dir / path
-                if workspace_candidate.exists():
-                    file_path = workspace_candidate
+            file_path = self._target(path)
 
             # Path validation
-            if self._perm:
-                decision = self._perm.check(
-                    capability="filesystem.write",
-                    resource={"path": str(file_path)},
-                    tool_name=self.name,
-                )
-                if not decision.allowed:
-                    return ToolResult(
-                        success=False,
-                        error=decision.reason,
-                        permission_request=decision.permission_request,
-                    )
-            elif not self.allow_full_access:
-                error = validate_path_in_workspace(file_path, self.workspace_dir)
-                if error:
-                    return ToolResult(success=False, content="", error=error)
+            if error := self._permission_error(file_path):
+                return error
 
             if not file_path.exists():
                 return ToolResult(

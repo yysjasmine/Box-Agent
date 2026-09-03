@@ -90,6 +90,52 @@ class Tool:
         """Execute the tool with arbitrary arguments."""
         raise NotImplementedError
 
+    async def preflight(
+        self,
+        arguments: dict[str, Any],
+        *,
+        context: ToolInvocationContext | None = None,
+    ) -> ToolResult | None:
+        """Check side-effect permissions before the executor is entered.
+
+        A plugin returns a failed :class:`ToolResult` with
+        ``permission_request`` when a host decision is required. Returning
+        ``None`` means the executor may run. The default preserves legacy
+        tools that perform no separate permission preflight.
+        """
+
+        del arguments, context
+        return None
+
+    def approve_permission_request(self, permission_request: dict[str, Any]) -> None:
+        """Forward a host grant to an injected capability permission engine."""
+
+        engine = getattr(self, "_perm", None)
+        approve = getattr(engine, "approve", None)
+        if callable(approve):
+            approve(
+                permission_request,
+                grant_scope=str(permission_request.get("grant_scope") or "prompt"),
+            )
+
+    def validate(self, arguments: dict[str, Any]) -> ToolResult | None:
+        """Validate an invocation without entering the executor.
+
+        The registry engine uses this seam to reject malformed model output
+        before a permission preflight is evaluated.  Keeping validation
+        synchronous makes the ordering deterministic even for async tools.
+        ``None`` means the arguments are valid; a returned ``ToolResult`` is a
+        terminal validation failure.
+        """
+
+        try:
+            issues = validate_tool_arguments(self.parameters, arguments)
+        except ToolSchemaValidationError:
+            return self._invalid_schema_result()
+        if issues:
+            return self._invalid_arguments_result(issues)
+        return None
+
     async def invoke(
         self,
         arguments: dict[str, Any],
@@ -98,12 +144,9 @@ class Tool:
     ) -> ToolResult:
         """Validate an invocation and execute the tool implementation."""
 
-        try:
-            issues = validate_tool_arguments(self.parameters, arguments)
-        except ToolSchemaValidationError:
-            return self._invalid_schema_result()
-        if issues:
-            return self._invalid_arguments_result(issues)
+        validation = self.validate(arguments)
+        if validation is not None:
+            return validation
         return await self._invoke_validated(arguments, context=context)
 
     def _invalid_schema_result(self) -> ToolResult:

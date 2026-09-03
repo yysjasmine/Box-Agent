@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "name": "bounded_recoverable_pause",
+      "required_tools": ["verify"],
+      "max_continuations": 0,
+      "expected_event_types": [
+        "run.started",
+        "step.started",
+        "context.assembled",
+        "model.requested",
+        "model.content.delta",
+        "model.response.completed",
+        "workflow.checkpoint",
+        "step.completed",
+        "run.completed"
+      ],
+      "expected_stop_reason": "checkpoint_paused",
+      "expected_budget_exhausted": true,
+      "expected_recoverable_text": "durable workspace checkpoint"
+    }
+  ]
+}

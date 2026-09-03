@@ -41,27 +41,33 @@ shared runtime behavior.
 
 ```
 box-agent/
-├── box_agent/              # Core source code
-│   ├── core.py              # Execution core — run_agent_loop() (the agent loop)
-│   ├── agent.py             # Public API wrapper (Agent class)
-│   ├── runtime.py           # Composition root and stable Core bridge
-│   ├── completion.py        # Generic deliverable-router composition
-│   ├── delivery.py          # Generic deliverable-intent classification
-│   ├── workflow_policy.py   # Stable workflow contract consumed by Core
-│   ├── workflows/           # Workflow routing, checkpoints, and policies
-│   ├── artifacts.py         # Shared artifact contract helpers
-│   ├── turn_policy.py       # Shared turn classification policies
-│   ├── llm/                 # Provider clients and LLM wrapper
-│   ├── acp/                 # ACP server and host integration
-│   ├── cli.py               # Command-line interface
-│   ├── config.py            # Configuration loading
-│   ├── tools/               # Tool implementations (file, bash, MCP, skills, etc.)
-│   └── skills/              # Built-in Skills and manifest
-├── tests/                   # Test code
-├── docs/                    # Documentation
-├── workspace/               # Working directory
-└── pyproject.toml           # Project configuration
+├── box_agent/
+│   ├── api/                 # Stable DTOs, events, controls, ports, and handles
+│   ├── kernel/              # The single AgentLoopKernel and run composition
+│   ├── services/            # Session/run lifecycle, replay, leases, delegation
+│   ├── plugins/             # Typed registries and plugin lifecycle
+│   ├── adapters/            # Thin CLI, ACP, and SDK protocol adapters
+│   ├── context/             # Context providers, contributors, and compaction
+│   ├── memory_engine/       # Memory SPI, store, extraction, and maintenance
+│   ├── permissions/         # Fail-closed permission policy and negotiation
+│   ├── persistence/         # Sessions, events, checkpoints, effects, and leases
+│   ├── tools/               # Tool engine and built-in/MCP implementations
+│   ├── workflows/           # Goal, Plan, PPT, Skill, and completion policies
+│   ├── llm/                 # Provider clients and streaming wrapper
+│   ├── acp/                 # ACP bootstrap and protocol support
+│   ├── compat/              # Historical API/import facades over the Kernel
+│   └── skills/              # Built-in Skills and generated manifest
+├── tests/                   # Unit, parity, and E2E coverage
+├── docs/                    # Maintainer and integration documentation
+├── workspace/               # Runtime scratch space; do not commit
+└── pyproject.toml
 ```
+
+`AgentLoopKernel` is the only execution owner. `KernelAgentService` owns
+sessions, runs, replay, controls, and recovery. CLI, ACP, SDK, and the legacy
+`Agent` API submit the same `box_agent.api` requests and only render or project
+events. Root modules such as `core.py`, `agent.py`, and `cli.py` are
+compatibility or executable facades; do not add a second loop to them.
 
 ## 2. Basic Usage
 
@@ -151,10 +157,16 @@ Other MCP servers must be enabled explicitly in `~/.box-agent/config/mcp.json`.
 
 #### Steps
 
-1.  Create a new tool file under `box_agent/tools/`.
-2.  Inherit from the `Tool` base class.
-3.  Implement the required properties and methods.
-4.  Register the tool during Agent initialization.
+1. Create a built-in tool under `box_agent/tools/`, or implement it in a
+   third-party package.
+2. Implement `Tool`, or provide a compatible object with `name`,
+   `description`, `parameters`, and `execute`/`invoke`.
+3. Register the executor in `tools.executors`. Register a separate
+   `tools.descriptors` entry only when the model-facing schema has a different
+   owner.
+4. Compose the runtime with `KernelAgentService.from_plugin_host(host)`, or
+   expose a distributable plugin through the `box_agent.plugins` entry-point
+   group. Do not patch CLI and ACP separately for shared tools.
 
 The runtime dispatches tool calls through `Tool.invoke(arguments)`. This
 validates each call's arguments against `parameters` before delegating to the
@@ -276,22 +288,24 @@ class MyTool(Tool):
                 content=f"Error: {str(e)}"
             )
 
-# In cli.py or agent initialization code
+# At the composition boundary
+from box_agent.plugins import PluginHost
+from box_agent.services import KernelAgentService
 from box_agent.tools.my_tool import MyTool
 
-# Add the new tool when creating the Agent
-tools = [
-    ReadTool(workspace_dir),
-    WriteTool(workspace_dir),
-    MyTool(),  # Add your custom tool
-]
-
-agent = Agent(
-    llm=llm,
-    tools=tools,
-    max_steps=100
+host = PluginHost()
+host.registries["tools.executors"].register(
+    "my_tool", MyTool(), source="acme.my-tool", version="1.0.0"
 )
+# Register the required LLM/Context/Memory/Permission/store capabilities too,
+# or activate plugins that provide them.
+service = KernelAgentService.from_plugin_host(host)
 ```
+
+The Kernel tool boundary is fixed: schema validation → permission preflight →
+`Hook.before_tool` → revalidation after hook mutation → effect fence → executor
+→ `Hook.after_tool` → normalized result. Preserve this path; calling an
+executor directly bypasses safety, replay, and observability guarantees.
 
 Durable goals use bounded autopilot in CLI `--task` mode and ACP sessions. If a turn ends while the goal is still `active`, Box-Agent injects an internal continuation until the model calls `goal_write complete`, calls `goal_write block`, the user cancels, the `goal_autopilot_max_turns` / `goal_autopilot_max_seconds` config budget is reached, or `goal_autopilot_no_progress_turns` consecutive automatic continuations make no recorded goal progress.
 
@@ -325,7 +339,7 @@ Edit `mcp.json` to add a new MCP Server:
 Built-in skills are committed under `box_agent/skills/` and loaded through `box_agent/skills/_manifest.json`.
 No git submodule setup is required for normal development.
 
-The current manifest lists 32 built-in skills, including:
+The generated manifest is the authoritative list of built-in skills, including:
 
 - 📄 **Document Processing**: Create and edit PDF, DOCX, XLSX, PPTX
 - 🎨 **Design Creation**: Generate artwork, posters, GIF animations
@@ -481,15 +495,13 @@ Failed to load MCP server
 
 #### Enable Verbose Logging
 
-```python
-# At the beginning of cli.py or a test file
-import logging
-
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+```bash
+BOX_AGENT_LOG_LEVEL=DEBUG box-agent --task "reproduce the issue"
+BOX_AGENT_LLM_DEBUG=1 box-agent --task "inspect provider traffic"
 ```
+
+Provider debug logs redact credentials and summarize payloads by default. Do
+not enable full-payload logging with production prompts or customer data.
 
 #### Using the Python Debugger
 
@@ -503,9 +515,13 @@ import ipdb; ipdb.set_trace()
 
 #### Inspecting Tool Calls
 
-```python
-# Add logging in the Agent to see tool interactions
-logger.debug(f"Tool call: {tool_call.name}")
-logger.debug(f"Tool arguments: {tool_call.arguments}")
-logger.debug(f"Tool result: {result.content[:200]}")
+```bash
+box-agent trace-viewer
+# Development directory service, if live refresh is needed:
+uv run python -m box_agent.trace_viewer.server --port 8766
 ```
+
+The read-only viewer consumes redacted JSONL traces from
+`~/.box-agent/log/sessions/`. Add observability through a registered Hook when
+programmatic inspection is required; do not add ad hoc prints to Kernel, CLI,
+or ACP paths.

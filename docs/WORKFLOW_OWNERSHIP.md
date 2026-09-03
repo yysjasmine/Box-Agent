@@ -58,5 +58,6 @@ Primary proof lives in:
 
 - `tests/test_workflow_owner_store.py`
 - `tests/test_workflow_checkpoint_store.py`
-- `tests/test_acp.py`
+- `tests/test_acp_kernel_adapter.py`
+- `tests/test_acp_projection.py`
 - `tests/test_completion_gate.py`

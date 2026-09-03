@@ -7,6 +7,7 @@ from typing import Any
 
 import pytest
 
+from box_agent.adapters.builtin_extensions import UtilityPromptExtension
 from box_agent.llm.lightweight import (
     LightweightContentFiltered,
     LightweightInvalidArgs,
@@ -16,6 +17,10 @@ from box_agent.llm.lightweight import (
 )
 from box_agent.schema import LLMResponse
 from box_agent.schema.schema import TokenUsage
+from box_agent.services.utility_prompt import (
+    UtilityPromptService,
+    default_utility_llm_resolver,
+)
 
 
 class _FakeLLM:
@@ -208,19 +213,18 @@ async def test_lightweight_cancellation_propagates():
 
 
 class _StubAgent:
-    """Bare BoxACPAgent surface for exercising extMethod without ACP wiring."""
+    """Small host harness around the public utility-prompt extension."""
 
     def __init__(self, llm: _FakeLLM):
-        self._llm = llm
-        self._lite_llm = llm
+        self._extension = UtilityPromptExtension(
+            UtilityPromptService(default_utility_llm_resolver(llm))
+        )
 
-    # Bind the real implementation as if it were a method on this stub.
-    from box_agent.acp import BoxACPAgent
+    async def extMethod(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
+        """Exercise the public host-extension implementation, not ACP internals."""
 
-    extMethod = BoxACPAgent.extMethod
-    _llm_prompt = BoxACPAgent._llm_prompt
-    _llm_for_binding = BoxACPAgent._llm_for_binding
-    _utility_llm_for_meta = BoxACPAgent._utility_llm_for_meta
+        assert method == "llm/prompt"
+        return await self._extension.handle(params, context=None)
 
 
 @pytest.mark.asyncio
@@ -264,7 +268,7 @@ async def test_extmethod_title_prompt_caps_output_at_eight_thousand_tokens(monke
         return client, {"mode": "test"}
 
     monkeypatch.setattr(
-        "box_agent.acp.resolve_model_client",
+        "box_agent.services.utility_prompt.resolve_model_client",
         fake_resolve_model_client,
     )
 
@@ -326,7 +330,7 @@ async def test_extmethod_llm_prompt_content_filter_returns_code():
 
 @pytest.mark.asyncio
 async def test_extmethod_llm_prompt_does_not_create_session():
-    """The endpoint must never touch BoxACPAgent._sessions."""
+    """The endpoint is stateless and must not create an Agent session."""
     llm = _FakeLLM(content="ok")
     agent = _StubAgent(llm)
     # _sessions isn't even attached to the stub — if the impl reached for it,

@@ -49,11 +49,33 @@ class TraceViewerRequestHandler(SimpleHTTPRequestHandler):
     def _reject_untrusted_request(self) -> bool:
         if self._request_is_trusted():
             return False
+        self._drain_bounded_request_body()
         self._send_json(
             403,
             {"error": "Trace viewer requests must use the loopback origin"},
         )
         return True
+
+    def _drain_bounded_request_body(self) -> None:
+        """Consume a rejected bounded body before the socket is closed.
+
+        Windows resets a TCP connection closed with unread inbound data.  A
+        reset can discard the 403 response that protects this loopback-only
+        service, so rejected normal-sized requests must reach a clean HTTP
+        message boundary before the response is sent.
+        """
+
+        try:
+            remaining = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            return
+        if remaining <= 0 or remaining > MAX_REQUEST_BYTES:
+            return
+        while remaining:
+            chunk = self.rfile.read(min(remaining, 16 * 1024))
+            if not chunk:
+                return
+            remaining -= len(chunk)
 
     def _send_json(self, status: int, payload: dict[str, Any]) -> None:
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
@@ -64,6 +86,7 @@ class TraceViewerRequestHandler(SimpleHTTPRequestHandler):
         self.send_header("X-Content-Type-Options", "nosniff")
         self.end_headers()
         self.wfile.write(body)
+        self.wfile.flush()
 
     def do_GET(self) -> None:  # noqa: N802 - inherited HTTP handler contract
         if self._reject_untrusted_request():
@@ -154,7 +177,12 @@ def _read_trace_directory(
         if include_text:
             content = path.read_bytes()
             entry["size"] = len(content)
-            entry["text"] = content.decode("utf-8", errors="replace")
+            # Match ``Path.read_text`` semantics used by hosts/tests: trace
+            # payloads are exposed with normalized LF newlines even when the
+            # Windows filesystem stores CRLF bytes.
+            entry["text"] = content.decode("utf-8", errors="replace").replace(
+                "\r\n", "\n"
+            )
         total_bytes += int(entry["size"])
         entries.append(entry)
     return entries, skipped

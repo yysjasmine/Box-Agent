@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -195,6 +196,22 @@ def test_agent_logger_uses_unique_run_files_within_one_second(tmp_path) -> None:
     assert first != second
     assert first.exists()
     assert second.exists()
+
+
+def test_agent_logger_does_not_fail_when_home_log_directory_is_read_only(monkeypatch) -> None:
+    original_mkdir = Path.mkdir
+
+    def deny_home_log_directory(self: Path, *args, **kwargs):
+        if str(self).endswith(".box-agent\\log"):
+            raise PermissionError("read-only home")
+        return original_mkdir(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "mkdir", deny_home_log_directory)
+    agent_logger = AgentLogger()
+
+    agent_logger.start_new_run()
+
+    assert agent_logger.get_log_file_path() is None
 
 
 @pytest.mark.asyncio

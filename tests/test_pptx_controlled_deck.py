@@ -103,7 +103,7 @@ def _run(
     result = subprocess.run(
         [str(NODE), str(SCRIPTS_DIR / script), *args],
         capture_output=True,
-        text=True,
+        encoding="utf-8",
         check=False,
         cwd=cwd,
         env=env,
@@ -176,12 +176,16 @@ def test_layout_manifest_is_generated_from_registry() -> None:
     result = _run("build_layout_manifest.js", "--check")
 
     assert result.returncode == 0, result.stderr
-    manifest = json.loads((SKILL_DIR / "layouts" / "manifest.json").read_text())
+    manifest = json.loads(
+        (SKILL_DIR / "layouts" / "manifest.json").read_text(encoding="utf-8")
+    )
     assert manifest["generated_from"] == "layouts/registry.js + themes/*.json"
 
 
 def test_every_collection_layout_publishes_one_typed_count_contract() -> None:
-    manifest = json.loads((SKILL_DIR / "layouts" / "manifest.json").read_text())
+    manifest = json.loads(
+        (SKILL_DIR / "layouts" / "manifest.json").read_text(encoding="utf-8")
+    )
     collection_layouts = 0
     for layout in manifest["layouts"]:
         array_fields = {
@@ -415,7 +419,9 @@ def test_every_collection_layout_publishes_one_typed_count_contract() -> None:
 
 
 def test_high_frequency_layouts_publish_three_structural_variants() -> None:
-    manifest = json.loads((SKILL_DIR / "layouts" / "manifest.json").read_text())
+    manifest = json.loads(
+        (SKILL_DIR / "layouts" / "manifest.json").read_text(encoding="utf-8")
+    )
     variants = {layout["id"]: layout["variants"] for layout in manifest["layouts"]}
 
     assert variants["cards-grid-v1"] == ["balanced", "numbered", "featured"]
@@ -604,7 +610,9 @@ def test_skill_avoids_public_research_permission_and_micro_todo_loops() -> None:
 
 
 def test_every_visual_dna_theme_has_complete_contrast_safe_runtime_tokens() -> None:
-    manifest = json.loads((SKILL_DIR / "layouts" / "manifest.json").read_text())
+    manifest = json.loads(
+        (SKILL_DIR / "layouts" / "manifest.json").read_text(encoding="utf-8")
+    )
     required_palette = {
         "background",
         "surface",
@@ -646,7 +654,9 @@ def test_every_visual_dna_theme_has_complete_contrast_safe_runtime_tokens() -> N
 
 
 def test_every_registered_theme_renders_all_controlled_layouts(tmp_path: Path) -> None:
-    manifest = json.loads((SKILL_DIR / "layouts" / "manifest.json").read_text())
+    manifest = json.loads(
+        (SKILL_DIR / "layouts" / "manifest.json").read_text(encoding="utf-8")
+    )
     layout_ids = [layout["id"] for layout in manifest["layouts"]]
     rendered_templates: set[str] = set()
     deck_path = tmp_path / "all-layouts.json"
@@ -717,7 +727,9 @@ def test_new_composition_families_render_every_layout(
     theme_id: str,
     family: str,
 ) -> None:
-    manifest = json.loads((SKILL_DIR / "layouts" / "manifest.json").read_text())
+    manifest = json.loads(
+        (SKILL_DIR / "layouts" / "manifest.json").read_text(encoding="utf-8")
+    )
     layout_ids = [layout["id"] for layout in manifest["layouts"]]
     deck_path = tmp_path / family / "deck.json"
     scaffold = _run(
@@ -1071,7 +1083,7 @@ def test_friendly_onboarding_auto_corrects_fallback_theme_and_avoids_schematic(
     assert scaffold.returncode == 0, scaffold.stdout + scaffold.stderr
     deck = json.loads(deck_path.read_text(encoding="utf-8"))
     report = json.loads(
-        (deck_path.parent / "qa" / "deck_contract.json").read_text()
+        (deck_path.parent / "qa" / "deck_contract.json").read_text(encoding="utf-8")
     )
     assert deck["theme_id"] == "soft-editorial"
     assert deck["design"]["family"] == "editorial-spread"
@@ -1148,7 +1160,7 @@ def test_theme_inference_does_not_treat_negated_playful_style_as_positive(
     assert scaffold.returncode == 0, scaffold.stdout + scaffold.stderr
     deck = json.loads(deck_path.read_text(encoding="utf-8"))
     report = json.loads(
-        (deck_path.parent / "qa" / "deck_contract.json").read_text()
+        (deck_path.parent / "qa" / "deck_contract.json").read_text(encoding="utf-8")
     )
     assert deck["theme_id"] == "consulting-navy"
     assert report["theme_selection"]["theme_id"] == "consulting-navy"
@@ -1197,7 +1209,7 @@ def test_winery_brief_selects_mat_theme_without_fallback(
 
     deck = json.loads(deck_path.read_text(encoding="utf-8"))
     report = json.loads(
-        (deck_path.parent / "qa" / "deck_contract.json").read_text()
+        (deck_path.parent / "qa" / "deck_contract.json").read_text(encoding="utf-8")
     )
 
     assert deck["theme_id"] == "mat"
@@ -1239,7 +1251,7 @@ def test_wine_keyword_rule_does_not_match_broad_alcohol_terms(
     assert scaffold.returncode == 0, scaffold.stdout + scaffold.stderr
 
     report = json.loads(
-        (deck_path.parent / "qa" / "deck_contract.json").read_text()
+        (deck_path.parent / "qa" / "deck_contract.json").read_text(encoding="utf-8")
     )
     signals = {
         item["signal"] for item in report["theme_selection"]["matched_signals"]
@@ -1316,7 +1328,7 @@ def test_comic_brief_auto_selects_comic_panel_theme(tmp_path: Path) -> None:
     assert scaffold.returncode == 0, scaffold.stdout + scaffold.stderr
     deck = json.loads(deck_path.read_text(encoding="utf-8"))
     report = json.loads(
-        (deck_path.parent / "qa" / "deck_contract.json").read_text()
+        (deck_path.parent / "qa" / "deck_contract.json").read_text(encoding="utf-8")
     )
     assert deck["theme_id"] == "comic-panel"
     assert deck["design"]["family"] == "brutalist-frame"
@@ -1398,7 +1410,7 @@ def test_pixel_brief_auto_selects_8_bit_orbit_theme(tmp_path: Path) -> None:
     assert scaffold.returncode == 0, scaffold.stdout + scaffold.stderr
     deck = json.loads(deck_path.read_text(encoding="utf-8"))
     report = json.loads(
-        (deck_path.parent / "qa" / "deck_contract.json").read_text()
+        (deck_path.parent / "qa" / "deck_contract.json").read_text(encoding="utf-8")
     )
     assert deck["theme_id"] == "8-bit-orbit"
     assert deck["design"]["family"] == "retro-interface"
@@ -1670,7 +1682,7 @@ def test_natural_briefs_use_keyword_industry_and_mood_theme_selection(
     assert scaffold.returncode == 0, scaffold.stdout + scaffold.stderr
     deck = json.loads(deck_path.read_text(encoding="utf-8"))
     report = json.loads(
-        (deck_path.parent / "qa" / "deck_contract.json").read_text()
+        (deck_path.parent / "qa" / "deck_contract.json").read_text(encoding="utf-8")
     )
     assert deck["theme_id"] == expected_theme
     assert deck["design"]["family"] == expected_family
@@ -1856,7 +1868,7 @@ def test_lock_theme_preserves_explicit_user_choice_for_onboarding(
     assert scaffold.returncode == 0, scaffold.stdout + scaffold.stderr
     deck = json.loads(deck_path.read_text(encoding="utf-8"))
     report = json.loads(
-        (deck_path.parent / "qa" / "deck_contract.json").read_text()
+        (deck_path.parent / "qa" / "deck_contract.json").read_text(encoding="utf-8")
     )
     assert deck["theme_id"] == "blue-professional"
     assert deck["design"]["family"] == "institutional-grid"
@@ -1955,10 +1967,10 @@ def test_scaffold_infers_product_family_and_cover_image_from_outline(
     assert scaffold.returncode == 0, scaffold.stdout + scaffold.stderr
     deck = json.loads(deck_path.read_text(encoding="utf-8"))
     report = json.loads(
-        (deck_path.parent / "qa" / "deck_contract.json").read_text()
+        (deck_path.parent / "qa" / "deck_contract.json").read_text(encoding="utf-8")
     )
     manifest = json.loads(
-        (deck_path.parent / "assets" / "generated" / "manifest.json").read_text()
+        (deck_path.parent / "assets" / "generated" / "manifest.json").read_text(encoding="utf-8")
     )
     assert deck["design"]["family"] == "product-showcase"
     assert report["design_selection"]["source"] == "content_inference"
@@ -2008,7 +2020,7 @@ def test_scaffold_promotes_person_profile_cover_from_slide_visual(
 
     assert scaffold.returncode == 0, scaffold.stdout + scaffold.stderr
     manifest = json.loads(
-        (deck_path.parent / "assets" / "generated" / "manifest.json").read_text()
+        (deck_path.parent / "assets" / "generated" / "manifest.json").read_text(encoding="utf-8")
     )
     cover = manifest["image_plan"][0]
     assert cover["slot"] == "hero"
@@ -2063,10 +2075,10 @@ def test_scaffold_infers_technical_family_from_code_and_system_outline(
     assert scaffold.returncode == 0, scaffold.stdout + scaffold.stderr
     deck = json.loads(deck_path.read_text(encoding="utf-8"))
     report = json.loads(
-        (deck_path.parent / "qa" / "deck_contract.json").read_text()
+        (deck_path.parent / "qa" / "deck_contract.json").read_text(encoding="utf-8")
     )
     manifest = json.loads(
-        (deck_path.parent / "assets" / "generated" / "manifest.json").read_text()
+        (deck_path.parent / "assets" / "generated" / "manifest.json").read_text(encoding="utf-8")
     )
     assert deck["design"]["family"] == "technical-schematic"
     assert report["design_selection"]["source"] == "content_inference"
@@ -2105,7 +2117,7 @@ def test_explicit_family_overrides_outline_inference(tmp_path: Path) -> None:
     assert scaffold.returncode == 0, scaffold.stdout + scaffold.stderr
     deck = json.loads(deck_path.read_text(encoding="utf-8"))
     report = json.loads(
-        (deck_path.parent / "qa" / "deck_contract.json").read_text()
+        (deck_path.parent / "qa" / "deck_contract.json").read_text(encoding="utf-8")
     )
     assert deck["design"]["family"] == "analytical-exhibit"
     assert report["design_selection"]["source"] == "explicit_family"
@@ -2131,7 +2143,7 @@ process.stdout.write(JSON.stringify({ manifest, design }));
     result = subprocess.run(
         [str(NODE), "-e", probe, str(core)],
         capture_output=True,
-        text=True,
+        encoding="utf-8",
         check=False,
     )
 
@@ -2248,7 +2260,7 @@ console.log(JSON.stringify({ layouts: slides.length, migrations, enumControls, c
     result = subprocess.run(
         [str(NODE), "-e", probe, str(registry), str(core)],
         capture_output=True,
-        text=True,
+        encoding="utf-8",
         check=False,
     )
 
@@ -2347,9 +2359,9 @@ def test_scaffold_normalizes_known_semantic_theme_alias(tmp_path: Path) -> None:
         "from": "carnival",
         "to": "bold-poster",
     }
-    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text())
+    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text(encoding="utf-8"))
     assert report["theme_id_normalization"] == payload["theme_id_normalization"]
-    assert json.loads(deck_path.read_text())["theme_id"] == "bold-poster"
+    assert json.loads(deck_path.read_text(encoding="utf-8"))["theme_id"] == "bold-poster"
 
 
 def test_scaffold_normalizes_comic_theme_alias(tmp_path: Path) -> None:
@@ -2375,7 +2387,7 @@ def test_scaffold_normalizes_comic_theme_alias(tmp_path: Path) -> None:
         "from": "comic",
         "to": "comic-panel",
     }
-    assert json.loads(deck_path.read_text())["theme_id"] == "comic-panel"
+    assert json.loads(deck_path.read_text(encoding="utf-8"))["theme_id"] == "comic-panel"
 
 
 def test_scaffold_normalizes_pixel_theme_alias(tmp_path: Path) -> None:
@@ -2401,7 +2413,7 @@ def test_scaffold_normalizes_pixel_theme_alias(tmp_path: Path) -> None:
         "from": "pixel",
         "to": "8-bit-orbit",
     }
-    assert json.loads(deck_path.read_text())["theme_id"] == "8-bit-orbit"
+    assert json.loads(deck_path.read_text(encoding="utf-8"))["theme_id"] == "8-bit-orbit"
 
 
 def test_deck_contract_scaffolds_ordered_repeated_layouts_once(tmp_path: Path) -> None:
@@ -2449,11 +2461,11 @@ def test_deck_contract_scaffolds_ordered_repeated_layouts_once(tmp_path: Path) -
         "image-hero-split-v1",
         "image-hero-split-v1",
     ]
-    assert json.loads(deck_path.read_text()) == payload["deck_skeleton"]
+    assert json.loads(deck_path.read_text(encoding="utf-8")) == payload["deck_skeleton"]
     assert payload["deck_file"] == str(deck_path.resolve())
     image_manifest = deck_path.parent / "assets" / "generated" / "manifest.json"
     assert payload["image_manifest"] == str(image_manifest.resolve())
-    image_payload = json.loads(image_manifest.read_text())
+    image_payload = json.loads(image_manifest.read_text(encoding="utf-8"))
     assert image_payload["mode"] == "auto"
     assert image_payload["deck"]["design"] == payload["deck_skeleton"]["design"]
     assert len(image_payload["image_plan"]) == 3
@@ -2464,7 +2476,7 @@ def test_deck_contract_scaffolds_ordered_repeated_layouts_once(tmp_path: Path) -
     assert image_payload["image_plan"][1]["status"] == "pending"
     contract_report = deck_path.parent / "qa" / "deck_contract.json"
     assert payload["contract_report"] == str(contract_report.resolve())
-    contract_payload = json.loads(contract_report.read_text())
+    contract_payload = json.loads(contract_report.read_text(encoding="utf-8"))
     assert contract_payload["ok"] is True
     assert contract_payload["slide_count"] == 3
     assert contract_payload["image_mode"] == "auto"
@@ -2528,7 +2540,7 @@ def test_scaffold_binds_outline_pages_and_imports_public_research_evidence(
     assert deck["truth_contract"]["research_facts"] == [
         slide["evidence"][0] for slide in outline["slides"]
     ]
-    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text())
+    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text(encoding="utf-8"))
     assert report["outline_binding"]["outline_file"] == str(outline_path.resolve())
     assert report["outline_binding"]["source_mode"] == (
         "public_authoritative_research"
@@ -2606,7 +2618,7 @@ def test_scaffold_rejects_outline_count_and_normalizes_qualitative_quantitative_
             ),
         }
     ]
-    deck = json.loads((tmp_path / "qualitative-chart.json").read_text())
+    deck = json.loads((tmp_path / "qualitative-chart.json").read_text(encoding="utf-8"))
     assert [slide["layout_id"] for slide in deck["slides"]] == [
         "cards-grid-v1",
         "cards-grid-v1",
@@ -2818,7 +2830,7 @@ def test_market_size_chart_warns_for_unauthorized_assumption(
 
     assert result.returncode == 0, result.stdout + result.stderr
     assert deck_path.is_file()
-    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text())
+    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text(encoding="utf-8"))
     assert any(
         "requires explicit user permission" in warning
         for warning in report["warnings"]
@@ -3086,7 +3098,7 @@ def test_truth_validator_ignores_diagram_structural_ids_but_checks_labels(
             str(deck_path),
         ],
         capture_output=True,
-        text=True,
+        encoding="utf-8",
         check=False,
     )
     assert sanitizer.returncode == 0, sanitizer.stderr
@@ -3566,7 +3578,7 @@ def test_scaffold_keeps_project_media_and_metrics_as_project_case_study(
     ]
     deck = json.loads(deck_path.read_text(encoding="utf-8"))
     assert deck["slides"][0]["layout_id"] == "project-case-study-v1"
-    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text())
+    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text(encoding="utf-8"))
     assert report["required_fields"] == [{"slide": 1, "field": "metrics"}]
 
 
@@ -3613,7 +3625,7 @@ def test_scaffold_normalizes_metrics_field_when_project_page_falls_back_to_kpi(
     assert result.returncode == 0, result.stdout + result.stderr
     deck = json.loads(deck_path.read_text(encoding="utf-8"))
     assert deck["slides"][0]["layout_id"] == "kpi-grid-v1"
-    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text())
+    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text(encoding="utf-8"))
     assert report["required_fields"] == [{"slide": 1, "field": "items"}]
     assert report["required_field_normalizations"] == [
         {"slide": 1, "from": "metrics", "to": "items"}
@@ -4224,12 +4236,12 @@ def test_controlled_redesign_preserves_outline_intent_and_previous_layout_draft(
     assert slide["layout_id"] == "timeline-horizontal-v1"
     assert slide["outline_intent"] == before["slides"][0]["outline_intent"]
     assert slide["layout_drafts"]["cards-grid-v1"] == before["slides"][0]["props"]
-    contract = json.loads((tmp_path / "qa" / "deck_contract.json").read_text())
+    contract = json.loads((tmp_path / "qa" / "deck_contract.json").read_text(encoding="utf-8"))
     assert contract["contract_version"] == 2
     assert contract["theme_id"] == "soft-editorial"
     assert contract["layout_plan"] == ["timeline-horizontal-v1"]
     manifest = json.loads(
-        (tmp_path / "assets" / "generated" / "manifest.json").read_text()
+        (tmp_path / "assets" / "generated" / "manifest.json").read_text(encoding="utf-8")
     )
     assert manifest["deck"]["theme_id"] == "soft-editorial"
     validation = _run("validate_deck_spec.js", str(deck_path))
@@ -5462,7 +5474,7 @@ def test_creative_image_mode_scaffolds_a_required_cover_generation(
 
     assert result.returncode == 0, result.stdout + result.stderr
     manifest = json.loads(
-        (tmp_path / "assets" / "generated" / "manifest.json").read_text()
+        (tmp_path / "assets" / "generated" / "manifest.json").read_text(encoding="utf-8")
     )
     assert manifest["mode"] == "creative_image_mode"
     assert manifest["image_plan"][0]["slot"] == expected_slot
@@ -5507,7 +5519,7 @@ def test_creative_image_mode_generates_only_explicit_inner_page_visuals(
 
     assert result.returncode == 0, result.stdout + result.stderr
     manifest = json.loads(
-        (tmp_path / "assets" / "generated" / "manifest.json").read_text()
+        (tmp_path / "assets" / "generated" / "manifest.json").read_text(encoding="utf-8")
     )
     cover, explicit_visual, text_led = manifest["image_plan"]
     assert cover["decision"] == "generate"
@@ -5540,7 +5552,7 @@ def test_auto_image_mode_promotes_investor_pitch_cover_to_generation(
 
     assert result.returncode == 0, result.stdout + result.stderr
     manifest = json.loads(
-        (tmp_path / "assets" / "generated" / "manifest.json").read_text()
+        (tmp_path / "assets" / "generated" / "manifest.json").read_text(encoding="utf-8")
     )
     cover = manifest["image_plan"][0]
     assert cover["slot"] == "hero"
@@ -5568,7 +5580,7 @@ def test_auto_image_mode_promotes_visual_story_cover_to_generation(
 
     assert result.returncode == 0, result.stdout + result.stderr
     manifest = json.loads(
-        (tmp_path / "assets" / "generated" / "manifest.json").read_text()
+        (tmp_path / "assets" / "generated" / "manifest.json").read_text(encoding="utf-8")
     )
     cover = manifest["image_plan"][0]
     assert cover["required"] is True
@@ -5621,7 +5633,7 @@ def test_auto_image_mode_uses_visual_medium_not_domain_keywords(
 
     assert result.returncode == 0, result.stdout + result.stderr
     manifest = json.loads(
-        (tmp_path / "assets" / "generated" / "manifest.json").read_text()
+        (tmp_path / "assets" / "generated" / "manifest.json").read_text(encoding="utf-8")
     )
     cover = manifest["image_plan"][0]
     assert cover["required"] is True
@@ -5662,7 +5674,7 @@ def test_auto_image_mode_keeps_structured_visuals_editable(tmp_path: Path) -> No
 
     assert result.returncode == 0, result.stdout + result.stderr
     manifest = json.loads(
-        (tmp_path / "assets" / "generated" / "manifest.json").read_text()
+        (tmp_path / "assets" / "generated" / "manifest.json").read_text(encoding="utf-8")
     )
     cover = manifest["image_plan"][0]
     assert cover["required"] is False
@@ -5685,7 +5697,7 @@ def test_auto_image_mode_respects_explicit_image_opt_out(tmp_path: Path) -> None
 
     assert result.returncode == 0, result.stdout + result.stderr
     manifest = json.loads(
-        (tmp_path / "assets" / "generated" / "manifest.json").read_text()
+        (tmp_path / "assets" / "generated" / "manifest.json").read_text(encoding="utf-8")
     )
     cover = manifest["image_plan"][0]
     assert cover["required"] is False
@@ -5782,7 +5794,7 @@ def test_deck_contract_normalizes_observed_model_layout_aliases(
     )
 
     assert scaffold.returncode == 0, scaffold.stderr
-    deck = json.loads(deck_path.read_text())
+    deck = json.loads(deck_path.read_text(encoding="utf-8"))
     assert [slide["layout_id"] for slide in deck["slides"]] == [
         "cover-hero-v1",
         "statement-focus-v1",
@@ -5830,7 +5842,7 @@ def test_deck_contract_normalizes_pitch_layout_and_required_field_aliases(
         json.dumps(scaffold_payload, ensure_ascii=False, separators=(",", ":")) + "\n"
     )
     assert len(normalized_stdout) < 23_750
-    deck = json.loads(deck_path.read_text())
+    deck = json.loads(deck_path.read_text(encoding="utf-8"))
     assert [slide["layout_id"] for slide in deck["slides"]] == [
         "comparison-two-column-v1",
         "timeline-horizontal-v1",
@@ -5838,7 +5850,7 @@ def test_deck_contract_normalizes_pitch_layout_and_required_field_aliases(
         "table-data-v1",
         "chart-data-v1",
     ]
-    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text())
+    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text(encoding="utf-8"))
     assert report["required_fields"] == [
         {"slide": 3, "field": "items"},
         {"slide": 4, "field": "rows"},
@@ -5911,7 +5923,7 @@ def test_deck_contract_rejects_layout_missing_required_page_field(tmp_path: Path
     assert rejected.returncode == 1
     assert "does not provide required field metrics" in rejected.stderr
     assert accepted.returncode == 0, accepted.stderr
-    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text())
+    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text(encoding="utf-8"))
     assert report["required_fields"] == [{"slide": 2, "field": "metrics"}]
 
 
@@ -5961,7 +5973,7 @@ def test_deck_contract_relaxes_decorative_tags_after_visual_cover_normalization(
     assert result.returncode == 0, result.stdout + result.stderr
     deck = json.loads(deck_path.read_text(encoding="utf-8"))
     assert deck["slides"][0]["layout_id"] == "cover-hero-v1"
-    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text())
+    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text(encoding="utf-8"))
     assert report["required_fields"] == []
     assert report["required_field_relaxations"] == [
         {
@@ -6059,7 +6071,7 @@ def test_strict_source_binding_warns_for_derived_or_paraphrased_facts(
     assert advisory.returncode == 0, advisory.stdout + advisory.stderr
     assert advisory_path.is_file()
     advisory_report = json.loads(
-        (advisory_path.parent / "qa" / "deck_contract.json").read_text()
+        (advisory_path.parent / "qa" / "deck_contract.json").read_text(encoding="utf-8")
     )
     assert any(
         "成立于 2024 年" in warning and "contiguous phrase" in warning
@@ -6084,7 +6096,7 @@ def test_strict_source_binding_warns_for_derived_or_paraphrased_facts(
     )
 
     assert accepted.returncode == 0, accepted.stderr
-    report = json.loads((accepted_path.parent / "qa" / "deck_contract.json").read_text())
+    report = json.loads((accepted_path.parent / "qa" / "deck_contract.json").read_text(encoding="utf-8"))
     assert report["source_binding"]["strict"] is True
     assert report["source_binding"]["verified_fact_count"] == 4
 
@@ -6116,7 +6128,7 @@ def test_strict_source_binding_restores_exact_source_after_safe_copy_drift(
     assert result.returncode == 0, result.stdout + result.stderr
     deck = json.loads(deck_path.read_text(encoding="utf-8"))
     assert deck["truth_contract"]["source_facts"] == [source_text]
-    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text())
+    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text(encoding="utf-8"))
     assert report["source_binding"]["verified_fact_count"] == 1
     assert report["source_fact_normalizations"] == [
         {
@@ -6139,7 +6151,7 @@ def test_strict_source_binding_restores_exact_source_after_safe_copy_drift(
     assert unrelated.returncode == 0, unrelated.stdout + unrelated.stderr
     assert unrelated_path.is_file()
     unrelated_report = json.loads(
-        (unrelated_path.parent / "qa" / "deck_contract.json").read_text()
+        (unrelated_path.parent / "qa" / "deck_contract.json").read_text(encoding="utf-8")
     )
     assert any(
         "这是业内最领先的客服体系" in warning
@@ -6170,7 +6182,7 @@ def test_researched_facts_are_scaffolded_separately_from_user_source(
     )
 
     assert result.returncode == 0, result.stdout + result.stderr
-    deck = json.loads(deck_path.read_text())
+    deck = json.loads(deck_path.read_text(encoding="utf-8"))
     assert deck["truth_contract"] == {
         "mode": "source_bound",
         "source_facts": [],
@@ -6180,7 +6192,7 @@ def test_researched_facts_are_scaffolded_separately_from_user_source(
         ],
         "assumptions": [],
     }
-    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text())
+    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text(encoding="utf-8"))
     assert report["source_fact_count"] == 0
     assert report["research_fact_count"] == 2
     assert report["source_binding"]["verified_fact_count"] == 0
@@ -6218,7 +6230,7 @@ def test_short_source_bound_brief_defaults_runtime_request_into_truth_contract(
     assert result.returncode == 0, result.stdout + result.stderr
     deck = json.loads(deck_path.read_text(encoding="utf-8"))
     assert deck["truth_contract"]["source_facts"] == [source_text]
-    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text())
+    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text(encoding="utf-8"))
     assert report["source_fact_defaulted_from_runtime"] is True
     assert report["source_binding"]["verified_fact_count"] == 1
 
@@ -6264,7 +6276,7 @@ def test_long_source_bound_brief_defaults_to_bounded_contiguous_facts(
     assert len(source_facts) > 1
     assert all(len(fact) <= 280 for fact in source_facts)
     assert all("".join(fact.split()) in normalized_source for fact in source_facts)
-    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text())
+    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text(encoding="utf-8"))
     assert report["source_fact_defaulted_from_runtime"] is True
     assert report["source_binding"]["verified_fact_count"] == len(source_facts)
 
@@ -6285,7 +6297,7 @@ def test_number_backing_keeps_cjk_comma_separated_date_and_year_tokens() -> None
     result = subprocess.run(
         [str(NODE), "-e", script],
         capture_output=True,
-        text=True,
+        encoding="utf-8",
         check=False,
     )
 
@@ -6642,7 +6654,7 @@ def test_strict_source_request_warns_for_researched_facts(tmp_path: Path) -> Non
     )
 
     assert result.returncode == 0, result.stdout + result.stderr
-    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text())
+    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text(encoding="utf-8"))
     assert any("strict source-only request" in warning for warning in report["warnings"])
 
 
@@ -6670,7 +6682,7 @@ def test_source_fact_binding_ignores_editorial_whitespace(tmp_path: Path) -> Non
     )
 
     assert result.returncode == 0, result.stdout + result.stderr
-    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text())
+    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text(encoding="utf-8"))
     assert report["source_binding"]["verified_fact_count"] == 2
 
 
@@ -6698,12 +6710,12 @@ def test_strict_source_binding_strips_model_added_fact_labels(tmp_path: Path) ->
     )
 
     assert result.returncode == 0, result.stdout + result.stderr
-    deck = json.loads(deck_path.read_text())
+    deck = json.loads(deck_path.read_text(encoding="utf-8"))
     assert deck["truth_contract"]["source_facts"] == [
         "NOON Studio",
         "品牌视觉 + 数字产品设计",
     ]
-    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text())
+    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text(encoding="utf-8"))
     assert report["source_binding"]["verified_fact_count"] == 2
     assert report["source_fact_normalizations"] == [
         {"from": "工作室名称：NOON Studio", "to": "NOON Studio"},
@@ -6737,11 +6749,11 @@ def test_authorized_assumptions_support_disclosed_percent_chart_data(
     )
 
     assert scaffold.returncode == 0, scaffold.stdout + scaffold.stderr
-    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text())
+    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text(encoding="utf-8"))
     assert report["assumption_count"] == 1
     assert report["source_binding"]["allows_assumptions"] is True
 
-    deck = json.loads(deck_path.read_text())
+    deck = json.loads(deck_path.read_text(encoding="utf-8"))
     deck["slides"][0]["props"].update(
         {
             "eyebrow": "ACME",
@@ -7041,7 +7053,7 @@ def test_assumptions_without_unambiguous_user_permission_are_advisory(
     )
 
     assert result.returncode == 0, result.stdout + result.stderr
-    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text())
+    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text(encoding="utf-8"))
     assert any(
         "requires explicit user permission" in warning
         for warning in report["warnings"]
@@ -7068,7 +7080,7 @@ def test_derived_assumption_in_source_facts_is_advisory(
     )
 
     assert result.returncode == 0, result.stdout + result.stderr
-    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text())
+    report = json.loads((tmp_path / "qa" / "deck_contract.json").read_text(encoding="utf-8"))
     assert any("contiguous phrase" in warning for warning in report["warnings"])
 
 
@@ -7114,7 +7126,7 @@ def test_batch_patch_can_add_only_authorized_assumptions(
     )
 
     assert patched.returncode == 0, patched.stdout + patched.stderr
-    deck = json.loads(deck_path.read_text())
+    deck = json.loads(deck_path.read_text(encoding="utf-8"))
     assert deck["truth_contract"] == {
         "mode": "source_bound",
         "source_facts": ["ACME"],
@@ -7147,7 +7159,7 @@ def test_truth_validator_rechecks_strict_source_fact_provenance(tmp_path: Path) 
         env=env,
     )
     assert scaffold.returncode == 0, scaffold.stderr
-    deck = json.loads(deck_path.read_text())
+    deck = json.loads(deck_path.read_text(encoding="utf-8"))
     deck["truth_contract"]["source_facts"].append("成立于 2024 年")
     deck_path.write_text(json.dumps(deck, ensure_ascii=False), encoding="utf-8")
 
@@ -7195,7 +7207,7 @@ def test_strict_truth_validator_warns_for_invented_narrative_and_unlabeled_conce
         env=env,
     )
     assert scaffold.returncode == 0, scaffold.stderr
-    deck = json.loads(deck_path.read_text())
+    deck = json.loads(deck_path.read_text(encoding="utf-8"))
     deck["slides"][0]["props"].update(
         {
             "statement": "成为更有影响力的设计工作室",
@@ -7287,7 +7299,7 @@ def test_strict_truth_validator_accepts_exact_copy_placeholders_and_labeled_conc
         env=env,
     )
     assert scaffold.returncode == 0, scaffold.stderr
-    deck = json.loads(deck_path.read_text())
+    deck = json.loads(deck_path.read_text(encoding="utf-8"))
     deck["slides"][0]["props"].update(
         {
             "statement": "2026 年是第三年",
@@ -7391,7 +7403,7 @@ def test_controlled_batch_patch_preserves_layout_contract_and_scaffolded_facts(
     result = _run("apply_deck_patch.js", str(deck_path), str(patch_path))
 
     assert result.returncode == 0, result.stderr
-    deck = json.loads(deck_path.read_text())
+    deck = json.loads(deck_path.read_text(encoding="utf-8"))
     assert [slide["layout_id"] for slide in deck["slides"]] == [
         "cover-hero-v1",
         "statement-focus-v1",
@@ -7658,7 +7670,7 @@ def test_batch_patch_wraps_unambiguous_top_level_slide_ids(tmp_path: Path) -> No
         'patch: nested direct slide-id keys under the top-level "slides" object'
         in payload["normalization_changes"]
     )
-    deck = json.loads(deck_path.read_text())
+    deck = json.loads(deck_path.read_text(encoding="utf-8"))
     assert deck["slides"][0]["props"]["title"] == "巴西足球历史"
     assert deck["slides"][1]["props"]["statement"] == "五冠之外，风格仍在延续"
 
@@ -7753,7 +7765,7 @@ def test_batch_patch_normalizes_background_type_and_missing_kpi_detail(
     assert "slides.slide-01.background.type: dropped unknown media field" in payload[
         "normalization_changes"
     ]
-    deck = json.loads(deck_path.read_text())
+    deck = json.loads(deck_path.read_text(encoding="utf-8"))
     assert deck["slides"][0]["background"] == {
         "src": "assets/generated/slide-01-hero.png",
         "alt": "AI 生成的背景概念视觉",
@@ -7821,7 +7833,7 @@ def test_batch_patch_normalizes_background_image_and_string_proofs(
     changes = payload["normalization_changes"]
     assert "slides.slide-01.background.image: mapped to src" in changes
     assert "slides.slide-02.props.proofs.0: converted proof text to an object" in changes
-    deck = json.loads(deck_path.read_text())
+    deck = json.loads(deck_path.read_text(encoding="utf-8"))
     assert deck["slides"][0]["background"]["src"] == (
         "assets/generated/slide-01-cover.png"
     )
@@ -7993,7 +8005,7 @@ def test_strict_batch_patch_normalizes_observed_model_drift_in_one_pass(
     payload = json.loads(result.stdout)
     assert payload["normalization_changes"]
     assert payload["truth_guard_changes"]
-    deck = json.loads(deck_path.read_text())
+    deck = json.loads(deck_path.read_text(encoding="utf-8"))
     assert deck["truth_contract"]["source_facts"] == original_facts
     serialized = json.dumps(deck, ensure_ascii=False)
     assert "2024" not in serialized
@@ -8052,7 +8064,7 @@ def test_truth_validator_warns_for_observed_unsourced_claims(tmp_path: Path) -> 
         str(deck_path),
     )
     assert scaffold.returncode == 0, scaffold.stderr
-    deck = json.loads(deck_path.read_text())
+    deck = json.loads(deck_path.read_text(encoding="utf-8"))
     deck["slides"][0]["props"].update(
         {
             "title": "NOON Studio",
@@ -8278,7 +8290,7 @@ def test_truth_validator_accepts_dotted_date_and_transition_wording(
         str(deck_path),
     )
     assert scaffold.returncode == 0, scaffold.stdout + scaffold.stderr
-    deck = json.loads(deck_path.read_text())
+    deck = json.loads(deck_path.read_text(encoding="utf-8"))
     deck["slides"][0]["props"].update(
         {
             "title": "拉明·亚马尔",
@@ -8353,7 +8365,7 @@ def test_truth_validator_accepts_pitch_assumptions_and_capability_sections(
     )
     assert scaffold.returncode == 0, scaffold.stdout + scaffold.stderr
 
-    deck = json.loads(deck_path.read_text())
+    deck = json.loads(deck_path.read_text(encoding="utf-8"))
     deck["slides"][0]["props"].update(
         {
             "eyebrow": "商业模式｜先切刚需，再扩平台",
@@ -8431,7 +8443,7 @@ def test_truth_validator_accepts_source_facts_and_honest_placeholders(tmp_path: 
         str(deck_path),
     )
     assert scaffold.returncode == 0, scaffold.stderr
-    deck = json.loads(deck_path.read_text())
+    deck = json.loads(deck_path.read_text(encoding="utf-8"))
     deck["slides"][0]["props"].update(
         {
             "eyebrow": "NOON Studio",
@@ -8474,7 +8486,7 @@ def test_truth_validator_accepts_source_facts_and_honest_placeholders(tmp_path: 
     )
 
     assert result.returncode == 0, result.stdout
-    assert json.loads(report.read_text())["ok"] is True
+    assert json.loads(report.read_text(encoding="utf-8"))["ok"] is True
 
 
 def test_truth_validator_allows_non_project_story_in_case_study_visual_layout(
@@ -8493,7 +8505,7 @@ def test_truth_validator_allows_non_project_story_in_case_study_visual_layout(
     )
     assert scaffold.returncode == 0, scaffold.stdout + scaffold.stderr
 
-    deck = json.loads(deck_path.read_text())
+    deck = json.loads(deck_path.read_text(encoding="utf-8"))
     deck["slides"][0]["props"].update(
         {
             "eyebrow": "黄金时代",
@@ -8528,7 +8540,7 @@ def test_truth_validator_warns_for_unbacked_real_project_name(
     )
     assert scaffold.returncode == 0, scaffold.stdout + scaffold.stderr
 
-    deck = json.loads(deck_path.read_text())
+    deck = json.loads(deck_path.read_text(encoding="utf-8"))
     deck["slides"][0]["props"].update(
         {
             "eyebrow": "项目案例",
@@ -8573,7 +8585,7 @@ def test_truth_validator_accepts_chinese_quantity_and_section_marker_number(
     )
     assert scaffold.returncode == 0, scaffold.stdout + scaffold.stderr
 
-    deck = json.loads(deck_path.read_text())
+    deck = json.loads(deck_path.read_text(encoding="utf-8"))
     deck["slides"][0]["props"].update(
         {
             "title": "世界杯冠军",
@@ -8631,7 +8643,7 @@ def test_truth_validator_accepts_cover_slide_count_metadata(
     )
     assert scaffold.returncode == 0, scaffold.stdout + scaffold.stderr
 
-    deck = json.loads(deck_path.read_text())
+    deck = json.loads(deck_path.read_text(encoding="utf-8"))
     deck["slides"][0]["props"]["meta"] = "2 页历史梳理 · HTML 交付"
     deck_path.write_text(json.dumps(deck, ensure_ascii=False), encoding="utf-8")
 
@@ -8690,7 +8702,7 @@ def test_controlled_deck_scripts_resolve_relative_paths_from_canonical_output_ro
 
     assert validation.returncode == 0, validation.stderr
     assert rendered.returncode == 0, rendered.stderr
-    assert json.loads((canonical / "qa/deck_spec.json").read_text())["ok"] is True
+    assert json.loads((canonical / "qa/deck_spec.json").read_text(encoding="utf-8"))["ok"] is True
     assert (canonical / "index.html").is_file()
     assert not (wrong_cwd / "index.html").exists()
 
@@ -9653,7 +9665,7 @@ def test_controlled_finalizer_stops_at_first_failed_dependency(
 
     assert result.returncode == 1
     assert "FINALIZE_STOP stage=deck_spec" in result.stderr
-    assert json.loads((tmp_path / "qa" / "deck_spec.json").read_text())["ok"] is False
+    assert json.loads((tmp_path / "qa" / "deck_spec.json").read_text(encoding="utf-8"))["ok"] is False
     assert not (tmp_path / "qa" / "truth_check.json").exists()
     assert not (tmp_path / "index.html").exists()
 
@@ -9753,14 +9765,14 @@ def test_controlled_finalizer_runs_compact_complete_chain(tmp_path: Path) -> Non
         "html_self_check.json",
         "runtime_probe.json",
     ):
-        report = json.loads((tmp_path / "qa" / report_name).read_text())
+        report = json.loads((tmp_path / "qa" / report_name).read_text(encoding="utf-8"))
         assert report["ok"] is True
     contract_report = json.loads(
         (tmp_path / "qa" / "deck_contract.json").read_text(encoding="utf-8")
     )
     assert contract_report["refreshed_by"] == "finalize_controlled_deck"
     assert len(contract_report["deck_hash"]) == 64
-    truth_report = json.loads((tmp_path / "qa" / "truth_check.json").read_text())
+    truth_report = json.loads((tmp_path / "qa" / "truth_check.json").read_text(encoding="utf-8"))
     assert truth_report["advisory"] is True
     assert truth_report["warnings"]
 
@@ -10072,7 +10084,7 @@ def test_example_validates_and_renders_deterministically(tmp_path: Path) -> None
     )
 
     assert validation.returncode == 0, validation.stderr
-    assert json.loads(report.read_text())["ok"] is True
+    assert json.loads(report.read_text(encoding="utf-8"))["ok"] is True
 
     first = tmp_path / "first.html"
     second = tmp_path / "second.html"
@@ -10284,7 +10296,7 @@ def test_project_case_layout_renders_metrics_and_two_compositions(tmp_path: Path
         str(deck_path),
     )
     assert scaffold.returncode == 0, scaffold.stderr
-    deck = json.loads(deck_path.read_text())
+    deck = json.loads(deck_path.read_text(encoding="utf-8"))
     deck["slides"][0]["props"].update(
         {
             "title": "品牌项目 A（待补充）",
@@ -11802,7 +11814,7 @@ def test_sync_image_manifest_status_marks_existing_assets_once(tmp_path: Path) -
     assert '"changed": 2' in first.stdout
     assert second.returncode == 0, second.stderr
     assert '"changed": 0' in second.stdout
-    payload = json.loads(manifest.read_text())
+    payload = json.loads(manifest.read_text(encoding="utf-8"))
     assert payload["image_plan"][0]["status"] == "generated"
     assert payload["image_plan"][0]["decision_reason"] == "cover visual"
     assert payload["image_plan"][1]["status"] == "ready"
@@ -11835,7 +11847,7 @@ def test_sync_image_manifest_status_rejects_missing_generated_asset(
 
     assert result.returncode == 1
     assert "Cannot mark unresolved generated image" in result.stderr
-    assert json.loads(manifest.read_text())["image_plan"][0]["status"] == "pending"
+    assert json.loads(manifest.read_text(encoding="utf-8"))["image_plan"][0]["status"] == "pending"
 
 
 def test_comparison_layout_uses_flat_editorial_rules() -> None:

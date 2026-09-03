@@ -1,9 +1,10 @@
 """Tests for workflow-policy composition outside the agent kernel."""
 
 import inspect
+import asyncio
 
 import box_agent.runtime as runtime_module
-from box_agent.core import run_agent_loop as core_run_agent_loop
+import box_agent.compat.runtime as compatibility_runtime
 from box_agent.loop_guards import CompletionGate
 from box_agent.runtime import run_agent_loop
 from box_agent.workflows import (
@@ -15,6 +16,8 @@ from box_agent.workflows.controlled_presentation import ControlledPresentationPo
 from box_agent.workflows.presentation_checkpoint import (
     CONTROLLED_PRESENTATION_CHECKPOINT_MARKER,
 )
+from box_agent.events import DoneEvent
+from box_agent.schema import LLMResponse, Message, StreamEvent
 
 
 def test_controlled_presentation_hides_irrelevant_tools_by_stage(tmp_path):
@@ -40,7 +43,8 @@ def test_controlled_presentation_hides_irrelevant_tools_by_stage(tmp_path):
 
 
 def test_runtime_bridge_preserves_kernel_signature() -> None:
-    assert inspect.signature(run_agent_loop) == inspect.signature(core_run_agent_loop)
+    assert tuple(inspect.signature(run_agent_loop).parameters) == ("kwargs",)
+    assert runtime_module.run_agent_loop is compatibility_runtime.run_agent_loop
 
 
 def test_runtime_bridge_passes_available_tool_names_to_policy(monkeypatch) -> None:
@@ -51,22 +55,52 @@ def test_runtime_bridge_passes_available_tool_names_to_policy(monkeypatch) -> No
         return None
 
     monkeypatch.setattr(
-        runtime_module,
+        compatibility_runtime,
         "create_workflow_policy",
         fake_create_workflow_policy,
     )
     gate = CompletionGate(workflow_checkpoint_kind="controlled_presentation")
 
-    runtime_module.run_agent_loop(
-        llm=object(),
-        messages=[],
-        tools={"web_search": object(), "write_file": object()},
-        completion_gate=gate,
+    compatibility_runtime._workflow_from_kwargs(
+        {
+            "tools": {"web_search": object(), "write_file": object()},
+            "completion_gate": gate,
+        }
     )
 
     assert captured["available_tool_names"] == frozenset(
         {"web_search", "write_file"}
     )
+
+
+def test_runtime_bridge_executes_the_plugin_composed_kernel() -> None:
+    class LLM:
+        async def generate_stream(self, messages, tools=None, **kwargs):
+            del messages, tools, kwargs
+            yield StreamEvent(type="text", delta="kernel result")
+            yield StreamEvent(
+                type="finish",
+                finish_reason="stop",
+                tool_calls=[],
+            )
+
+    async def scenario() -> None:
+        events = [
+            event
+            async for event in run_agent_loop(
+                llm=LLM(),
+                messages=[
+                    Message(role="system", content="system"),
+                    Message(role="user", content="run"),
+                ],
+                tools={},
+                max_steps=1,
+            )
+        ]
+        terminal = next(event for event in events if isinstance(event, DoneEvent))
+        assert terminal.final_content == "kernel result"
+
+    asyncio.run(scenario())
 
 
 def test_factory_builds_controlled_presentation_policy(tmp_path) -> None:

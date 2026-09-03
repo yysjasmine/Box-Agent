@@ -11,9 +11,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from box_agent.llm.capabilities import image_input_support
+from box_agent.llm.binding import bind_session_llm
 from box_agent.schema import Message
 from box_agent.tools.base import Tool, ToolResult
 from box_agent.tools.safety import validate_path_in_workspace
+from box_agent.tools.runtime_context import current_runtime_invocation
 
 if TYPE_CHECKING:
     from box_agent.tools.permissions import PermissionEngine
@@ -67,7 +69,7 @@ class ImageInspectionTool(Tool):
         self._perm = permission_engine
         self.native_supported = native_supported
         self._native_capability_llm = native_capability_llm
-        self._unsupported_error: str | None = None
+        self._unsupported_models: dict[str, str] = {}
 
     @property
     def name(self) -> str:
@@ -121,6 +123,24 @@ class ImageInspectionTool(Tool):
             },
             "required": ["image_paths", "instruction"],
         }
+
+    async def preflight(self, arguments: dict[str, Any], *, context=None) -> ToolResult | None:
+        """Authorize every image path before loading bytes or calling a model."""
+
+        del context
+        try:
+            for path in arguments.get("image_paths", ()):
+                self._resolve_readable_path(str(path))
+        except _PermissionRequired as exc:
+            return ToolResult(
+                success=False,
+                error=f"IMAGE_PERMISSION_REQUIRED: {exc}",
+                permission_request=exc.permission_request,
+                raw_output={"code": "IMAGE_PERMISSION_REQUIRED", "tool": self.name},
+            )
+        except ValueError as exc:
+            return self._error("IMAGE_INPUT_INVALID", str(exc))
+        return None
 
     async def execute(
         self,
@@ -189,8 +209,11 @@ class ImageInspectionTool(Tool):
                 transient_followup_content=blocks,
             )
 
-        if self._unsupported_error is not None:
-            return self._error("IMAGE_INPUT_UNSUPPORTED", self._unsupported_error)
+        request_llm = self._llm_for_invocation()
+        model_key = str(getattr(request_llm, "model", "") or "<default>")
+        unsupported_error = self._unsupported_models.get(model_key)
+        if unsupported_error is not None:
+            return self._error("IMAGE_INPUT_UNSUPPORTED", unsupported_error)
 
         messages = [
             Message(role="system", content=self._system_prompt()),
@@ -205,7 +228,7 @@ class ImageInspectionTool(Tool):
         ]
         try:
             response = await asyncio.wait_for(
-                self.llm.generate(messages=messages, tools=None, call_kind="utility"),
+                request_llm.generate(messages=messages, tools=None, call_kind="utility"),
                 timeout=_IMAGE_INSPECTION_TIMEOUT,
             )
         except asyncio.TimeoutError:
@@ -215,10 +238,11 @@ class ImageInspectionTool(Tool):
             )
         except Exception as exc:  # pragma: no cover - provider exceptions vary
             if self._is_unsupported_image_input_error(str(exc)):
-                self._unsupported_error = (
+                unsupported_error = (
                     "the configured model or provider does not support image input"
                 )
-                return self._error("IMAGE_INPUT_UNSUPPORTED", self._unsupported_error)
+                self._unsupported_models[model_key] = unsupported_error
+                return self._error("IMAGE_INPUT_UNSUPPORTED", unsupported_error)
             return self._error("IMAGE_REQUEST_FAILED", "vision model request failed")
 
         content = response.content or ""
@@ -245,6 +269,20 @@ class ImageInspectionTool(Tool):
         if self._native_capability_llm is not None:
             return image_input_support(self._native_capability_llm) is not False
         return self.native_supported
+
+    def _llm_for_invocation(self) -> Any:
+        invocation = current_runtime_invocation()
+        metadata = dict(invocation.metadata)
+        if not metadata and not invocation.session_id and not invocation.run_id:
+            return self.llm
+        return bind_session_llm(
+            self.llm,
+            metadata,
+            session_id=invocation.session_id,
+            turn_id=str(metadata.get("correlation_turn_id", "") or ""),
+            title=str(metadata.get("title", "") or ""),
+            call_kind="utility",
+        )
 
     @staticmethod
     def _model_context(content: str) -> str:

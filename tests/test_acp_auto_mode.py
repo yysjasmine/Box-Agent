@@ -1,202 +1,111 @@
-"""Integration tests for explicit ACP session modes."""
+"""Explicit session modes are deterministic Context Engine plugins."""
 
 from __future__ import annotations
 
 import shutil
 import subprocess
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 
-from box_agent.acp import BoxACPAgent
-from box_agent.config import AgentConfig, Config, LLMConfig, ToolsConfig
-from box_agent.schema import LLMResponse
+from box_agent.context import ContextBuildRequest, SessionModeContextContributor
 
 
-class _DummyConn:
-    def __init__(self):
-        self.updates = []
-
-    async def sessionUpdate(self, payload):
-        self.updates.append(payload)
-
-
-class _TrackingLLM:
-    """LLM stub that records whether ACP uses extra non-stream LLM calls."""
-
-    def __init__(self, mode_label: str = "general"):
-        self.generate_calls = 0
-        self.main_calls = 0
-        self._mode_label = mode_label
-
-    async def generate(self, messages, tools=None):
-        self.generate_calls += 1
-        return LLMResponse(content="ok", finish_reason="stop")
-
-    async def generate_stream(self, messages, tools=None, **_):
-        self.main_calls += 1
-        from box_agent.schema import StreamEvent
-        yield StreamEvent(type="text", delta="ok")
-        yield StreamEvent(type="finish", finish_reason="stop")
-
-
-def _make_agent(tmp_path, llm: _TrackingLLM) -> tuple[BoxACPAgent, _DummyConn]:
-    config = Config(
-        llm=LLMConfig(api_key="test-key"),
-        agent=AgentConfig(max_steps=2, workspace_dir=str(tmp_path)),
-        tools=ToolsConfig(),
-    )
-    conn = _DummyConn()
-    agent = BoxACPAgent(conn, config, llm, [], "base system")
-    return agent, conn
-
-
-@pytest.mark.asyncio
-async def test_explicit_mode_uses_requested_prompt(tmp_path):
-    llm = _TrackingLLM(mode_label="ppt_outline")
-    agent, _ = _make_agent(tmp_path, llm)
-
-    session = await agent.newSession(
-        SimpleNamespace(cwd=str(tmp_path), field_meta={"session_mode": "data_analysis"})
-    )
-    state = agent._sessions[session.sessionId]
-    assert state.session_mode == "data_analysis"
-
-    prompt = SimpleNamespace(
-        sessionId=session.sessionId, prompt=[{"text": "show me a chart"}]
-    )
-    await agent.prompt(prompt)
-
-    assert llm.generate_calls == 0, "session mode must not add one-shot LLM calls"
-    assert state.session_mode == "data_analysis"
-
-
-@pytest.mark.asyncio
-async def test_missing_mode_stays_general_without_extra_llm_call(tmp_path):
-    llm = _TrackingLLM(mode_label="ppt_outline")
-    agent, _ = _make_agent(tmp_path, llm)
-
-    session = await agent.newSession(SimpleNamespace(cwd=str(tmp_path)))
-    state = agent._sessions[session.sessionId]
-    assert state.session_mode is None
-
-    await agent.prompt(
-        SimpleNamespace(
-            sessionId=session.sessionId,
-            prompt=[{"text": "帮我做个 AI 主题的 PPT 大纲"}],
-        )
+def _request(tmp_path: Path, **metadata) -> ContextBuildRequest:
+    return ContextBuildRequest(
+        items=(), token_budget=100_000, session_id="session-1",
+        metadata={"workspace_dir": str(tmp_path), **metadata},
     )
 
-    assert llm.generate_calls == 0
-    assert state.session_mode is None
-    # System message remains general (base prompt was "base system").
-    assert state.agent.messages[0].role == "system"
 
-
-@pytest.mark.asyncio
-async def test_missing_mode_never_auto_promotes_to_data_analysis(tmp_path):
-    llm = _TrackingLLM(mode_label="data_analysis")
-    agent, _ = _make_agent(tmp_path, llm)
-
-    session = await agent.newSession(SimpleNamespace(cwd=str(tmp_path)))
-
-    for msg in ["分析第一个表格", "再看看第二份数据"]:
-        await agent.prompt(
-            SimpleNamespace(sessionId=session.sessionId, prompt=[{"text": msg}])
-        )
-
-    assert llm.generate_calls == 0
-    assert agent._sessions[session.sessionId].session_mode is None
-
-
-def test_data_analysis_prompt_includes_plot_contract_and_general_prompt_does_not(tmp_path):
-    llm = _TrackingLLM(mode_label="general")
-    agent, _ = _make_agent(tmp_path, llm)
-    agent._system_prompt = Path("box_agent/config/system_prompt.md").read_text(encoding="utf-8")
-
-    general_prompt = agent._build_session_prompt("general", workspace=tmp_path)
-    analysis_prompt = agent._build_session_prompt("data_analysis", workspace=tmp_path)
-
-    assert "多文件交付" in general_prompt
-    assert "zip -r bundle.zip" in general_prompt
-    assert "Interactive Chart Data Output" not in general_prompt
-    assert "<!--PLOT_DATA:" not in general_prompt
-
-    assert "多文件交付" in analysis_prompt
-    assert "Interactive Chart Data Output" in analysis_prompt
-    assert "<!--PLOT_DATA:" in analysis_prompt
-    assert "sandbox:/mnt/data/<filename>" in analysis_prompt
-
-
-def test_code_agent_prompt_includes_software_engineering_contract(tmp_path):
-    llm = _TrackingLLM(mode_label="general")
-    agent, _ = _make_agent(tmp_path, llm)
-    agent._system_prompt = Path("box_agent/config/system_prompt.md").read_text(encoding="utf-8")
-
-    general_prompt = agent._build_session_prompt("general", workspace=tmp_path)
-    code_prompt = agent._build_session_prompt(
-        "code_agent",
-        workspace=tmp_path,
-        artifact_mode="project",
+def _contributor() -> SessionModeContextContributor:
+    return SessionModeContextContributor(
+        {
+            "data_analysis": Path("box_agent/config/analysis_prompt.md").read_text(encoding="utf-8"),
+            "code_agent": Path("box_agent/config/code_prompt.md").read_text(encoding="utf-8"),
+        }
     )
 
-    assert "Software Engineering Mode (code_agent)" not in general_prompt
-    assert "Software Engineering Mode (code_agent)" in code_prompt
-    assert "优先用 `rg` 定位" in code_prompt
-    assert "代码工作区就是交付位置" in code_prompt
-    assert "不要默认创建或使用 `output/`" in code_prompt
-    assert "`git diff`/`git status` 失败不能当作已确认" in code_prompt
-    assert "JS 引用的 id/selector 与 HTML 一致" in code_prompt
-    assert "引用具体函数或代码片段时" in code_prompt
-    assert "`file_path:line_number`" in code_prompt
-    assert "无法确认精确行号时应明确说明" in code_prompt
-    assert "不得猜测" in code_prompt
-    assert "Project Startup Context" in code_prompt
-    assert "cwd 已是 `{workspace}/output/`" not in code_prompt
-    assert "不要在最终文本手写或猜测 `local-file://`" in code_prompt
-    assert "项目内相对位置即可" in code_prompt
+
+def test_missing_mode_keeps_general_context_without_auto_classification(tmp_path):
+    assert _contributor().provide(_request(tmp_path)) == ()
 
 
-def test_code_agent_prompt_reads_workspace_agents_md(tmp_path):
+def test_workspace_execution_context_uses_artifact_mode_as_single_policy_source(
+    tmp_path,
+):
+    seen: list[tuple[str, bool]] = []
+
+    def sandbox_prompt(use_output_dir: bool) -> str:
+        seen.append(("sandbox", use_output_dir))
+        return f"sandbox-output={use_output_dir}"
+
+    def delivery_prompt(use_output_dir: bool) -> str:
+        seen.append(("delivery", use_output_dir))
+        return f"delivery-output={use_output_dir}"
+
+    contributor = SessionModeContextContributor(
+        {},
+        sandbox_prompt_builder=sandbox_prompt,
+        file_delivery_prompt_builder=delivery_prompt,
+    )
+
+    project_items = contributor.provide(
+        _request(tmp_path, artifact_mode="project")
+    )
+    output_items = contributor.provide(
+        _request(tmp_path, artifact_mode="output")
+    )
+
+    assert seen == [
+        ("sandbox", False),
+        ("delivery", False),
+        ("sandbox", True),
+        ("delivery", True),
+    ]
+    assert "sandbox-output=False" in str(project_items[0].content)
+    assert "delivery-output=False" in str(project_items[0].content)
+    assert "sandbox-output=True" in str(output_items[0].content)
+    assert "delivery-output=True" in str(output_items[0].content)
+    assert all(item.pinned for item in (*project_items, *output_items))
+
+
+def test_data_analysis_mode_contributes_plot_contract(tmp_path):
+    items = _contributor().provide(_request(tmp_path, session_mode="data_analysis"))
+    content = "\n".join(str(item.content) for item in items)
+    assert "Interactive Chart Data Output" in content
+    assert "<!--PLOT_DATA:" in content
+    assert all(item.metadata["role"] == "system" for item in items)
+
+
+def test_code_agent_mode_contributes_engineering_and_project_contract(tmp_path):
     (tmp_path / "AGENTS.md").write_text(
         "# Project Rules\n\n- Run focused tests before reporting done.\n",
         encoding="utf-8",
     )
-    llm = _TrackingLLM(mode_label="general")
-    agent, _ = _make_agent(tmp_path, llm)
-    agent._system_prompt = Path("box_agent/config/system_prompt.md").read_text(encoding="utf-8")
-
-    general_prompt = agent._build_session_prompt("general", workspace=tmp_path)
-    code_prompt = agent._build_session_prompt(
-        "code_agent",
-        workspace=tmp_path,
-        artifact_mode="project",
+    items = _contributor().provide(
+        _request(tmp_path, session_mode="code_agent", artifact_mode="project")
     )
+    content = "\n".join(str(item.content) for item in items)
+    assert "Software Engineering Mode (code_agent)" in content
+    assert "优先用 `rg` 定位" in content
+    assert "Project Workspace Mode" in content
+    assert "Do not create or use an `output/` folder" in content
+    assert "Project Startup Context" in content
+    assert "Run focused tests before reporting done." in content
 
-    assert "Project Startup Context" not in general_prompt
-    assert "Project Instructions" in code_prompt
-    assert "AGENTS.md" in code_prompt
-    assert "Run focused tests before reporting done." in code_prompt
-    assert "project instructions apply only when they do not conflict" in code_prompt
 
-
-def test_code_agent_prompt_includes_git_status_summary(tmp_path):
+def test_code_agent_project_context_reports_git_status(tmp_path):
     if not shutil.which("git"):
         pytest.skip("git is not installed")
     subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
     (tmp_path / "README.md").write_text("hello\n", encoding="utf-8")
-
-    llm = _TrackingLLM(mode_label="general")
-    agent, _ = _make_agent(tmp_path, llm)
-    agent._system_prompt = Path("box_agent/config/system_prompt.md").read_text(encoding="utf-8")
-
-    code_prompt = agent._build_session_prompt(
-        "code_agent",
-        workspace=tmp_path,
-        artifact_mode="project",
+    content = "\n".join(
+        str(item.content)
+        for item in _contributor().provide(
+            _request(tmp_path, session_mode="code_agent", artifact_mode="project")
+        )
     )
-
-    assert "Git repository: yes" in code_prompt
-    assert "Status: 1 changed entry" in code_prompt
-    assert "?? README.md" in code_prompt
+    assert "Git repository: yes" in content
+    assert "Status: 1 changed entry" in content
+    assert "?? README.md" in content

@@ -1,0 +1,140 @@
+"""Stable, host-facing Agent protocol contracts.
+
+This package intentionally contains only serializable data models and typed
+ports. It must remain importable without loading compatibility facades, ACP,
+CLI, MCP, or provider implementations.
+"""
+
+from box_agent.context.api import (
+    ContextBuildRequest,
+    ContextBuildResult,
+    ContextCompactor,
+    ContextEngine,
+    ContextEventSink,
+    ContextItem,
+    ContextManifest,
+    ContextProvider,
+    HostProjection,
+)
+from box_agent.memory_engine.api import (
+    MemoryConflictError,
+    MemoryEngine,
+    MemoryEntry,
+    MemoryQuery,
+    MemoryRecall,
+)
+from .contracts import (
+    Artifact,
+    AttachmentRef,
+    Message,
+    LLMRequest,
+    ModelChunk,
+    RunOptions,
+    RunRequest,
+    RunResult,
+    RunStatus,
+    SessionInfo,
+    SessionOpenRequest,
+    ToolCallRequest,
+    ToolCallResult,
+    Usage,
+    WorkflowContinuation,
+)
+from .artifact_context import ArtifactProcessor, ArtifactPublishRequest
+from .controls import CommandAck, ControlCommand
+from .errors import ErrorCode, ErrorInfo
+from .events import AgentEvent
+from .handles import AgentLoop, AgentRunHandle, AgentService
+from .permissions import PermissionDecision, PermissionRequest
+from .tool_context import ToolExecutionContext, ToolProgressPublisher
+from .workflows import WorkflowAction, WorkflowCheckpointUpdate
+from .ports import (
+    ControlHandler,
+    Hook,
+    LLMPort,
+    MemoryProvider,
+    MemoryStore,
+    MemoryWriter,
+    PermissionPolicy,
+    SessionStore,
+    SessionMetadataContributor,
+    SessionLifecycle,
+    SessionToolContributor,
+    ToolEngine,
+    ToolPlugin,
+    ToolExecutor,
+    WorkflowPolicy,
+)
+from .plan import (
+    attach_plan_approval_payload,
+    plan_approval_is_approved,
+    plan_approval_payload,
+    plan_start_payload,
+)
+
+__all__ = [
+    "AgentEvent",
+    "AgentLoop",
+    "AgentRunHandle",
+    "AgentService",
+    "Artifact",
+    "ArtifactProcessor",
+    "ArtifactPublishRequest",
+    "AttachmentRef",
+    "attach_plan_approval_payload",
+    "CommandAck",
+    "ContextProvider",
+    "ControlHandler",
+    "ContextBuildRequest",
+    "ContextBuildResult",
+    "ContextCompactor",
+    "ContextEngine",
+    "ContextEventSink",
+    "ContextItem",
+    "ContextManifest",
+    "ControlCommand",
+    "ErrorCode",
+    "ErrorInfo",
+    "Hook",
+    "HostProjection",
+    "LLMPort",
+    "MemoryProvider",
+    "MemoryConflictError",
+    "MemoryEngine",
+    "MemoryEntry",
+    "MemoryQuery",
+    "MemoryRecall",
+    "MemoryStore",
+    "MemoryWriter",
+    "Message",
+    "LLMRequest",
+    "ModelChunk",
+    "PermissionPolicy",
+    "PermissionDecision",
+    "PermissionRequest",
+    "plan_approval_is_approved",
+    "plan_approval_payload",
+    "plan_start_payload",
+    "SessionStore",
+    "SessionMetadataContributor",
+    "SessionLifecycle",
+    "SessionToolContributor",
+    "RunOptions",
+    "RunRequest",
+    "RunResult",
+    "RunStatus",
+    "SessionInfo",
+    "SessionOpenRequest",
+    "ToolExecutor",
+    "ToolEngine",
+    "ToolExecutionContext",
+    "ToolPlugin",
+    "ToolProgressPublisher",
+    "ToolCallRequest",
+    "ToolCallResult",
+    "Usage",
+    "WorkflowContinuation",
+    "WorkflowAction",
+    "WorkflowCheckpointUpdate",
+    "WorkflowPolicy",
+]

@@ -115,7 +115,7 @@ model: "your-model"
 ### More
 
 - **MCP Tools**: Connect to any [MCP server](https://github.com/modelcontextprotocol/servers) — web search, knowledge graphs, databases
-- **Claude Skills**: 32 built-in skills for documents (DOCX, PDF, PPTX, XLSX), canvas design, Obsidian, web app testing, and more
+- **Claude Skills**: Dozens of built-in skills for documents (DOCX, PDF, PPTX, XLSX), canvas design, Obsidian, web app testing, and more; `_manifest.json` is the authoritative catalog
 - **ACP Protocol**: Embed Box Agent in Electron apps, Zed Editor, or any ACP-compatible host via JSON-RPC over stdio
 - **Standalone Runtime**: PyInstaller binary bundles Python + all dependencies. No external Python needed — download and run
 - **Cross-session Memory**: Persistent memory lets the agent retain key information across conversations
@@ -191,10 +191,9 @@ code:
 ```bash
 git clone https://github.com/Raccoon-Office/Box-Agent.git
 cd Box-Agent
-git submodule update --init --recursive   # needed for bundled skills
 uv sync
 uv run python -m box_agent.cli --help
-uv run pytest tests/test_core.py -q
+uv run pytest tests/test_agent_loop_kernel.py tests/test_kernel_service.py -q
 ```
 
 Read these files first:
@@ -209,8 +208,8 @@ Project map:
 
 | Area | Where to start |
 | ---- | -------------- |
-| Agent execution loop | `box_agent/core.py`, `box_agent/agent.py`, `box_agent/events.py` |
-| CLI and config | `box_agent/cli.py`, `box_agent/config.py`, `box_agent/config/` |
+| Agent execution loop | `box_agent/kernel/`, `box_agent/services/`, `box_agent/api/` |
+| CLI and config | `box_agent/adapters/cli/app.py`, `box_agent/config.py`, `box_agent/config/` |
 | LLM providers | `box_agent/llm/` |
 | Built-in tools | `box_agent/tools/` |
 | ACP server/runtime embedding | `box_agent/acp/`, `box_agent/build_runtime_cli.py` |
@@ -406,9 +405,21 @@ under `box-agent-runtime/runtimes/node/`; npm cache/prefix state remains in
 
 ```bash
 uv run pytest tests/ -v          # all tests
-uv run pytest tests/test_core.py -v   # core + context compression
+uv run pytest tests/test_agent_loop_kernel.py tests/test_context_engine.py tests/test_context_compaction_e2e.py -v
 uv run pytest --cov              # with coverage
 ```
+
+For the credential-free ACP end-to-end smoke and visual event report:
+
+```bash
+uv run python tests/e2e/run_acp_cases.py --report tests/e2e/report.json
+uv run pytest tests/e2e -q
+uv run python -m http.server 8765 --directory tests/e2e
+```
+
+Open `http://localhost:8765/report.html`; the report covers text, permissions,
+Context/Memory plugins, workflow continuation, and durable resume. See the
+[ACP E2E guide](docs/e2e/ACP_E2E_GUIDE.md).
 
 ## Troubleshooting
 

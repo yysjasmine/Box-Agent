@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "kernel_promotion_requires": [
+    "goal",
+    "plan",
+    "ppt",
+    "skill",
+    "completion_gate",
+    "autopilot"
+  ],
+  "legacy_loop_retired": true,
+  "runtime_removal_blockers": [],
+  "workflows": {
+    "goal": {
+      "fixture": "goal_plan_cases.json",
+      "status": "parity_passed"
+    },
+    "plan": {
+      "fixture": "plan_event_cases.json",
+      "status": "parity_passed"
+    },
+    "ppt": {
+      "fixture": "presentation_event_cases.json",
+      "status": "parity_passed"
+    },
+    "skill": {
+      "fixture": "skill_event_cases.json",
+      "status": "parity_passed"
+    },
+    "completion_gate": {
+      "fixture": "completion_gate_event_cases.json",
+      "status": "parity_passed"
+    },
+    "autopilot": {
+      "fixture": "autopilot_event_cases.json",
+      "status": "parity_passed"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+[
+  {
+    "workflow": "controlled_presentation",
+    "skill_name": "pptx",
+    "skill_source": "builtin",
+    "description": "Author controlled presentations.",
+    "content": "Follow the controlled deck contract and deterministic finalizer.",
+    "context_fragment": "controlled deck contract",
+    "research_mode": "deep",
+    "research_round_limit": 2,
+    "image_generation_policy": "forbidden_by_user"
+  }
+]

@@ -5,9 +5,14 @@ from typing import Any
 
 import pytest
 
-from box_agent.acp import BoxACPAgent
+from box_agent.adapters.builtin_extensions import PresentationPreflightExtension
 from box_agent.schema import LLMResponse
+from box_agent.services.utility_prompt import (
+    UtilityPromptService,
+    default_utility_llm_resolver,
+)
 from box_agent.workflows.presentation_preflight import (
+    PresentationPreflightService,
     classify_presentation_request,
     build_presentation_preflight_result,
     build_presentation_recommendation_prompt,
@@ -85,14 +90,17 @@ class _SlowLLM(_FakeLLM):
 
 class _StubAgent:
     def __init__(self, llm: _FakeLLM):
-        self._llm = llm
-        self._lite_llm = llm
+        self._extension = PresentationPreflightExtension(
+            PresentationPreflightService(
+                UtilityPromptService(default_utility_llm_resolver(llm))
+            )
+        )
 
-    extMethod = BoxACPAgent.extMethod
-    _llm_prompt = BoxACPAgent._llm_prompt
-    _presentation_preflight = BoxACPAgent._presentation_preflight
-    _llm_for_binding = BoxACPAgent._llm_for_binding
-    _utility_llm_for_meta = BoxACPAgent._utility_llm_for_meta
+    async def extMethod(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
+        """Exercise the public host-extension implementation, not ACP internals."""
+
+        assert method == "presentation/preflight"
+        return await self._extension.handle(params, context=None)
 
 
 def test_skill_owned_preflight_config_is_valid():

@@ -176,6 +176,26 @@ def test_local_service_rejects_non_loopback_request_authority(
     }
 
 
+def test_local_service_drains_rejected_post_before_closing_connection(
+    trace_viewer_server,
+) -> None:
+    """Windows must not reset a rejected POST while its body is still unread."""
+
+    status, content_type, raw = _request(
+        trace_viewer_server,
+        "POST",
+        "/api/directory",
+        {"padding": "x" * 60_000},
+        {"Host": "evil.example:8766"},
+    )
+
+    assert status == 403
+    assert content_type.startswith("application/json")
+    assert json.loads(raw) == {
+        "error": "Trace viewer requests must use the loopback origin"
+    }
+
+
 def test_local_service_rejects_rebinding_host_before_serving_assets(
     trace_viewer_server,
 ) -> None:

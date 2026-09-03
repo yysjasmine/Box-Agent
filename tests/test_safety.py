@@ -7,8 +7,8 @@ from unittest.mock import patch
 
 import pytest
 
+import box_agent.tools.safety as safety_module
 from box_agent.tools.safety import (
-    TRASH_DIR,
     backup_file,
     detect_dangerous_command,
     detect_scope_escape,
@@ -477,7 +477,9 @@ class TestValidatePathInWorkspace:
 
 
 class TestBackupFile:
-    def test_backup_existing_file(self, tmp_path):
+    def test_backup_existing_file(self, tmp_path, monkeypatch):
+        trash_dir = tmp_path / "trash"
+        monkeypatch.setattr(safety_module, "TRASH_DIR", trash_dir)
         test_file = tmp_path / "test.txt"
         test_file.write_text("original content")
 
@@ -485,7 +487,24 @@ class TestBackupFile:
         assert backup_path is not None
         assert backup_path.exists()
         assert backup_path.read_text() == "original content"
-        assert str(TRASH_DIR) in str(backup_path)
+        assert backup_path.is_relative_to(trash_dir)
+
+    def test_trash_selection_falls_back_when_home_directory_is_not_writable(
+        self,
+        tmp_path,
+        monkeypatch,
+    ):
+        preferred = tmp_path / "home" / ".box-agent" / "trash"
+        fallback = tmp_path / "temp" / ".box-agent" / "trash"
+        monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path / "home"))
+        monkeypatch.setattr(tempfile, "gettempdir", lambda: str(tmp_path / "temp"))
+
+        def writable(candidate: Path) -> bool:
+            return candidate == fallback
+
+        monkeypatch.setattr(safety_module, "_directory_is_writable", writable)
+
+        assert safety_module._select_trash_dir() == fallback
 
     def test_backup_nonexistent_file(self, tmp_path):
         test_file = tmp_path / "nonexistent.txt"

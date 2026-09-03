@@ -67,36 +67,6 @@ async def _recv(proc: asyncio.subprocess.Process, timeout: float = 30.0) -> dict
     return msg
 
 
-async def _recv_until_response(
-    proc: asyncio.subprocess.Process,
-    expected_id: int | None = None,
-    on_request: dict | None = None,
-    timeout: float = 120.0,
-) -> dict:
-    """Read messages until we get a response matching expected_id.
-
-    If we encounter a request from the agent (like session/request_permission),
-    call on_request handler and send the reply.
-    """
-    deadline = asyncio.get_event_loop().time() + timeout
-    while True:
-        remaining = deadline - asyncio.get_event_loop().time()
-        if remaining <= 0:
-            raise TimeoutError(f"Timed out waiting for response id={expected_id}")
-        msg = await _recv(proc, timeout=remaining)
-
-        # It's a response to our request
-        if "id" in msg and "method" not in msg:
-            if expected_id is None or msg["id"] == expected_id:
-                return msg
-
-        # It's a request FROM the agent (reverse RPC)
-        if "id" in msg and "method" in msg:
-            yield msg  # yield to caller for handling
-
-        # It's a notification (session/update etc.) — just log and continue
-
-
 async def run_test(grant_mode: str | None) -> None:
     """Run the E2E permission negotiation test."""
 

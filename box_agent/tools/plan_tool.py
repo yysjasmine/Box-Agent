@@ -135,6 +135,30 @@ class PlanStore:
     def get(self) -> dict[str, Any] | None:
         return self._plan
 
+    def restore(self, plan: dict[str, Any] | None) -> dict[str, Any] | None:
+        """Restore a serialized plan while preserving its identity and times."""
+
+        if not plan:
+            self.clear()
+            return None
+        restored = self.set(
+            title=str(plan.get("title", "Plan")),
+            objective=str(plan.get("objective", "")),
+            scope=str(plan.get("scope", "")),
+            status=str(plan.get("status", "active")),
+            steps=plan.get("steps"),
+            verification=plan.get("verification"),
+            risks=plan.get("risks"),
+            assumptions=plan.get("assumptions"),
+        )
+        if plan.get("id") is not None:
+            restored["id"] = str(plan["id"])
+        for key, alias in (("created_at", "createdAt"), ("updated_at", "updatedAt")):
+            value = plan.get(key, plan.get(alias))
+            if isinstance(value, str) and value.strip():
+                restored[key] = value
+        return restored
+
 
 class PlanWriteTool(Tool):
     """Create, replace, or clear the current user-visible plan."""

@@ -228,9 +228,11 @@ async function buildEnvContext() {
 
 | 模块 | 路径 |
 |---|---|
-| 解析 + 渲染 | `box_agent/acp/env_context.py` |
-| 注入挂载点 | `box_agent/acp/__init__.py` 中 `newSession → _build_session_prompt` |
-| SessionState 缓存 | `SessionState.env_context` |
+| 解析 + 渲染 | `box_agent/context/environment.py` |
+| Context 贡献器 | `box_agent/context/session_environment.py` |
+| Plugin 注册 | `box_agent/plugins/builtins.py` 中的 `register_builtin_context_contributors` |
+| ACP metadata 投影 | `box_agent/adapters/acp_kernel.py` 中 `newSession` → `SessionOpenRequest.metadata` |
+| 会话保存 | `SessionStore` 中的 session metadata |
 | 单元测试 | `tests/test_env_context.py` |
 
 ---

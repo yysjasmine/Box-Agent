@@ -1,0 +1,19 @@
+[
+  {
+    "action": "set",
+    "title": "Release safely",
+    "objective": "Publish the runtime",
+    "scope": "Source and package probe",
+    "status": "active",
+    "steps": [
+      {"title": "Implement", "details": "Keep the kernel boundary stable"},
+      {"title": "Verify", "details": "Run focused tests"}
+    ],
+    "verification": ["pytest", "package probe"],
+    "risks": ["optional SDK unavailable"],
+    "assumptions": ["workspace is writable"]
+  },
+  {
+    "action": "clear"
+  }
+]

@@ -7,6 +7,20 @@ wire 格式，但底层共享 core/tool 行为仍可能一致。
 > ACP 入口：`box-agent-acp` 走 stdio JSON-RPC。
 > 公共扩展点：`session/new._meta`（一次性配置）、`session/prompt._meta`（每轮可变）、`update_tool_call.rawOutput`（结构化产物）。
 
+工作流可在 `session/new._meta.workflow_id` 设置会话默认值；后续
+`session/prompt._meta.workflow_id` 可按轮覆盖。适配器会把该选择转换为
+`RunOptions.workflow_id`，只从已注册的 Workflow Plugin 组装 Kernel，未注册的
+ID 会显式报错，不会静默退回其他工作流。
+
+Kernel ACP runtime 还注册了显式的 `goal`、`autopilot`、`plan` Workflow
+Plugin key；第三方可在 `_meta.workflow_id` 选择它们，直接调用新的状态/续跑
+协议。自由文本 `/goal` 或复杂交付标记仍按兼容路由处理，直到终态渲染和完整
+事件流 parity fixture 通过。
+
+Native ACP 的无凭据端到端验收和静态事件报告见
+[ACP E2E 指南](e2e/ACP_E2E_GUIDE_CN.md)；它是宿主接入前验证 session、权限、插件、
+工作流续跑和恢复边界的最小回归集。
+
 ---
 
 ## 协议清单
@@ -23,7 +37,7 @@ wire 格式，但底层共享 core/tool 行为仍可能一致。
 | **Host Progress**     | 后端 → 前端 | `update_tool_call.rawOutput`          | [integration/host-progress-events.md](./integration/host-progress-events.md) | 宿主分组渲染 sub-agent、plan、todo、goal、turn usage 等结构化执行状态 |
 | **User Decision**     | 双向        | `update_tool_call.rawOutput` + `session/prompt._meta` | [USER_DECISION_PROTOCOL_CN.md](./USER_DECISION_PROTOCOL_CN.md) | Skill/模型发起结构化执行决策，宿主选择或按运行时批准的默认项超时续跑 |
 
-> 已经存在但本次未变更的扩展点：`_meta.session_mode`（会话模式）、`_meta.deep_think`（深度思考开关）、`_meta.officev3_permissions_override`（已废弃）。
+> 已经存在但本次未变更的扩展点：`_meta.session_mode`（会话模式）、`_meta.deep_think`（深度思考开关）、`_meta.chatTemplateKwargs.thinking`（宿主思考开关）、`_meta.officev3_permissions_override`（已废弃）。`apiKey` 等凭据字段不会进入持久化 metadata。
 
 ---
 
@@ -63,7 +77,10 @@ wire 格式，但底层共享 core/tool 行为仍可能一致。
 
 ```
 box_agent/acp/
-├── __init__.py            # newSession / _build_session_prompt 主流程
+├── __init__.py            # 稳定入口与兼容导出；不加载重型运行时
+├── bootstrap.py           # 建立 stdio、立即握手、按需转发给 Kernel Agent
+├── kernel_runtime.py      # 组装 PluginHost / Service / Kernel；不处理协议帧
+├── protocol.py            # bootstrap 与 ACP adapter 共用的握手能力声明
 ├── action_hints.py        # MEMORY 稀缺检测 + playwright disabled 检测 + prompt 段
 └── env_context.py         # 宿主环境注入 schema + sanitize + markdown 渲染
 

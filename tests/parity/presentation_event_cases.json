@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "prompt": "Finalize the controlled presentation",
+      "expected_capability": "controlled_presentation.finalize",
+      "expected_event_types": [
+        "run.started",
+        "step.started",
+        "context.assembled",
+        "model.response.completed",
+        "tool.call.requested",
+        "tool.call.completed",
+        "artifact.created",
+        "step.completed",
+        "step.started",
+        "context.assembled",
+        "model.requested",
+        "model.content.delta",
+        "model.response.completed",
+        "workflow.checkpoint",
+        "step.completed",
+        "run.completed"
+      ],
+      "expected_stage": "finalize",
+      "artifact_name": "index.html"
+    }
+  ]
+}

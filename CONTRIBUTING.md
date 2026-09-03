@@ -58,6 +58,16 @@ If you have an idea for a new feature, please create an Issue first to discuss i
    uv run python -m box_agent.cli
    ```
 
+7. Run the deterministic ACP end-to-end cases and open the local visual report:
+   ```bash
+   uv run python tests/e2e/run_acp_cases.py --report tests/e2e/report.json
+   uv run python -m pytest tests/e2e -q
+   uv run python -m http.server 8765 --directory tests/e2e
+   # open http://localhost:8765/report.html
+   ```
+   The five cases cover text, tool permission ordering, context/memory plugins,
+   workflow continuation, and durable session resume. See the [ACP E2E guide](docs/e2e/ACP_E2E_GUIDE.md).
+
 #### Team Collaboration Baseline
 
 - Prefer small PRs that change one behavior or one subsystem.
@@ -66,6 +76,24 @@ If you have an idea for a new feature, please create an Issue first to discuss i
 - Keep the shared Understand Anything refresh baseline and configuration in Git (`knowledge-graph.json`, `meta.json`, `fingerprints.json`, `.understandignore`, and `config.json` under `.understand-anything/`). Regenerate and review the graph, metadata, and fingerprints together when architecture boundaries or the guided tour change. Do not commit `last-run-summary.json`, intermediate, trash, dashboard tokens, or cache files.
 - Do not include local credentials or user config. `config.yaml`, `mcp.json`, logs, and `workspace/` are local runtime files.
 - If a change affects officev3 or any packaged runtime, say whether you verified only source behavior or also rebuilt/installed/probed the runtime artifact.
+
+#### Agent Kernel and Parity Gates
+
+- New integrations target `box_agent.api`, `box_agent.kernel`, and
+  `box_agent.services`; ACP/CLI remain thin protocol and rendering adapters.
+- Register context, tools, permissions, memory, LLM, hooks, and workflow
+  policies through `PluginHost` and typed registries. Tool execution must run
+  `validate -> permission preflight -> executor` in that order.
+- The Kernel/Service owns lifecycle events and automatic checkpoints. A
+  resumable session must validate the checkpoint event hash and plugin lock
+  before continuing.
+- Goal, Plan, PPT, Skill, Completion Gate, and Autopilot behavior is protected
+  by deterministic fixtures in `tests/parity/`. Keep those fixtures when
+  changing native workflow behavior; the retired pre-Kernel loop must not be
+  reintroduced as a fallback.
+- Put reusable capability code in `context/`, `memory_engine/`, `workflows/`,
+  `persistence/`, or `adapters/`; root entry modules and already-migrated root
+  names are compatibility shims and must not become a second implementation.
 
 #### Maintaining Design and Change Records
 
@@ -108,15 +136,15 @@ entries.
 
 #### Ownership Boundaries
 
-- `box_agent/core.py` is a changeable but low-churn kernel owned by the core team. Product and capability modules must use `Agent.run_events()` or the explicit shared APIs; they must not import the Core implementation directly.
-- Agent-loop invariants, event semantics, scheduling, cancellation, tool-call closure, and security enforcement points belong to the stable kernel/contracts. Core changes require a core-maintainer review.
-- Reusable tools, skills, providers, storage, and workflow policy belong in the capability layer unless they require a new host-neutral kernel contract. Put stateful workflows in `box_agent/workflows/`, implement `WorkflowPolicy`, and compose them through `runtime.py` instead of importing them from Core.
+- `box_agent/api/`, `box_agent/kernel/`, and `box_agent/services/` are the stable, low-churn runtime owned by the core team. Root `core.py` is an import facade; product and capability modules must not depend on compatibility modules.
+- Agent-loop invariants, event semantics, scheduling, cancellation, tool-call closure, and security enforcement points belong to the stable kernel/contracts. Changes require a core-maintainer review.
+- Reusable context/history, memory, tools, skills, providers, persistence, and workflow policy belong in `box_agent/context/`, `memory_engine/`, `tools/`, `skills/`, `persistence/`, and `workflows/`. Compose them through `PluginHost`/`KernelAgentService`; do not put implementation back into root facades.
 - CLI code should handle terminal interaction, rendering, slash commands, and local prompts. It should not fork core behavior that ACP also needs.
 - ACP code should translate shared events into ACP protocol updates and host extension methods. Keep stdout protocol-clean; diagnostics belong on stderr or structured logs.
 - Provider-specific wire behavior belongs in `box_agent/llm/`; do not spread provider assumptions into tools, skills, CLI, or ACP.
 - Tool behavior belongs in `box_agent/tools/` and should return structured `ToolResult` data. Add direct regression tests for new tool semantics.
-- Built-in skill loading is controlled by `box_agent/skill_loader.py`, `box_agent/skills/`, and `box_agent/skills/_manifest.json`. When built-in skills change, regenerate the manifest before review.
-- PPT/document capabilities are skill-driven unless there is an explicit core contract change. PPT intent routing, checkpoints, and tool policy belong in `box_agent/completion.py` and `box_agent/workflows/presentation_*`; do not add hidden PPT-specific modes to the core loop or `loop_guards.py`.
+- Built-in skill loading is controlled by `box_agent/tools/skill_loader.py`, `box_agent/skills/`, and `box_agent/skills/_manifest.json`. When built-in skills change, regenerate the manifest before review.
+- PPT/document capabilities are skill-driven unless there is an explicit core contract change. PPT intent routing, checkpoints, and tool policy belong in `box_agent/workflows/completion.py`, `guards.py`, and `presentation_*`; do not add PPT-specific modes to the Kernel.
 - Packaged runtime behavior is not proven by source edits alone. If officev3 or a standalone runtime depends on the change, document the runtime rebuild/install/probe status.
 
 #### TPR Pull Request Standard

@@ -102,7 +102,14 @@ class MockLLM:
         self.offered_names: list[list[str]] = []
 
     async def generate_stream(self, messages, tools=None, **_):
-        self.offered_names.append([tool.name for tool in tools or []])
+        self.offered_names.append(
+            [
+                str(tool.get("name") or tool.get("function", {}).get("name", ""))
+                if isinstance(tool, dict)
+                else tool.name
+                for tool in tools or []
+            ]
+        )
         response = self._responses[self._index]
         self._index += 1
         if response.content:

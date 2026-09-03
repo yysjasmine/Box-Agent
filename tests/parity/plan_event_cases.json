@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "name": "approval_pause",
+      "prompt": "请先准备一个执行计划",
+      "tool_call_id": "plan-parity-write",
+      "plan": {
+        "action": "set",
+        "title": "Release",
+        "objective": "Publish the runtime",
+        "steps": [
+          {"title": "Verify", "details": "Run focused tests"}
+        ]
+      },
+      "expected_event_types": [
+        "run.started",
+        "workflow.plan.snapshot",
+        "step.started",
+        "context.assembled",
+        "model.requested",
+        "model.response.completed",
+        "tool.call.requested",
+        "tool.call.completed",
+        "step.completed",
+        "workflow.checkpoint",
+        "run.completed"
+      ],
+      "expected_plan_actions": ["start", "set"],
+      "expected_stop_reason": "checkpoint_paused",
+      "expected_run_status": "paused",
+      "expected_approval_state": "pending"
+    }
+  ]
+}

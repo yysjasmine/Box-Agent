@@ -9,6 +9,7 @@ import platform
 import shutil
 import sys
 import tarfile
+import time
 import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -24,6 +25,20 @@ DEFAULT_NODE_RUNTIME_ROOT = Path.home() / ".box-agent" / "runtimes" / "node"
 DEFAULT_NODE_VERSION = "v24.15.0"
 NODE_DIST_BASE_URL = "https://nodejs.org/dist"
 _MAX_RUNTIME_PATH_LEN = 1024
+_RUNTIME_PROMOTION_RETRY_DELAYS = (0.05, 0.1, 0.2, 0.4, 0.8)
+
+
+def _promote_runtime_directory(source: Path, target: Path) -> None:
+    """Atomically promote an extracted runtime despite transient file scanners."""
+
+    for delay in (*_RUNTIME_PROMOTION_RETRY_DELAYS, None):
+        try:
+            source.rename(target)
+            return
+        except PermissionError:
+            if delay is None:
+                raise
+            time.sleep(delay)
 
 
 @dataclass(frozen=True)
@@ -334,7 +349,7 @@ class NodeRuntimeManager:
             if version_dir.exists():
                 shutil.rmtree(version_dir)
             version_dir.parent.mkdir(parents=True, exist_ok=True)
-            extracted.rename(version_dir)
+            _promote_runtime_directory(extracted, version_dir)
         except Exception as exc:
             if version_dir.exists() and not all(_is_executable_file(str(path)) for path in (node, npm, npx)):
                 shutil.rmtree(version_dir)
@@ -424,17 +439,7 @@ class NodeRuntimeManager:
             if version_dir.exists():
                 shutil.rmtree(version_dir)
             version_dir.parent.mkdir(parents=True, exist_ok=True)
-            # ``Path.rename`` is a raw MoveFileEx on Win and trips WinError 5
-            # if Defender / Search Indexer briefly holds a handle on the freshly
-            # extracted node.exe. ``shutil.move`` falls back to copy+delete and
-            # is more tolerant; retry once after a short pause as a final
-            # safety net.
-            try:
-                shutil.move(str(extracted), str(version_dir))
-            except PermissionError:
-                import time
-                time.sleep(2)
-                shutil.move(str(extracted), str(version_dir))
+            _promote_runtime_directory(extracted, version_dir)
         except Exception as exc:
             if version_dir.exists() and not all(_path_exists(path) for path in (node, npm, npx)):
                 shutil.rmtree(version_dir)
@@ -522,7 +527,7 @@ class NodeRuntimeManager:
             if version_dir.exists():
                 shutil.rmtree(version_dir)
             version_dir.parent.mkdir(parents=True, exist_ok=True)
-            extracted.rename(version_dir)
+            _promote_runtime_directory(extracted, version_dir)
         except Exception as exc:
             if version_dir.exists() and not all(
                 _is_executable_file(str(path)) for path in (node, npm, npx)
@@ -651,6 +656,18 @@ class NodeRuntimeManager:
                 npm = version_dir / "npm.cmd"
                 npx = version_dir / "npx.cmd"
                 usable = all(_path_exists(path) for path in (node, npm, npx))
+                if not usable:
+                    # Office/portable bundles may be provisioned from a
+                    # POSIX archive even when the embedding host is Windows.
+                    # Accept that layout when all three executable markers are
+                    # present; native Windows layouts still take precedence.
+                    node = version_dir / "bin" / "node"
+                    npm = version_dir / "bin" / "npm"
+                    npx = version_dir / "bin" / "npx"
+                    usable = all(
+                        _is_executable_file(str(path))
+                        for path in (node, npm, npx)
+                    )
             else:
                 node = version_dir / "bin" / "node"
                 npm = version_dir / "bin" / "npm"

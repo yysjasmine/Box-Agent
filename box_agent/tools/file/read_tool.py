@@ -7,7 +7,7 @@ import math
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from ...context_resources import (
+from ...context.resource_ledger import (
     CONTEXT_RESOURCE_RAW_KEY,
     ResourceDescriptor,
     classify_read_resource,
@@ -125,22 +125,8 @@ class ReadTool(Tool):
         return file_path
 
     def _validate_readable_file(self, file_path: Path, requested_path: str) -> ToolResult | None:
-        if self._perm:
-            decision = self._perm.check(
-                capability="filesystem.read",
-                resource={"path": str(file_path)},
-                tool_name=self.name,
-            )
-            if not decision.allowed:
-                return ToolResult(
-                    success=False,
-                    error=decision.reason,
-                    permission_request=decision.permission_request,
-                )
-        elif not self.allow_full_access:
-            error = validate_path_in_workspace(file_path, self.workspace_dir)
-            if error:
-                return ToolResult(success=False, content="", error=error)
+        if error := self._permission_error(file_path):
+            return error
 
         device_error = _blocked_device_error(file_path)
         if device_error:
@@ -166,6 +152,31 @@ class ReadTool(Tool):
         if binary_error:
             return ToolResult(success=False, content="", error=binary_error)
         return None
+
+    def _permission_error(self, file_path: Path) -> ToolResult | None:
+        if self._perm:
+            decision = self._perm.check(
+                capability="filesystem.read",
+                resource={"path": str(file_path)},
+                tool_name=self.name,
+            )
+            if not decision.allowed:
+                return ToolResult(
+                    success=False,
+                    error=decision.reason,
+                    permission_request=decision.permission_request,
+                )
+        elif not self.allow_full_access:
+            error = validate_path_in_workspace(file_path, self.workspace_dir)
+            if error:
+                return ToolResult(success=False, content="", error=error)
+        return None
+
+    async def preflight(self, arguments: dict[str, Any], *, context=None) -> ToolResult | None:
+        """Check filesystem scope before opening the requested file."""
+
+        del context
+        return self._permission_error(self._resolve_file_path(str(arguments["path"])))
 
     @property
     def name(self) -> str:
@@ -244,7 +255,17 @@ class ReadTool(Tool):
             content_hasher = hashlib.sha256()
             with open(file_path, "rb") as stream:
                 for index, raw_line in enumerate(stream):
-                    content_hasher.update(raw_line)
+                    # Hash logical text rather than platform-specific line
+                    # endings.  A file written with ``Path.write_text`` is
+                    # CRLF on Windows but LF on POSIX; the resource version
+                    # must identify the same content on both hosts so a
+                    # replay/checkpoint can be restored deterministically.
+                    normalized_raw = raw_line
+                    if normalized_raw.endswith(b"\r\n"):
+                        normalized_raw = normalized_raw[:-2] + b"\n"
+                    elif normalized_raw.endswith(b"\r"):
+                        normalized_raw = normalized_raw[:-1] + b"\n"
+                    content_hasher.update(normalized_raw)
                     line = raw_line.decode("utf-8", errors="replace")
                     # Match text-mode universal newline behavior while hashing
                     # the original bytes for change detection.

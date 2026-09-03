@@ -70,18 +70,57 @@ API 返回的事件顺序不符合 Anthropic 协议规范: Unexpected event orde
 
 ## SenseNova OpenAI 兼容模式
 
+以下是常见宿主/ACP 元数据的等价写法（它不是 `config.yaml` 的文件格式；
+本地 YAML 仍使用 `api_key`/`api_base`）。`apiKey` 只能来自宿主的密钥管理，
+不能写入事件、checkpoint 或日志）：
+
+```json
+{
+  "protocol": "openai_chat_completions",
+  "apiKey": "<provided-by-secret-manager>",
+  "baseURL": "http://host/v1",
+  "model": "SenseNova-Flash-Lite-...",
+  "chatTemplateKwargs": {
+    "thinking": true,
+    "reasoningEffort": "high"
+  }
+}
+```
+
+适配边界只保留以下语义：
+
+| 宿主字段 | Box-Agent 语义 | 是否进入 Provider wire |
+| --- | --- | --- |
+| `protocol` | 选择 `provider: openai` | 否 |
+| `apiKey` | 初始化 Provider 的鉴权输入 | 仅作为 HTTP 鉴权；不进入事件/日志 |
+| `baseURL` | `LLMConfig.api_base` | 是，作为请求基址 |
+| `model` | `LLMConfig.model` | 是，作为模型名 |
+| `chatTemplateKwargs.thinking` | `RunOptions.thinking_enabled` | 由 Provider 方言转换 |
+| `chatTemplateKwargs.reasoningEffort` | 宿主提示；当前高推理开关由 `thinking=true` 决定 | 统一为 `reasoning_effort=high`（SenseNova） |
+
+Native ACP 与兼容 ACP 都在适配器边界把 `chatTemplateKwargs` /
+`chat_template_kwargs` 的 `thinking` 归一为 `RunOptions.thinking_enabled`；
+显式的中性字段优先。凭据字段会在 session/run metadata 进入 Service 前被
+递归剔除，防止持久化恢复或事件订阅泄露密钥。
+
 当 `provider: openai` 且模型名以 `sensenova-` 或 `sn-sensenova-` 开头时，
 Box-Agent 会启用 SenseNova 协议兼容处理。使用 `--deep-think` 或 ACP 的
 `deep_think` 开关时，请求会附带：
 
 ```json
 {
-  "chat_template_kwargs": {
-    "thinking": true,
-    "reasoning_effort": "high"
-  }
+  "reasoning_effort": "high"
 }
 ```
+
+`chatTemplateKwargs` / `chat_template_kwargs` 不会原样透传到 SenseNova。
+OpenAI Provider 按模型方言生成顶层 `reasoning_effort`；关闭思考时发送
+`"none"`。这样 ACP、CLI、SDK 的输入命名可以不同，但实际 Provider wire
+只有一套确定语义。
+
+Native ACP 还接受兼容字段 `deepThink`；`adapters/acp_kernel.py` 会在进入
+Kernel 前将这些拼写统一为 `RunOptions.thinking_enabled`，避免第三方
+Provider 适配器重复解析 ACP 元数据。
 
 部分 Flash-Lite 版本会把工具调用以 `<tool_call>` 标记输出到 reasoning，或
 输出到不含其他可见文本的 content。Box-Agent 会把这类标记恢复为标准工具调用，

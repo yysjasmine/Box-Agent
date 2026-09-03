@@ -5,17 +5,61 @@ and user confirmation for destructive operations.
 """
 
 import os
+import platform
 import re
 import shutil
 import sys
+import tempfile
 from collections.abc import Iterable, Mapping
 from datetime import datetime
 from pathlib import Path
 
 from .shell_inspection import ShellInspection, ShellInvocation, inspect_shell_command
 
-# Global trash directory for file backups
-TRASH_DIR = Path.home() / ".box-agent" / "trash"
+
+def _directory_is_writable(directory: Path) -> bool:
+    """Return whether ``directory`` can actually hold a backup.
+
+    Creating an already-existing directory is not a writeability check on
+    Windows.  Open a short-lived file so ACL and sandbox restrictions are
+    evaluated by the same filesystem operation that a later backup needs.
+    """
+
+    probe = directory / f".box-agent-write-probe-{os.getpid()}-{id(directory):x}"
+    try:
+        directory.mkdir(parents=True, exist_ok=True)
+        with probe.open("xb"):
+            pass
+        probe.unlink()
+    except OSError:
+        return False
+    return True
+
+
+def _select_trash_dir() -> Path:
+    """Select one stable, writable root for destructive-operation backups.
+
+    Desktop hosts can expose a profile path that is readable but not writable
+    to the embedded runtime.  Resolve that boundary once at import time so
+    callers importing ``TRASH_DIR`` observe the same root used by
+    :func:`backup_file`; the previous lazy fallback reassigned the module
+    global after import, leaving compatibility callers with a stale path.
+    """
+
+    preferred = Path.home() / ".box-agent" / "trash"
+    fallback = Path(tempfile.gettempdir()) / ".box-agent" / "trash"
+    for candidate in (preferred, fallback):
+        if _directory_is_writable(candidate):
+            return candidate
+
+    # Keep a deterministic value when both locations are unavailable.
+    # ``backup_file`` remains best-effort and reports failure with ``None``.
+    return fallback
+
+
+# Global trash directory for file backups.  It is selected once so imported
+# compatibility aliases and the implementation share the same destination.
+TRASH_DIR = _select_trash_dir()
 
 _DANGEROUS_EXECUTABLE_REASONS = {
     "chmod": "chmod: changes file permissions",
@@ -164,30 +208,46 @@ def detect_dangerous_command(
     trusted_references = _TRUSTED_DYNAMIC_EXECUTABLE_REFERENCES | frozenset(
         trusted_executable_references
     )
-    inspection = inspect_shell_command(command)
-    mutated_variables, unknown_environment_mutation = _shell_environment_mutations(
-        inspection
-    )
-    for invocation in inspection.invocations:
-        reference_variable = _shell_reference_variable(invocation.executable)
-        trusted_dynamic_reference = (
-            invocation.executable in trusted_references
-            and invocation.dynamic_executable_evidence == invocation.executable
-            and not unknown_environment_mutation
-            and reference_variable not in mutated_variables
+
+    def inspect_for_danger(inspection) -> str | None:
+        mutated_variables, unknown_environment_mutation = _shell_environment_mutations(
+            inspection
         )
-        if (
-            invocation.dynamic_executable_sources
-            and not trusted_dynamic_reference
+        for invocation in inspection.invocations:
+            reference_variable = _shell_reference_variable(invocation.executable)
+            trusted_dynamic_reference = (
+                invocation.executable in trusted_references
+                and invocation.dynamic_executable_evidence == invocation.executable
+                and not unknown_environment_mutation
+                and reference_variable not in mutated_variables
+            )
+            if (
+                invocation.dynamic_executable_sources
+                and not trusted_dynamic_reference
+            ):
+                return "Dynamically constructed shell executable"
+            if reason := _dangerous_invocation_reason(invocation):
+                return reason
+        if any(
+            _DANGEROUS_CANDIDATE_RE.search(region)
+            for region in inspection.ambiguous_regions
         ):
-            return "Dynamically constructed shell executable"
-        if reason := _dangerous_invocation_reason(invocation):
-            return reason
-    if any(_DANGEROUS_CANDIDATE_RE.search(region) for region in inspection.ambiguous_regions):
-        return "Unparseable potentially dangerous shell command"
-    for redirection in inspection.redirections:
-        if ">" in redirection.operator and redirection.target.startswith("/etc/"):
-            return "write to /etc: modifies system config"
+            return "Unparseable potentially dangerous shell command"
+        for redirection in inspection.redirections:
+            if ">" in redirection.operator and redirection.target.startswith("/etc/"):
+                return "write to /etc: modifies system config"
+        return None
+
+    # Parse using the host shell first. On Windows, also try POSIX syntax:
+    # bundled skills and safety tests commonly pass ``bash -c``/``env -S``
+    # payloads even when the fallback executor is PowerShell. Taking the
+    # union of both parsers prevents a dialect mismatch from becoming a
+    # safety bypass while retaining native PowerShell handling.
+    reason = inspect_for_danger(inspect_shell_command(command))
+    if reason is not None:
+        return reason
+    if platform.system() == "Windows":
+        return inspect_for_danger(inspect_shell_command(command, posix=True))
     return None
 
 
@@ -470,9 +530,23 @@ def backup_file(file_path: Path) -> Path | None:
             return None
 
         timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S_%f")
-        # Preserve original path structure under trash dir
-        # e.g., /home/user/project/foo.py → ~/.box-agent/trash/2024-01-01_120000_000000/home/user/project/foo.py
-        backup_path = TRASH_DIR / timestamp / str(resolved).lstrip("/")
+        # Sandboxed desktop hosts can expose a read-only home directory even
+        # though the workspace itself is writable.  ``TRASH_DIR`` was already
+        # selected with the same fallback policy at module import time; keep
+        # this mkdir as a race-resistant guard if the directory was removed.
+        try:
+            TRASH_DIR.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            return None
+        # Preserve original path structure under trash dir.  Build the suffix
+        # from path components instead of appending the raw absolute string:
+        # on Windows ``Path('D:\\...')`` would otherwise replace the trash
+        # root with drive ``D:`` and copy back onto the source path.
+        raw_parts = re.split(r"[\\/]+", str(resolved).lstrip("\\/"))
+        safe_parts = tuple(
+            part.replace(":", "_") for part in raw_parts if part
+        )
+        backup_path = TRASH_DIR / timestamp / Path(*safe_parts)
         backup_path.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(resolved, backup_path)
         return backup_path

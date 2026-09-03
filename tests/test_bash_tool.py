@@ -506,6 +506,8 @@ def test_empty_runtime_env_does_not_inject_python_vars():
 
 @pytest.mark.asyncio
 async def test_verified_runtime_node_reference_runs_without_approval(tmp_path):
+    if os.name == "nt":
+        pytest.skip("POSIX shell expansion and executable-bit behavior")
     node_path = tmp_path / "node"
     node_path.write_text("#!/bin/sh\nprintf 'runtime-node-ok\\n'\n", encoding="utf-8")
     node_path.chmod(0o755)
@@ -520,6 +522,8 @@ async def test_verified_runtime_node_reference_runs_without_approval(tmp_path):
 
 @pytest.mark.asyncio
 async def test_non_executable_runtime_node_reference_still_requires_approval(tmp_path):
+    if os.name == "nt":
+        pytest.skip("POSIX shell expansion and executable-bit behavior")
     node_path = tmp_path / "node"
     node_path.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
     node_path.chmod(0o644)

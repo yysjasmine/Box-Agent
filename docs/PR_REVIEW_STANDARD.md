@@ -103,7 +103,7 @@ GitHub state.
   must keep stdout protocol-clean.
 - Provider wire behavior belongs in `box_agent/llm/`.
 - Tool semantics belong in `box_agent/tools/` and return structured results.
-- Skill loading belongs in `box_agent/skill_loader.py`, `box_agent/skills/`, and
+- Skill loading belongs in `box_agent/tools/skill_loader.py`, `box_agent/skills/`, and
   `_manifest.json`.
 - Stateful product workflows belong in `box_agent/workflows/` behind explicit
   workflow policies.
@@ -218,8 +218,8 @@ git diff --check
 git diff --merge-base <target-ref> <change-ref>
 git log --oneline <merge-base>..<target-ref> -- <relevant-paths>
 bash general_review/ci/preflight.sh
-uv run pytest tests/test_core.py -q
-uv run pytest tests/test_acp.py -q
+uv run pytest tests/test_agent_loop_kernel.py tests/test_kernel_service.py -q
+uv run pytest tests/test_acp_kernel_adapter.py tests/test_acp_projection.py -q
 uv run pytest tests/test_memory.py -q
 uv run python scripts/generate_skills_manifest.py
 uv run box-agent-build-runtime

@@ -58,6 +58,16 @@
    uv run python -m box_agent.cli
    ```
 
+7. 运行确定性的 ACP 端到端用例并打开可视化报告：
+   ```bash
+   uv run python tests/e2e/run_acp_cases.py --report tests/e2e/report.json
+   uv run python -m pytest tests/e2e -q
+   uv run python -m http.server 8765 --directory tests/e2e
+   # 浏览器打开 http://localhost:8765/report.html
+   ```
+   五个用例覆盖文本响应、工具权限顺序、Context/Memory 插件、工作流续跑和持久化
+   session 恢复。详见 [ACP E2E 指南](docs/e2e/ACP_E2E_GUIDE_CN.md)。
+
 #### 团队协作基线
 
 - 优先提交小 PR，一次只修改一个行为或一个子系统。
@@ -66,6 +76,21 @@
 - 将 Understand Anything 的共享刷新基线与配置纳入 Git（`.understand-anything/` 下的 `knowledge-graph.json`、`meta.json`、`fingerprints.json`、`.understandignore` 和 `config.json`）。架构边界或阅读路线变化时，应一起重新生成并审查图谱、元数据和 fingerprint。不要提交 `last-run-summary.json`、intermediate、trash、dashboard token 或 cache 文件。
 - 不要提交本地凭据或用户配置。`config.yaml`、`mcp.json`、日志和 `workspace/` 都属于本地运行文件。
 - 如果改动会影响 officev3 或任何 packaged runtime，需要说明本次只验证了源码行为，还是也完成了 runtime rebuild/install/probe。
+
+#### Agent Kernel 与行为门禁
+
+- 新集成面向 `box_agent.api`、`box_agent.kernel` 和 `box_agent.services`；
+  ACP/CLI 只负责协议转换与终端渲染。
+- 上下文、工具、权限、记忆、LLM、Hook 和工作流策略通过 `PluginHost` 及类型化
+  Registry 注册。工具调用必须严格按 `validate -> permission preflight -> executor`
+  顺序执行。
+- Kernel/Service 负责生命周期事件和自动 checkpoint。可恢复 session 继续运行前，
+  必须校验 checkpoint 对应事件的 hash 及 plugin lock。
+- Goal、Plan、PPT、Skill、Completion Gate 和 Autopilot 的原生行为由
+  `tests/parity/` 中的确定性 fixture 保护。修改行为时必须保留这些门禁，不得重新引入
+  已删除的旧 Loop 作为回退。
+- 可复用能力代码放在 `context/`、`memory_engine/`、`workflows/`、`persistence/` 或
+  `adapters/`；根目录入口及已迁移名称仅作兼容 shim，不能形成第二套实现。
 
 #### 维护设计与变更记录
 
@@ -95,15 +120,15 @@ merge SHA；先记录 PR 和已有实现提交，合并后再核对补充。
 
 #### 归属边界
 
-- `box_agent/core.py` 是可修改但低频变化、由核心团队维护的内核。产品层与能力层必须使用 `Agent.run_events()` 或明确的共享 API，不能直接导入 Core 实现。
-- Agent 循环不变量、事件语义、调度、取消、工具调用闭合和安全执行点属于稳定内核/契约；Core 改动需要核心维护者评审。
-- 可复用的工具、Skills、Provider、存储和工作流策略默认属于能力层，除非确实需要新增与宿主无关的内核契约。有状态工作流放入 `box_agent/workflows/`，实现 `WorkflowPolicy`，并由 `runtime.py` 组装，不要让 Core 导入具体实现。
+- `box_agent/api/`、`box_agent/kernel/` 和 `box_agent/services/` 是低频变化、由核心团队维护的稳定运行时。根目录 `core.py` 仅为历史导入 facade；产品层与能力层不得直接导入它。
+- Agent 循环不变量、事件语义、调度、取消、工具调用闭合和安全执行点属于稳定内核/契约；修改需要核心团队评审。
+- 可复用的上下文/历史、记忆、工具、Skill、Provider、持久化和工作流策略分别放入 `box_agent/context/`、`memory_engine/`、`tools/`、`skills/`、`persistence/` 和 `workflows/`。通过 `PluginHost`/`KernelAgentService` 组装，不要依赖 Core facade。
 - CLI 代码负责终端交互、渲染、slash commands 和本地提示，不应复制 ACP 也需要的核心行为。
 - ACP 代码负责把共享事件翻译成 ACP protocol updates 和 host extension methods。stdout 必须保持协议纯净；诊断信息应走 stderr 或结构化日志。
 - Provider 特定的 wire 行为属于 `box_agent/llm/`，不要把 provider 假设散落到 tools、skills、CLI 或 ACP。
 - Tool 行为属于 `box_agent/tools/`，应返回结构化 `ToolResult`。新增工具语义需要直接回归测试。
-- 内置 skill 加载由 `box_agent/skill_loader.py`、`box_agent/skills/` 和 `box_agent/skills/_manifest.json` 控制。内置 skills 变化时，review 前必须重新生成 manifest。
-- PPT/文档能力默认由 skill 驱动，除非有明确的核心 contract 变化。PPT 意图路由、checkpoint 与工具策略属于 `box_agent/completion.py` 和 `box_agent/workflows/presentation_*`，不要向核心循环或 `loop_guards.py` 加入隐藏的 PPT 专用模式。
+- 内置 skill 加载由 `box_agent/tools/skill_loader.py`、`box_agent/skills/` 和 `box_agent/skills/_manifest.json` 控制。内置 skills 变化时，review 前必须重新生成 manifest。
+- PPT/文档能力默认由 skill 驱动，除非有明确的核心 contract 变化。PPT 意图路由、checkpoint 与工具策略属于 `box_agent/workflows/completion.py`、`guards.py` 和 `presentation_*`，不要向 Kernel 加入 PPT 专用模式。
 - Packaged runtime 行为不能只靠源码改动证明。如果 officev3 或 standalone runtime 依赖本次改动，需要说明 runtime rebuild/install/probe 状态。
 
 #### TPR Pull Request 标准

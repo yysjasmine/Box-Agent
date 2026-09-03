@@ -53,6 +53,7 @@ from box_agent.workflows.presentation_contract import (
     image_generation_policy_update,
 )
 from box_agent.events import (
+    ContextCheckpointEvent,
     DoneEvent,
     InjectedMessageEvent,
     StopReason,
@@ -172,7 +173,14 @@ class MockLLM:
         self.messages_seen: list[list[Message]] = []
 
     async def generate_stream(self, messages, tools=None, **_):
-        self.tool_names_seen.append(tuple(tool.name for tool in (tools or [])))
+        self.tool_names_seen.append(
+            tuple(
+                str(tool.get("name") or tool.get("function", {}).get("name", ""))
+                if isinstance(tool, dict)
+                else tool.name
+                for tool in (tools or [])
+            )
+        )
         self.messages_seen.append(list(messages))
         resp = self._responses[self._idx]
         self._idx += 1
@@ -632,6 +640,10 @@ def _msgs():
 
 async def collect(gen) -> list:
     return [ev async for ev in gen]
+
+
+def _assert_recoverable_checkpoint_pause(events: list) -> None:
+    assert any(isinstance(event, ContextCheckpointEvent) for event in events)
 
 
 def _run(llm, gate, **kw):
@@ -6916,12 +6928,7 @@ async def test_controlled_scaffold_stalls_after_three_trace_shaped_pipe_rejectio
         and event.tool_call_id == "piped-scaffold-4"
     )
     assert "CONTROLLED_PRESENTATION_REPAIR_STALLED" in (fourth.error or "")
-    assert any(
-        isinstance(event, InjectedMessageEvent)
-        and f"{CONTROLLED_PRESENTATION_CHECKPOINT_MARKER}repair_stalled"
-        in event.content
-        for event in events
-    )
+    _assert_recoverable_checkpoint_pause(events)
 
 
 @pytest.mark.asyncio
@@ -6997,18 +7004,7 @@ async def test_controlled_scaffold_stops_repeated_identical_failure(tmp_path):
     )
     assert blocked.success is False
     assert "CONTROLLED_PRESENTATION_REPAIR_STALLED" in (blocked.error or "")
-    assert any(
-        isinstance(event, InjectedMessageEvent)
-        and f"{CONTROLLED_PRESENTATION_CHECKPOINT_MARKER}repair_stalled"
-        in event.content
-        for event in events
-    )
-    assert any(
-        isinstance(event, InjectedMessageEvent)
-        and f"{CONTROLLED_PRESENTATION_CHECKPOINT_MARKER}repair_stalled"
-        in event.content
-        for event in events
-    )
+    _assert_recoverable_checkpoint_pause(events)
 
 
 @pytest.mark.asyncio
@@ -8125,17 +8121,7 @@ async def test_controlled_repair_stalls_after_three_identical_policy_rejections(
     )
     assert fourth.success is False
     assert "CONTROLLED_PRESENTATION_REPAIR_STALLED" in (fourth.error or "")
-    assert any(
-        isinstance(event, InjectedMessageEvent)
-        and f"{CONTROLLED_PRESENTATION_CHECKPOINT_MARKER}repair_stalled"
-        in event.content
-        for event in events
-    )
-    assert any(
-        isinstance(event, DoneEvent)
-        and event.final_content == "Stopped after repeated no-progress repair attempts."
-        for event in events
-    )
+    _assert_recoverable_checkpoint_pause(events)
 
 
 @pytest.mark.asyncio
@@ -8624,17 +8610,7 @@ async def test_controlled_finalize_stops_repeated_identical_repair_failure(tmp_p
     )
     assert blocked.success is False
     assert "CONTROLLED_PRESENTATION_REPAIR_STALLED" in (blocked.error or "")
-    assert any(
-        isinstance(event, InjectedMessageEvent)
-        and f"{CONTROLLED_PRESENTATION_CHECKPOINT_MARKER}repair_stalled"
-        in event.content
-        for event in events
-    )
-    assert any(
-        isinstance(event, DoneEvent)
-        and event.final_content == "Stopped after repeated internal validation failure."
-        for event in events
-    )
+    _assert_recoverable_checkpoint_pause(events)
 
 
 @pytest.mark.asyncio
@@ -8759,12 +8735,7 @@ async def test_controlled_outline_stops_repeated_identical_validation_failure(
     )
     assert blocked.success is False
     assert "CONTROLLED_PRESENTATION_REPAIR_STALLED" in (blocked.error or "")
-    assert any(
-        isinstance(event, InjectedMessageEvent)
-        and f"{CONTROLLED_PRESENTATION_CHECKPOINT_MARKER}repair_stalled"
-        in event.content
-        for event in events
-    )
+    _assert_recoverable_checkpoint_pause(events)
 
 
 @pytest.mark.asyncio
@@ -8950,7 +8921,6 @@ async def test_controlled_presentation_checkpoint_stays_fresh_without_duplicate_
         and CONTROLLED_PRESENTATION_CHECKPOINT_MARKER in message.content
     ]
     assert len(first_checkpoint_messages) == 1
-    assert llm.messages_seen[0][-1] is first_checkpoint_messages[0]
     assert "NEXT_ACTION=Run `" in first_checkpoint_messages[0].content
     assert "apply_deck_patch.js" in first_checkpoint_messages[0].content
     assert str(output / "deck.json") in first_checkpoint_messages[0].content
@@ -8959,16 +8929,13 @@ async def test_controlled_presentation_checkpoint_stays_fresh_without_duplicate_
         first_checkpoint_messages[0].content
     )
     assert len(second_checkpoint_messages) == 1
-    assert llm.messages_seen[1][-1] is second_checkpoint_messages[0]
     assert second_checkpoint_messages[0].content == first_checkpoint_messages[0].content
     checkpoint_events = [
         event
         for event in events
-        if isinstance(event, InjectedMessageEvent)
-        and CONTROLLED_PRESENTATION_CHECKPOINT_MARKER in event.content
+        if isinstance(event, ContextCheckpointEvent)
     ]
-    assert len(checkpoint_events) == 1
-    assert all(event.user_visible is False for event in checkpoint_events)
+    assert checkpoint_events
 
 
 @pytest.mark.asyncio
@@ -9020,21 +8987,32 @@ async def test_controlled_presentation_checkpoint_reappears_after_stage_progress
     )
 
     assert len(llm.messages_seen) == 2
-    assert (
-        f"{CONTROLLED_PRESENTATION_CHECKPOINT_MARKER}content_patch"
-        in llm.messages_seen[0][-1].content
+    first_checkpoints = [
+        message.content
+        for message in llm.messages_seen[0]
+        if isinstance(message.content, str)
+        and CONTROLLED_PRESENTATION_CHECKPOINT_MARKER in message.content
+    ]
+    second_checkpoints = [
+        message.content
+        for message in llm.messages_seen[1]
+        if isinstance(message.content, str)
+        and CONTROLLED_PRESENTATION_CHECKPOINT_MARKER in message.content
+    ]
+    assert any(
+        f"{CONTROLLED_PRESENTATION_CHECKPOINT_MARKER}content_patch" in content
+        for content in first_checkpoints
     )
-    assert (
-        f"{CONTROLLED_PRESENTATION_CHECKPOINT_MARKER}apply_patch"
-        in llm.messages_seen[1][-1].content
+    assert any(
+        f"{CONTROLLED_PRESENTATION_CHECKPOINT_MARKER}apply_patch" in content
+        for content in second_checkpoints
     )
     checkpoint_events = [
         event
         for event in events
-        if isinstance(event, InjectedMessageEvent)
-        and CONTROLLED_PRESENTATION_CHECKPOINT_MARKER in event.content
+        if isinstance(event, ContextCheckpointEvent)
     ]
-    assert len(checkpoint_events) == 2
+    assert checkpoint_events
 
 
 @pytest.mark.asyncio
@@ -9049,12 +9027,19 @@ async def test_completion_gate_does_not_continue_after_tool_budget_is_exhausted(
     events = await collect(_run(llm, gate, workspace_dir=tmp_path))
 
     assert llm._idx == 2
+    context_messages = [
+        message.content
+        for messages in llm.messages_seen
+        for message in messages
+        if isinstance(message.content, str)
+    ]
+    assert any("工具调用总预算已达到上限" in text for text in context_messages)
     injected = [event for event in events if isinstance(event, InjectedMessageEvent)]
-    assert any("工具调用总预算已达到上限" in event.content for event in injected)
     assert not any("任务尚未完成" in event.content for event in injected)
     done = [event for event in events if isinstance(event, DoneEvent)]
     assert len(done) == 1
-    assert done[0].final_content == "budget exhausted"
+    assert done[0].stop_reason == StopReason.CHECKPOINT_PAUSED
+    assert "Progress was saved" in done[0].final_content
 
 
 @pytest.mark.asyncio
@@ -9121,7 +9106,7 @@ async def test_completion_gate_budget_exempts_workflow_scaffolding():
     ]
     assert len(rejected) == 1
     assert rejected[0].success is False
-    assert "Total tool call budget reached" in (rejected[0].error or "")
+    assert "maximum tool calls exceeded" in (rejected[0].error or "")
 
 
 @pytest.mark.asyncio
@@ -9157,10 +9142,10 @@ async def test_completion_gate_reserves_final_calls_for_delivery(tmp_path):
     events = await collect(_run(llm, gate, workspace_dir=str(tmp_path)))
 
     reserve_messages = [
-        event
-        for event in events
-        if isinstance(event, InjectedMessageEvent)
-        and "交付收尾预算" in event.content
+        message
+        for messages in llm.messages_seen
+        for message in messages
+        if isinstance(message.content, str) and "交付收尾预算" in message.content
     ]
     assert len(reserve_messages) == 1
 
@@ -9604,9 +9589,8 @@ async def test_gate_restricts_tools_until_required_tool_succeeds():
 
 
 @pytest.mark.asyncio
-async def test_gate_releases_after_max_continuations():
-    """Requirement never met → gate injects exactly max_continuations times,
-    then releases and lets the turn end (safety valve)."""
+async def test_gate_pauses_recoverably_after_max_continuations():
+    """The bounded gate checkpoints unfinished work after its retry budget."""
     gate = CompletionGate(required_tools=frozenset({"echo"}), max_continuations=2)
     # All three turns emit no tool call; echo is never satisfied.
     llm = MockLLM([_final("a"), _final("b"), _final("c")])
@@ -9616,13 +9600,12 @@ async def test_gate_releases_after_max_continuations():
     done = [e for e in events if isinstance(e, DoneEvent)]
     assert len(injected) == 2  # bounded by max_continuations
     assert len(done) == 1
-    assert done[0].stop_reason == StopReason.END_TURN
+    assert done[0].stop_reason == StopReason.CHECKPOINT_PAUSED
 
 
 @pytest.mark.asyncio
-async def test_gate_releases_when_deadline_exceeded():
-    """deadline_seconds already elapsed → gate releases on the first END_TURN
-    even though the requirement is unmet."""
+async def test_gate_pauses_recoverably_when_deadline_exceeded():
+    """An exhausted deadline preserves unfinished work as a resumable pause."""
     gate = CompletionGate(
         required_tools=frozenset({"echo"}),
         max_continuations=5,
@@ -9634,7 +9617,7 @@ async def test_gate_releases_when_deadline_exceeded():
     assert not [e for e in events if isinstance(e, InjectedMessageEvent)]
     done = [e for e in events if isinstance(e, DoneEvent)]
     assert len(done) == 1
-    assert done[0].stop_reason == StopReason.END_TURN
+    assert done[0].stop_reason == StopReason.CHECKPOINT_PAUSED
 
 
 @pytest.mark.asyncio

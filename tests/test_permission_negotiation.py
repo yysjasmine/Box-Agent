@@ -498,7 +498,8 @@ class TestACPConversationPermissionBroker:
     @pytest.mark.asyncio
     async def test_identical_concurrent_requests_share_one_host_prompt(self, tmp_path):
         from acp.schema import AllowedOutcome, RequestPermissionResponse
-        from box_agent.acp import _PermissionNegotiator
+        from box_agent.adapters import ACPPermissionGateway
+        from box_agent.api import PermissionRequest
 
         target = tmp_path / "Downloads"
         target.mkdir()
@@ -521,28 +522,28 @@ class TestACPConversationPermissionBroker:
                 )
 
         connection = Connection()
-        store = GrantStore()
-        negotiator = _PermissionNegotiator(connection, "session-1", store)
-        request = {
-            "scope": "filesystem",
-            "requested_scope": "user_home",
-            "path": str(target),
-            "reason": "Read Downloads",
-        }
+        gateway = ACPPermissionGateway(connection)
+        request = PermissionRequest(
+            scope="filesystem",
+            requested_scope="user_home",
+            resource=str(target),
+            reason="Read Downloads",
+            metadata={"session_id": "session-1", "path": str(target)},
+        )
 
-        first = asyncio.create_task(negotiator.negotiate(request))
-        second = asyncio.create_task(negotiator.negotiate(dict(request)))
+        first = asyncio.create_task(gateway.decide(request))
+        second = asyncio.create_task(gateway.decide(request))
         await prompt_started.wait()
         release_prompt.set()
 
-        assert await asyncio.gather(first, second) == [True, True]
+        assert all(result.granted for result in await asyncio.gather(first, second))
         assert connection.calls == 1
-        assert store.has_filesystem_dir_grant(target.resolve())
 
     @pytest.mark.asyncio
     async def test_concurrent_safety_requests_remain_one_shot(self):
         from acp.schema import AllowedOutcome, RequestPermissionResponse
-        from box_agent.acp import _PermissionNegotiator
+        from box_agent.adapters import ACPPermissionGateway
+        from box_agent.api import PermissionRequest
 
         class Connection:
             def __init__(self):
@@ -559,17 +560,16 @@ class TestACPConversationPermissionBroker:
                 )
 
         connection = Connection()
-        negotiator = _PermissionNegotiator(connection, "session-1", GrantStore())
-        request = {
-            "scope": "safety",
-            "requested_scope": "dangerous_command",
-            "reason": "Run a dangerous command",
-        }
+        gateway = ACPPermissionGateway(connection)
+        request = PermissionRequest(
+            scope="safety",
+            requested_scope="dangerous_command",
+            reason="Run a dangerous command",
+            metadata={"session_id": "session-1"},
+        )
 
-        assert await asyncio.gather(
-            negotiator.negotiate(request),
-            negotiator.negotiate(dict(request)),
-        ) == [True, True]
+        results = await asyncio.gather(gateway.decide(request), gateway.decide(request))
+        assert all(result.granted for result in results)
         assert connection.calls == 2
 
     @pytest.mark.asyncio
@@ -577,7 +577,8 @@ class TestACPConversationPermissionBroker:
         self,
         tmp_path,
     ):
-        from box_agent.acp import _PermissionNegotiator
+        from box_agent.adapters import ACPPermissionGateway
+        from box_agent.api import PermissionRequest
 
         target = tmp_path / "Downloads"
         target.mkdir()
@@ -597,16 +598,17 @@ class TestACPConversationPermissionBroker:
                     prompt_cancelled.set()
 
         connection = Connection()
-        negotiator = _PermissionNegotiator(connection, "session-1", GrantStore())
-        request = {
-            "scope": "filesystem",
-            "requested_scope": "user_home",
-            "path": str(target),
-            "reason": "Read Downloads",
-        }
+        gateway = ACPPermissionGateway(connection)
+        request = PermissionRequest(
+            scope="filesystem",
+            requested_scope="user_home",
+            resource=str(target),
+            reason="Read Downloads",
+            metadata={"session_id": "session-1", "path": str(target)},
+        )
 
-        first = asyncio.create_task(negotiator.negotiate(request))
-        second = asyncio.create_task(negotiator.negotiate(dict(request)))
+        first = asyncio.create_task(gateway.decide(request))
+        second = asyncio.create_task(gateway.decide(request))
         await prompt_started.wait()
 
         first.cancel()

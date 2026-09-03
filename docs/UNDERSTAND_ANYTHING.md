@@ -5,12 +5,28 @@ discovery, ownership tracing, dependency inspection, and guided onboarding. The
 graph accelerates navigation, but the source tree, focused tests, logs, and
 runtime probes remain the source of truth.
 
+## Install and repository directory
+
+In Claude Code, install the official plugin with:
+
+```text
+/plugin marketplace add Egonex-AI/Understand-Anything
+/plugin install understand-anything@understand-anything
+```
+
+Reload the client if the slash commands are not available immediately. Current
+Understand Anything releases use `.ua/` for a newly initialized repository,
+but continue to use the legacy `.understand-anything/` directory when it is
+already present. Box-Agent intentionally keeps that existing directory so
+contributors and CI share one versioned baseline. Do not create a parallel
+`.ua/` baseline or rename the directory as part of an ordinary refresh.
+
 ## Repository scope
 
 The shared scope is defined by
 [`../.understand-anything/.understandignore`](../.understand-anything/.understandignore).
-The current configuration includes the core runtime, ACP adapters, tools,
-configuration, examples, documentation, and the controlled PPTX compiler under
+The current configuration includes the core runtime, ACP/CLI/SDK adapters,
+tools, configuration, documentation, and the controlled PPTX compiler under
 `box_agent/skills/document-skills/pptx/`. Other bundled skill assets, tests,
 workspaces, virtual environments, generated output, and vendored PPTX runtime
 payloads remain excluded so the graph stays focused on product architecture.
@@ -60,8 +76,10 @@ not intended to be queried for architecture answers.
 4. After validation succeeds, update `knowledge-graph.json`, `meta.json`, and
    `fingerprints.json` together in the same reviewable change. Do not hand-edit
    these generated files.
-5. Keep `scan-result.json` locally so later incremental runs can reuse the
-   deterministic file inventory.
+5. Preserve `intermediate/scan-result.json` locally so incremental runs can
+   reuse the deterministic inventory. Keep it—and all other intermediate
+   files, summaries, trash, dashboard tokens, and caches—out of Git; they are
+   refresh state, not part of the shared baseline.
 6. If the dashboard is launched, open the tokenized URL emitted by the plugin;
    the bare local server URL is not sufficient.
 

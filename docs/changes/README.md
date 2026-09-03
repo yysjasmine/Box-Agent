@@ -31,16 +31,19 @@ git log --oneline <merge-base>..<change-ref> -- <relevant-paths>
 
 ## Freshness and known documentation drift
 
-This index was reconciled against `origin/main` at `3610807` on 2026-08-18.
-Reviewers must inspect newer target commits rather than assuming this snapshot
-is still current.
+This index was refreshed on 2026-09-03 for the single-Kernel architecture
+worktree. Reviewers must still inspect commits newer than the selected merge
+base instead of treating this file as an implementation snapshot. Dated
+entries intentionally retain the paths, test names, and status that existed at
+the time; use the current source tree and
+[runtime capability matrix](../runtime-capability-matrix.md) for present-day
+ownership.
 
-- [Release state](../RELEASE_STATE.md) is authoritative for the release
-  artifacts and hashes it actually records, but its current `Unreleased`
-  heading still says `0.8.85`. At this baseline, `pyproject.toml`,
-  `box_agent/__init__.py`, and `uv.lock` identify source version `0.8.87`.
-  Therefore the release document must not be used to claim the current source
-  version, publication, or an installed officev3 runtime.
+[Release state](../RELEASE_STATE.md) is authoritative only for the release
+artifacts, hashes, and validation boundaries it explicitly records. The
+current repository version is resolved from `pyproject.toml`,
+`box_agent/__init__.py`, and `uv.lock`; publication or installation still
+requires artifact and runtime evidence.
 
 ## Quick routing by affected area
 
@@ -52,18 +55,18 @@ decision, read those entries together.
 | Area | Affected paths or keywords | Current effective decision | Relationship | Details |
 | --- | --- | --- | --- | --- |
 | Tool name aliases | `Tool.aliases`, `build_tool_name_index`, OpenClaw, Hermes | Compatibility names are execution-only, use canonical Box-Agent argument schemas, and fail closed on conflicts. | Built-in mappings complete the generic alias mechanism in `fad2436`. | [2026-08-20 built-in aliases](#2026-08-20--built-in-tool-name-compatibility-aliases) |
-| Filesystem path resolution | `SearchFilesTool`, `path_candidates.py`, `PATH_NOT_FOUND`, ACP file-access prompt | Missing paths may return bounded structural candidates, but the model must retry a specific path and the permission engine remains final authority. | Hardens the broad-Home-search block without adding aliases or automatic authorization. | [2026-08-20 path candidates](#2026-08-20--bounded-structural-candidates-for-missing-filesystem-paths) |
+| Filesystem path resolution | `SearchFilesTool`, `path_candidates.py`, `PermissionEngine`, symlinks, `PATH_NOT_FOUND`, ACP file-access prompt | Missing paths may return bounded structural candidates, but the model must retry a specific path and the permission engine remains final authority. Existing and dangling symlinks are resolved before containment checks. | The single-Kernel promotion also hardens dangling-symlink checks; path candidates add no aliases or automatic authorization. | [2026-09-03 single Kernel](#2026-09-03--single-kernel-runtime-and-completed-workflow-promotion), [2026-08-20 path candidates](#2026-08-20--bounded-structural-candidates-for-missing-filesystem-paths) |
 | File writes | `box_agent/tools/file_tools.py`, `write_file` | Ordered chunks commit atomically, with bounded transactions, replay protection, and whole-body safety checks. | PR #37 hardens PR #34; both remain relevant. | [PR #37](#2026-08-17--transactional-write-safety-follow-up-pr-37), [PR #34](#2026-08-17--unified-transactional-write_file-protocol-pr-34) |
 | Tool invocation | `box_agent/tools/base.py`, `schema_validation.py`, `Tool.invoke` | Tool schemas and arguments fail closed before `execute()` is called. | Current at this baseline. | [PR #33](#2026-08-17--validate-tool-arguments-before-execution-pr-33) |
 | Image inspection | `inspect_images`, `vision_review`, canonical image blocks, structured image attachments, transient follow-up | Image inspection is instruction-driven and read-only; `proxy` returns utility-model text, while `native` uses a bounded one-request main-model overlay that never enters durable history. | PR #62 replaced `vision_review`; PR #76 is being rebased as an additive native strategy. | [PR #62](#2026-08-21--instruction-driven-image-inspection-pr-62), [PR #76](#2026-08-23--request-only-native-image-inspection-pr-76) |
 | Shell safety inspection | `shell_inspection.py`, `safety.py`, `bash_tool.py`, dangerous commands, DWS | Policy checks inspect shell structure and executable invocations while treating embedded-language bodies as data; bounded parsing fails closed for policy-relevant ambiguity. | Pending PR #63; must be reviewed as a security-boundary change. | [PR #63](#2026-08-21--structure-aware-shell-policy-inspection-pr-63) |
-| Context compression | `box_agent/core.py`, tool-call arguments, history summarization | Normal unsummarized history retains exact tool-call arguments; whole-history summarization remains a separate boundary. | Current at this baseline. | [PR #35](#2026-08-17--preserve-tool-call-arguments-in-normal-history-pr-35) |
+| Context compression | `box_agent/context/`, `box_agent/kernel/`, tool-call arguments, history summarization | Normal unsummarized history retains exact tool-call arguments; whole-history summarization remains a separate Context boundary. | Preserved through the single-Kernel migration. | [PR #35](#2026-08-17--preserve-tool-call-arguments-in-normal-history-pr-35) |
 | MCP deferred loading | `mcp_tool_catalog.py`, `mcp_tool_search.py`, `tool_search` | Ordinary MCP schemas are hidden by default until session-scoped activation; `alwaysLoad` remains eager. | Current; later research hardening may also apply to research paths. | [PR #31](#2026-08-17--deferred-mcp-catalog-and-session-exposure-pr-31), [later hardening](#other-target-branch-changes-after-or-adjacent-to-those-prs) |
 | Sub-agent delegation | `sub_agent_tool.py`, `sub_agent_capabilities.py`, `required_tools`, `write_scope`, `files` | The public request is flat; runtime-derived policy limits implicit tools to trusted local readers, keeps process/external/unknown MCP capabilities fail-closed, and scopes path writes. | Supersedes the caller-authored nested constraint contract while retaining its runtime enforcement goals. | [2026-08-19 flattened contract](#2026-08-19--flattened-sub-agent-contract-with-derived-policy) |
-| Workflow ownership | `workflow_owner_store.py`, explicit Skills, ACP decisions, presentation recovery | Runtime-selected owner precedes artifact discovery. Unknown Skills use the generic external lifecycle; foreign `deck.json` files cannot activate controlled finalization. | Pending implementation; hardens external-Skill and controlled-presentation recovery. | [2026-08-20 owner hardening](#2026-08-20--workflow-owner-precedence-for-third-party-skills) |
+| Workflow ownership | `persistence/workflow_owner_store.py` (root shim: `workflow_owner_store.py`), explicit Skills, ACP decisions, presentation recovery | Runtime-selected owner precedes artifact discovery. Unknown Skills use the generic external lifecycle; foreign `deck.json` files cannot activate controlled finalization. | Pending implementation; hardens external-Skill and controlled-presentation recovery. | [2026-08-20 owner hardening](#2026-08-20--workflow-owner-precedence-for-third-party-skills) |
 | Agent Trace diagnostics | `box_agent/trace_viewer/`, `box-agent trace-viewer`, `box-agent-session-trace/v1` | The packaged viewer is a read-only v1 trace consumer; static access stays browser-local and the optional directory service is loopback-only, authority-validated, explicit-path, top-level JSONL, and size-bounded. | Pending review; adds diagnostics without changing the trace writer, Core, provider, or ACP contracts. | [2026-08-20 trace viewer](#2026-08-20--local-agent-trace-diagnostics) |
 | Model routing and controlled presentations | `box_agent/llm/model_routing.py`, `box_agent/workflows/presentation_*`, controlled PPTX | Automatic child-model routing uses a host allowlist, while presentation-specific state and recovery remain outside the generic kernel. | PR #30 is the main record; later research hardening must be checked where relevant. | [PR #30](#2026-08-14--runtime-routing-and-presentation-reliability-pr-30), [later hardening](#other-target-branch-changes-after-or-adjacent-to-those-prs) |
-| Configurable operational limits | `box_agent/config.py`, `box_agent/core.py` (`provider_stale_seconds`), `image_generation_tool.py` (`max_dimension`), `setup.py` (`generate_image` gating), `openai_client.py` (SenseNova prefixes) | Hardcoded stale/image/thinking limits become config/env with unchanged defaults; generic image endpoints clamp oversized sizes and unconfigured `generate_image` is not registered. | Pending; defaults unchanged except the generic image clamp and `generate_image` gating. | [2026-08-21 configurable limits](#2026-08-21--configurable-runtime-operational-limits) |
+| Configurable operational limits | `box_agent/config.py`, `box_agent/api/contracts.py`, `box_agent/kernel/model_stream.py` (`provider_stale_seconds`), `image_generation_tool.py` (`max_dimension`), `setup.py` (`generate_image` gating), `openai_client.py` (SenseNova prefixes) | Stale/image/thinking limits are config/env driven; generic image endpoints clamp oversized sizes and unconfigured `generate_image` is not registered. | Carried forward through Kernel run options and adapter bindings. | [2026-08-21 configurable limits](#2026-08-21--configurable-runtime-operational-limits) |
 
 For research execution, Todo/progress behavior, browser routing, or contributor
 branch history, also check
@@ -72,6 +75,118 @@ Release, provider API, and ACP compatibility have their own sources under
 [long-lived release and compatibility history](#long-lived-release-and-compatibility-history).
 
 ## Pending material changes
+
+### 2026-09-03 — single-Kernel runtime and completed workflow promotion
+
+- Execution ownership: ACP, CLI, SDK, sub-agents, and historical Agent/Core
+  facades all execute through `AgentLoopKernel`; the pre-Kernel loop and its
+  runtime selector are retired.
+- Capability ownership: Context, Tool, Permission, Memory, Workflow, Hook,
+  LLM, session, event, checkpoint, effect, and lease behavior is resolved from
+  typed PluginHost registries.
+- Workflow evidence: Goal, Plan, PPT, Skill, Completion Gate, and Autopilot are
+  `parity_passed` in `tests/parity/migration_status.json`; the gap matrix has no
+  remaining workflow gaps.
+- Compatibility: root modules preserve historical import/call shapes only.
+  They are not an alternate execution path.
+- ACP startup: `acp/bootstrap.py` owns stdio and the stable handshake, while
+  `acp/kernel_runtime.py` assembles PluginHost/Service in the background.
+  Heavy imports cannot block the protocol event loop, and subsequent Session
+  requests still delegate to the same `KernelACPAgent` and Service.
+- Filesystem safety: permission checks stop at dangling symlink directory
+  entries and resolve their targets before scope containment, so a broken link
+  inside the workspace cannot be treated as an ordinary missing child path.
+- Proof boundary: source tests and ACP E2E are recorded separately from build,
+  install, host restart, and fresh officev3 live-task evidence.
+
+### 2026-09-01 — ACP end-to-end evidence and file-hygiene gate
+
+- Change: add a deterministic ACP runner that enters the Native Kernel through
+  `initialize → session/new → prompt` and covers text, tool permission ordering,
+  Context/Memory plugins, workflow continuation, and durable resume.
+- Evidence: `tests/e2e/report.json` is a local generated artifact consumed by the
+  zero-dependency `tests/e2e/report.html` viewer; `tests/e2e/test_acp_cases.py`
+  and `tests/e2e/test_report_assets.py` are the source-level gates. The real
+  stdio handshake is covered by `tests/e2e/test_acp_stdio_smoke.py`.
+- ACP compatibility: `deep_think`/`deepThink` prompt metadata is translated to
+  the Kernel's `RunOptions.thinking_enabled` at the adapter boundary, preserving
+  SenseNova extended-thinking requests on the Native path.
+- CompletionGate budgets: exemptions, delegated-child caps, and web-search
+  limits are enforced by the workflow plugin SPI; counters are checkpointed and
+  replayed from durable tool events without adding workflow branches to Kernel;
+  terminal budget/gap metadata is exposed through the same generic RunResult
+  boundary.
+- Plan protocol parity: the native Plan policy emits a namespaced
+  `workflow.plan.snapshot` start fact before model output and decorates the
+  normalized `tool.call.completed` output with pending approval metadata;
+  `pause_after_plan_write` now ends the Run at a durable `checkpoint_paused`
+  boundary; ACP renders the fact as the same plan card shape as the
+  compatibility path and exposes the approval metadata.
+- Host rendering parity: CLI/ACP surface a policy terminal message when no
+  model content delta exists, and CLI JSON exposes normalized workflow
+  metadata. Plan-first prompts route to the Plan plugin; explicit workflow
+  identifiers resolve through the workflow registry.
+- Hygiene: `scripts/audit_unused_files.py` fails closed for compatibility,
+  parity, docs, and tests; it identified and removed only the unreferenced
+  root `output.png`. The generated report is ignored and must not be committed.
+- Compatibility: this entry captured ACP evidence before the 2026-09-03
+  single-Kernel promotion; the newer entry supersedes its migration status.
+- Runtime boundary: source runner and static viewer are verified; a rebuilt,
+  installed, restarted, or live OfficeV3 runtime still requires separate proof.
+
+### 2026-08-31 — capability-oriented code organization and compatibility facades
+
+- Change: in-progress refactor on `refactor-agent-architecture`; no commit or
+  release reference exists yet.
+- Durable boundary: new code routes through `api/`, `kernel/`, `services/`,
+  capability packages, and thin `adapters/`; `compat/` names the reversible
+  legacy import surface. Root `core.py`, `agent.py`, `cli.py`, and ACP modules
+  remain the behavior source of truth until parity tests authorize extraction.
+- Import safety: `box_agent.api` and `box_agent.kernel` must not eagerly load
+  MCP/application adapters or optional `mcp` dependencies. Optional tool
+  exports are resolved on demand.
+- Compatibility: existing root imports and entry points remain valid; no ACP
+  wire payload or runtime-default change is included in this slice.
+- Physical extraction: model-history helpers now live in `context/`; bounded
+  continuation, task/workspace registries, and workflow owner/checkpoint stores
+  now live in `persistence/`. Their former root module names are forwarding
+  shims, so existing Agent/ACP/CLI imports keep object identity.
+- Proof anchors: `tests/test_code_organization_paths.py`,
+  `tests/test_api_import_boundary.py`, focused kernel tests, compile checks,
+  and `git diff --check`.
+- Rollback: remove the new forwarding modules and restore eager tool imports;
+  no persistent-data or configuration migration is required.
+- Runtime boundary: source-only organization and import tests do not prove a
+  rebuilt, installed, restarted, or live OfficeV3 runtime.
+
+### 2026-08-31 — Kernel permission, event, and checkpoint gates
+
+- Change: the new Tool Engine validates arguments before invoking a tool's
+  permission `preflight`; built-in file and shell tools expose the same seam
+  while retaining executor-side checks as defense in depth.
+- Follow-up: Kernel-owned workflow filters/hooks are now composed from the
+  typed registry by default; `tool.call.completed` persists canonical
+  `tool_name` and `arguments` so Completion Gate and evidence policies can
+  rehydrate after restart. Workflow budget-exempt calls remain policy-owned.
+- Follow-up: CLI routing resolves generic artifacts and rich workflows through
+  native WorkflowPolicy selectors.
+- Follow-up: Native ACP now advertises `session/load` and reattaches a durable
+  Service session without constructing a Legacy shadow. The strict
+  `AgentService.load_session()` path rejects unknown or closed IDs; new sessions
+  still use `open_session()`. Agent file logging is best-effort
+  (`BOX_AGENT_LOG_DIR` may override the destination), so a read-only packaged
+  home cannot abort a run before the first model request.
+- Durable boundary: Kernel emits explicit model-request, context-compaction,
+  and memory-flush facts. `KernelAgentService` auto-commits `RunCheckpoint`
+  records at transition events with the active plugin lock and event digest.
+- Compatibility: this historical slice was additive; the 2026-09-03 entry
+  supersedes it after all workflow parity fixtures passed and the old execution
+  owner was retired.
+- Proof anchors: `tests/test_tool_engine.py`,
+  `tests/test_kernel_checkpoint_events.py`, import-boundary tests, compile
+  checks, and `git diff --check`.
+- Runtime boundary: source-only checks do not prove a rebuilt, installed,
+  restarted, or live OfficeV3 runtime.
 
 ### 2026-08-21 — managed web-search/web-extract bootstrap and runtime dispatch
 

@@ -1,5 +1,11 @@
 # Release State
 
+This file is a historical release ledger. Paths and test names inside a
+versioned entry describe that release's source tree and are intentionally not
+rewritten when files later move. For current ownership and verification paths,
+use [Runtime Capability Coverage](runtime-capability-matrix.md) and the
+repository's current test tree.
+
 ## v0.9.6 (2026-08-23)
 
 - **Commit:** release commit tagged `v0.9.6`

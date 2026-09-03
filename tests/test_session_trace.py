@@ -6,13 +6,11 @@ import asyncio
 import json
 import os
 import time
-from types import SimpleNamespace
 
 import pytest
 
 import box_agent.session_trace as session_trace_module
-from box_agent.acp import BoxACPAgent
-from box_agent.config import AgentConfig, Config, LLMConfig, ToolsConfig
+from box_agent.api import AgentEvent
 from box_agent.core import run_agent_loop
 from box_agent.llm.llm_wrapper import LLMClient
 from box_agent.schema import (
@@ -32,6 +30,7 @@ from box_agent.session_trace import (
     scoped_session_trace,
     set_session_trace_writer,
 )
+from box_agent.observability import SessionTraceHook
 from box_agent.tools.base import Tool, ToolResult
 
 
@@ -403,7 +402,7 @@ async def test_llm_wrapper_redacts_request_only_image_payload_from_trace(tmp_pat
 
 
 @pytest.mark.asyncio
-async def test_core_records_tool_request_and_response_without_changing_events(tmp_path):
+async def test_trace_hook_records_tool_request_and_response_without_changing_events(tmp_path):
     class ToolThenDoneLLM:
         def __init__(self):
             self.calls = 0
@@ -440,15 +439,9 @@ async def test_core_records_tool_request_and_response_without_changing_events(tm
         max_steps=3,
         session_id="office-session-2",
         turn_id="turn-2",
+        hooks=[SessionTraceHook(lambda _session_id, _runtime_id: writer)],
     )
-    events = [
-        event
-        async for event in scoped_session_trace(
-            original_events,
-            writer=writer,
-            turn_id="turn-2",
-        )
-    ]
+    events = [event async for event in original_events]
 
     records = _records(writer)
     request = next(record for record in records if record["event"] == "tool.request")
@@ -463,48 +456,58 @@ async def test_core_records_tool_request_and_response_without_changing_events(tm
 
 
 @pytest.mark.asyncio
-async def test_acp_uses_upstream_session_id_without_changing_generated_acp_id(tmp_path, monkeypatch):
-    class DummyConn:
-        async def sessionUpdate(self, payload):
-            return None
-
-    class DoneLLM:
-        async def generate_stream(self, messages, tools=None, **kwargs):
-            yield StreamEvent(type="text", delta="answer")
-            yield StreamEvent(
-                type="finish",
-                finish_reason="stop",
-                usage=TokenUsage(prompt_tokens=4, completion_tokens=1, total_tokens=5),
-            )
-
-    monkeypatch.setenv("BOX_AGENT_SESSION_TRACE_ENABLED", "1")
-    monkeypatch.setenv("BOX_AGENT_SESSION_TRACE_DIR", str(tmp_path / "traces"))
-    config = Config(
-        llm=LLMConfig(api_key="test-key"),
-        agent=AgentConfig(max_steps=2, workspace_dir=str(tmp_path)),
-        tools=ToolsConfig(enable_sub_agent=False),
-    )
-    agent = BoxACPAgent(DummyConn(), config, DoneLLM(), [], "system")
-    session = await agent.newSession(
-        SimpleNamespace(
-            cwd=str(tmp_path),
-            field_meta={"session_id": "office-session-current", "session_mode": "general"},
+async def test_kernel_trace_hook_uses_upstream_identity_without_changing_runtime_id(tmp_path):
+    hook = SessionTraceHook(
+        lambda session_id, runtime_session_id: SessionTraceWriter(
+            session_id=session_id,
+            acp_session_id=runtime_session_id,
+            trace_dir=tmp_path / "traces",
+            enabled=True,
         )
     )
-
-    assert session.sessionId.startswith("sess-0-")
-    await agent.prompt(
-        SimpleNamespace(
-            sessionId=session.sessionId,
-            prompt=[{"text": "user input"}],
-            field_meta={"turn_id": "turn-current"},
+    common = {
+        "session_id": "runtime-session-current",
+        "run_id": "run-current",
+        "turn_id": "turn-current",
+    }
+    await hook.on_event(
+        AgentEvent(
+            event_id="start",
+            sequence=1,
+            type="run.started",
+            payload={
+                "user_input": {"role": "user", "content": "user input"},
+                "correlation": {
+                    "session_id": "office-session-current",
+                    "turn_id": "turn-current",
+                },
+            },
+            **common,
+        )
+    )
+    await hook.on_event(
+        AgentEvent(
+            event_id="delta",
+            sequence=2,
+            type="model.content.delta",
+            payload={"content": "answer"},
+            **common,
+        )
+    )
+    await hook.on_event(
+        AgentEvent(
+            event_id="complete",
+            sequence=3,
+            type="run.completed",
+            payload={"final_content": "answer", "stop_reason": "stop"},
+            **common,
         )
     )
 
     trace_path = tmp_path / "traces" / "office-session-current.jsonl"
     records = [json.loads(line) for line in trace_path.read_text(encoding="utf-8").splitlines()]
     assert all(record["session_id"] == "office-session-current" for record in records)
-    assert all(record["acp_session_id"] == session.sessionId for record in records)
+    assert all(record["acp_session_id"] == "runtime-session-current" for record in records)
     assert {record["event"] for record in records} >= {
         "session.start",
         "turn.input",

@@ -382,7 +382,7 @@ def is_retryable_llm_error(exc: BaseException) -> bool:
     # No usable status: fall back to transport-level transients (httpx/openai
     # network classes that drop the connection without exposing a status code).
     try:
-        from ..retry import is_retryable_stream_error
+        from .retry import is_retryable_stream_error
 
         if is_retryable_stream_error(exc):
             return True

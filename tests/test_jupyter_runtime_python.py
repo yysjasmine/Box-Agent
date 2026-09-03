@@ -104,6 +104,7 @@ async def test_frozen_host_python_verifies_packages_before_bundled_fallback(
     _make_executable(python_path)
     monkeypatch.setenv("BOX_AGENT_SANDBOX_PYTHON", str(python_path))
     monkeypatch.setattr(jupyter_tool, "IS_FROZEN", True)
+    monkeypatch.setattr(jupyter_tool.sys, "platform", "darwin")
     called: list[Path] = []
 
     async def fake_verify(self: SandboxEnvironment, on_progress=None) -> None:
@@ -224,6 +225,7 @@ def test_local_sandbox_prefers_uv_for_package_install(
 
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(sys.platform == "win32", reason="uses a POSIX shell fixture")
 async def test_host_python_bootstraps_pip_before_installing_missing_packages(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -270,6 +272,7 @@ exit 1
 
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(sys.platform == "win32", reason="uses POSIX shell fixtures")
 async def test_sandbox_python_uses_uv_when_ensurepip_is_unavailable(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -317,6 +320,7 @@ touch "$(dirname "$python_path")/pip-ready"
 
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(sys.platform == "win32", reason="uses a POSIX shell fixture")
 async def test_host_python_missing_package_install_failure_blocks_sandbox_ready(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -394,3 +398,28 @@ def test_frozen_without_host_python_keeps_in_process_fallback(
     session = tool._create_session("session", tmp_path / "workspace", env)
 
     assert isinstance(session, InProcessKernelSession)
+
+
+def test_kernel_spec_falls_back_when_preferred_tree_is_not_writable(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """A stale/read-only profile kernelspec must not block kernel startup."""
+    preferred = tmp_path / "preferred"
+    fallback_root = tmp_path / "fallback"
+    monkeypatch.setattr(jupyter_tool.tempfile, "gettempdir", lambda: str(fallback_root))
+    original_write_text = Path.write_text
+    preferred_spec = preferred / "kernelspec" / "box-agent-sandbox" / "kernel.json"
+
+    def reject_preferred(path: Path, *args, **kwargs):
+        if path == preferred_spec:
+            raise PermissionError("profile kernelspec is read-only")
+        return original_write_text(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "write_text", reject_preferred)
+    env = SandboxEnvironment(base_dir=preferred)
+
+    spec_dir = env.get_kernel_spec_dir()
+
+    assert spec_dir == fallback_root / ".box-agent" / "sandbox" / "kernelspec" / "box-agent-sandbox"
+    assert (spec_dir / "kernel.json").is_file()

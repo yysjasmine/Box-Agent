@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Box-Agent ACP 到 Agent Kernel 的端到端验收报告">
+  <title>Box-Agent ACP / Kernel E2E</title>
+  <link rel="stylesheet" href="report.css">
+</head>
+<body>
+  <main class="shell" data-case-catalog="text tool_permission context_memory workflow_continuation resume">
+    <header class="masthead">
+      <div>
+        <p class="eyebrow">BOX-AGENT / RUNTIME PROOF</p>
+        <h1>ACP → Kernel<br><span>验收现场</span></h1>
+        <p class="lede">从外部协议进入唯一 Agent Loop，逐事件验证插件、权限、工作流与恢复边界。</p>
+      </div>
+      <p class="signal"><i aria-hidden="true"></i><span id="report-state">等待报告</span></p>
+    </header>
+
+    <section class="hero-grid" aria-label="报告概览">
+      <article class="hero-card hero-card--accent">
+        <p class="label">VERIFICATION PATH</p>
+        <p class="hero-value">ACP / Service / Kernel</p>
+        <span class="hero-note">同一运行内核 · typed plugin registries · durable events</span>
+      </article>
+      <article class="metric">
+        <p class="label">CASES</p>
+        <strong id="case-count">0</strong>
+        <span>场景总数</span>
+      </article>
+      <article class="metric">
+        <p class="label">PASSED</p>
+        <strong id="pass-count">0</strong>
+        <span>通过场景</span>
+      </article>
+      <article class="metric">
+        <p class="label">EVENTS</p>
+        <strong id="event-count">0</strong>
+        <span>持久化事件</span>
+      </article>
+    </section>
+
+    <section class="toolbar" aria-label="报告控制">
+      <label class="file-picker">
+        载入 report.json
+        <input id="report-file" type="file" accept="application/json,.json">
+      </label>
+      <label class="filter-label" for="case-filter">筛选 case</label>
+      <select id="case-filter" aria-label="筛选端到端测试场景">
+        <option value="all">全部 case</option>
+      </select>
+      <code id="source-note">正在读取 report.json</code>
+    </section>
+
+    <section id="empty-state" class="empty-state" aria-live="polite">
+      <div class="empty-mark" aria-hidden="true">↳</div>
+      <h2>等待测试数据</h2>
+      <p>通过 HTTP 打开时会自动读取 <code>report.json</code>；通过 file:// 打开时请手动载入该文件。</p>
+    </section>
+
+    <section id="case-section" hidden>
+      <div class="section-heading">
+        <p class="label">01</p>
+        <h2>能力场景</h2>
+      </div>
+      <div id="case-list" class="case-list" aria-label="端到端测试场景"></div>
+    </section>
+
+    <section id="timeline-section" hidden>
+      <div class="section-heading">
+        <p class="label">02</p>
+        <h2 id="timeline-title">Event timeline</h2>
+      </div>
+      <div id="timeline" class="timeline" aria-live="polite"></div>
+    </section>
+  </main>
+  <script src="report.js"></script>
+</body>
+</html>

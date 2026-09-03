@@ -8,7 +8,7 @@ from dataclasses import replace
 from pathlib import Path
 
 from ..config import ToolLimitsConfig
-from ..loop_guards import CompletionGate
+from .guards import CompletionGate
 from .presentation_checkpoint import (
     CONTROLLED_PRESENTATION_CHECKPOINT_MARKER,
     completion_gate_progress_text,

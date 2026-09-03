@@ -112,7 +112,7 @@ model: "your-model"
 ### 更多特性
 
 - **MCP 工具**：接入任何 [MCP 服务器](https://github.com/modelcontextprotocol/servers) — 网页搜索、知识图谱、数据库
-- **Claude Skills**：32 种内置技能，涵盖文档处理（DOCX、PDF、PPTX、XLSX）、画布设计、Obsidian、Web 应用测试等
+- **Claude Skills**：数十种内置技能，涵盖文档处理（DOCX、PDF、PPTX、XLSX）、画布设计、Obsidian、Web 应用测试等；以 `_manifest.json` 为权威清单
 - **ACP 协议**：通过 JSON-RPC over stdio 将 Box Agent 嵌入 Electron 应用、Zed 编辑器或任何 ACP 兼容宿主
 - **独立运行时**：PyInstaller 二进制打包 Python 及所有依赖。无需外部 Python — 下载即用
 - **跨会话记忆**：持久化记忆让 Agent 在多次对话间保留关键信息
@@ -187,10 +187,9 @@ uv run python -m box_agent.cli
 ```bash
 git clone https://github.com/Raccoon-Office/Box-Agent.git
 cd Box-Agent
-git submodule update --init --recursive   # 使用内置 skills 时需要
 uv sync
 uv run python -m box_agent.cli --help
-uv run pytest tests/test_core.py -q
+uv run pytest tests/test_agent_loop_kernel.py tests/test_kernel_service.py -q
 ```
 
 建议先读这几个文件：
@@ -205,8 +204,8 @@ uv run pytest tests/test_core.py -q
 
 | 模块 | 入口文件 |
 | ---- | -------- |
-| Agent 执行循环 | `box_agent/core.py`、`box_agent/agent.py`、`box_agent/events.py` |
-| CLI 与配置 | `box_agent/cli.py`、`box_agent/config.py`、`box_agent/config/` |
+| Agent 执行循环 | `box_agent/kernel/`、`box_agent/services/`、`box_agent/api/` |
+| CLI 与配置 | `box_agent/adapters/cli/app.py`、`box_agent/config.py`、`box_agent/config/` |
 | LLM Provider | `box_agent/llm/` |
 | 内置工具 | `box_agent/tools/` |
 | ACP 服务与运行时嵌入 | `box_agent/acp/`、`box_agent/build_runtime_cli.py` |
@@ -357,9 +356,20 @@ UV_PROJECT_ENVIRONMENT=.venv-x64 BOX_AGENT_RUNTIME_TARGET=darwin-x64 arch -x86_6
 
 ```bash
 uv run pytest tests/ -v          # 所有测试
-uv run pytest tests/test_core.py -v   # 核心 + 上下文压缩
+uv run pytest tests/test_agent_loop_kernel.py tests/test_context_engine.py tests/test_context_compaction_e2e.py -v
 uv run pytest --cov              # 带覆盖率
 ```
+
+运行无需凭据的 ACP 端到端验收并查看可视化事件报告：
+
+```bash
+uv run python tests/e2e/run_acp_cases.py --report tests/e2e/report.json
+uv run pytest tests/e2e -q
+uv run python -m http.server 8765 --directory tests/e2e
+```
+
+浏览器打开 `http://localhost:8765/report.html`；报告覆盖文本、权限、Context/Memory
+插件、工作流续跑和持久化恢复。详见 [ACP E2E 指南](docs/e2e/ACP_E2E_GUIDE_CN.md)。
 
 ## 常见问题
 

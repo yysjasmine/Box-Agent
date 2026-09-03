@@ -222,6 +222,15 @@ class PermissionEngine:
         resource: dict,
         tool_name: str | None = None,
     ) -> PermissionDecision:
+        if self._grant_store is not None:
+            # Prompt grants are scoped to one Kernel Run. The Tool Engine
+            # binds run identity before preflight/invocation, so a new Run
+            # invalidates temporary approvals before any resource access.
+            from box_agent.tools.runtime_context import current_runtime_invocation
+
+            run_id = current_runtime_invocation().run_id
+            if run_id:
+                self._grant_store.begin_run(run_id)
         if capability == FILESYSTEM_READ:
             return self._check_filesystem(
                 Path(resource["path"]),
@@ -241,6 +250,31 @@ class PermissionEngine:
         return PermissionDecision(
             allowed=False, reason=f"Unknown capability: {capability}"
         )
+
+    def approve(
+        self,
+        permission_request: dict[str, Any],
+        *,
+        grant_scope: str = "prompt",
+    ) -> None:
+        """Record one host decision at the narrow capability/resource scope."""
+
+        if self._grant_store is None:
+            return
+        normalized_scope = "session" if grant_scope == "session" else "prompt"
+        scope = str(permission_request.get("scope") or "")
+        requested_scope = str(permission_request.get("requested_scope") or "")
+        path_value = permission_request.get("path") or permission_request.get("resource")
+        if scope == "filesystem" and isinstance(path_value, str) and path_value.strip():
+            try:
+                target = Path(path_value).expanduser().resolve()
+            except (OSError, RuntimeError):
+                return
+            directory = target if target.is_dir() else target.parent
+            self._grant_store.add_filesystem_dir_grant(directory, normalized_scope)
+            return
+        if scope and requested_scope:
+            self._grant_store.add_grant(scope, requested_scope, normalized_scope)
 
     # ── filesystem ──
 
@@ -262,6 +296,20 @@ class PermissionEngine:
         if self._grant_store and scope == "session_workspace":
             if self._grant_store.has_grant("filesystem", "user_home"):
                 scope = "user_home"
+
+        # Packaged skill sources are immutable product resources.  Reject
+        # writes before computing a user-home escalation so a caller cannot
+        # obtain an approval prompt that appears to authorize modifying the
+        # trusted bundle.  Reads continue through the normal scope helper.
+        if (
+            operation == "write"
+            and self._builtin_skills_dir is not None
+            and self._is_inside(resolved, self._builtin_skills_dir)
+        ):
+            return PermissionDecision(
+                allowed=False,
+                reason="Built-in skill files are read-only.",
+            )
 
         if self._path_allowed_by_scope(resolved, scope, operation, tool_name):
             return PermissionDecision(allowed=True)
@@ -353,7 +401,11 @@ class PermissionEngine:
             return path.resolve()
         parts_below: list[str] = []
         cursor = path
-        while not cursor.exists():
+        # ``Path.exists()`` is false for a dangling symlink. Stop at the
+        # symlink itself so ``resolve()`` can still follow its target instead
+        # of treating the link name as an ordinary missing directory inside
+        # the allowed workspace.
+        while not cursor.exists() and not cursor.is_symlink():
             parts_below.append(cursor.name)
             parent = cursor.parent
             if parent == cursor:
@@ -462,6 +514,16 @@ class GrantStore:
         self._prompt_grants: set[tuple[str, str]] = set()
         self._session_dirs: set[Path] = set()
         self._prompt_dirs: set[Path] = set()
+        self._active_run_id = ""
+
+    def begin_run(self, run_id: str) -> None:
+        """Rotate prompt-scoped grants when the durable Run identity changes."""
+
+        normalized = str(run_id or "").strip()
+        if not normalized or normalized == self._active_run_id:
+            return
+        self.clear_prompt_grants()
+        self._active_run_id = normalized
 
     # ── capability-style grants ──
 
@@ -628,7 +690,16 @@ def expand_inline_shell_path_variables(command: str) -> str:
         expanded = os.path.expanduser(expanded)
         if expanded.startswith("$HOME/"):
             expanded = str(Path.home()) + expanded[5:]
-        if os.path.isabs(expanded):
+        # ``os.path.isabs`` follows the host OS.  Shell snippets can use POSIX
+        # paths even when the agent itself is running on Windows (for
+        # example, a skill is authored for Git Bash), so recognize both
+        # dialects before deciding whether a variable is safe to expand.
+        if (
+            os.path.isabs(expanded)
+            or expanded.startswith("/")
+            or bool(_WIN_DRIVE_RE.match(expanded))
+            or expanded.startswith(("\\\\", "//"))
+        ):
             path_vars[name] = expanded
 
     return substitute_known(command)

@@ -7,10 +7,9 @@ from pathlib import Path
 
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1] / "box_agent"
-CORE_BRIDGE = Path("runtime.py")
 APPLICATION_ADAPTER_MODULES = ("box_agent.acp", "box_agent.cli", "acp", "cli")
 STABLE_KERNEL_MODULES = (
-    Path("core.py"),
+    Path("kernel/loop.py"),
     Path("loop_guards.py"),
     Path("workflow_policy.py"),
 )
@@ -83,19 +82,18 @@ def _application_adapter_imports(path: Path) -> list[str]:
     return violations
 
 
-def test_only_runtime_bridge_imports_core_implementation() -> None:
+def test_no_production_module_imports_retired_core_implementation() -> None:
     violations: list[str] = []
     for path in PACKAGE_ROOT.rglob("*.py"):
         relative_path = path.relative_to(PACKAGE_ROOT)
-        if relative_path in {CORE_BRIDGE, Path("core.py")}:
+        if relative_path == Path("core.py"):
             continue
         for lineno in _direct_core_imports(path):
             violations.append(f"{relative_path}:{lineno}")
 
     assert violations == [], (
-        "Application and capability modules must use Agent/run_events, "
-        "box_agent.runtime, artifacts, or policy modules instead of importing "
-        f"box_agent.core directly: {violations}"
+        "All runtime paths must use api/kernel/services/capability modules; "
+        f"the retired box_agent.core implementation cannot be imported: {violations}"
     )
 
 
@@ -105,7 +103,23 @@ def test_core_does_not_depend_on_application_adapters() -> None:
     assert forbidden == [], f"Core must not import application adapters: {forbidden}"
 
 
-def test_core_depends_on_workflow_contract_not_implementations() -> None:
+def test_host_adapters_do_not_import_other_host_packages() -> None:
+    violations: list[str] = []
+    for path in (PACKAGE_ROOT / "adapters").rglob("*.py"):
+        relative = path.relative_to(PACKAGE_ROOT / "adapters")
+        if relative.parts[0] == "acp" or relative == Path("acp_kernel.py"):
+            continue
+        for value in _application_adapter_imports(path):
+            if value.startswith("box_agent.acp"):
+                violations.append(f"{path.relative_to(PACKAGE_ROOT)}:{value}")
+
+    assert violations == [], (
+        "Shared/CLI/SDK adapters must use capability modules rather than "
+        f"depending on the ACP host package: {violations}"
+    )
+
+
+def test_core_is_a_compatibility_facade_not_an_execution_owner() -> None:
     core_path = PACKAGE_ROOT / "core.py"
     tree = ast.parse(core_path.read_text(encoding="utf-8"), filename=str(core_path))
     imported_modules: list[str] = []
@@ -118,17 +132,10 @@ def test_core_depends_on_workflow_contract_not_implementations() -> None:
             if module in {"", "box_agent"}:
                 imported_modules.extend(alias.name for alias in node.names)
 
-    assert not any(
-        module == "box_agent.workflows"
-        or module.startswith("box_agent.workflows.")
-        or module == "workflows"
-        or module.startswith("workflows.")
-        for module in imported_modules
-    ), "Core must depend on WorkflowPolicy, not a concrete workflow package"
-
     source = core_path.read_text(encoding="utf-8")
-    assert "controlled_presentation" not in source
-    assert "WorkflowPolicy" in source
+    assert imported_modules == ["box_agent.compat.core"]
+    assert "async def run_agent_loop" not in source
+    assert "class AgentLoop" not in source
 
 
 def test_stable_kernel_contains_no_concrete_presentation_workflow() -> None:
@@ -143,6 +150,62 @@ def test_stable_kernel_contains_no_concrete_presentation_workflow() -> None:
     assert violations == [], (
         "Concrete PPT routing and checkpoint state belong under "
         f"box_agent.workflows, not the stable kernel: {violations}"
+    )
+
+
+def test_kernel_imports_no_concrete_workflow_implementation() -> None:
+    violations: list[str] = []
+    for path in (PACKAGE_ROOT / "kernel").rglob("*.py"):
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                modules = [alias.name for alias in node.names]
+            elif isinstance(node, ast.ImportFrom):
+                modules = [node.module or ""]
+            else:
+                continue
+            for module in modules:
+                if module == "box_agent.workflows" or module.startswith(
+                    "box_agent.workflows."
+                ):
+                    violations.append(
+                        f"{path.relative_to(PACKAGE_ROOT)}:{node.lineno}:{module}"
+                    )
+
+    assert violations == [], (
+        "Kernel composition may depend on the Workflow SPI, not concrete "
+        f"workflow implementations: {violations}"
+    )
+
+
+def test_host_adapters_share_builtin_workflow_composition() -> None:
+    constructors = {
+        "AttachmentInspectionPolicy",
+        "BrowserIntentWorkflowPolicy",
+        "CompositeWorkflowPolicy",
+        "GoalWorkflowPolicy",
+        "PlanWorkflowPolicy",
+        "ResponseContinuationWorkflowPolicy",
+    }
+    violations: list[str] = []
+    for relative_path in (
+        Path("acp/kernel_runtime.py"),
+        Path("adapters/cli/kernel_runtime.py"),
+    ):
+        path = PACKAGE_ROOT / relative_path
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        calls = {
+            node.func.id
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+        }
+        duplicated = sorted(calls & constructors)
+        if duplicated:
+            violations.append(f"{relative_path}:{','.join(duplicated)}")
+
+    assert violations == [], (
+        "Host adapters must translate host concerns and delegate shared "
+        f"workflow composition to the plugin bootstrap: {violations}"
     )
 
 

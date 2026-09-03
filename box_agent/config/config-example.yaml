@@ -119,7 +119,7 @@ max_truncation_continuations: 1 # Max continuations per turn (loop guard)
 #     research_rounds: 5 # 1..20; research rounds before requiring artifact handoff
 #   sub_agent:
 #     general_max_steps: 80 # 1..256; declared sub-agent step cap
-#     legacy_max_steps: 60 # deprecated compatibility field; no separate legacy loop
+#     legacy_max_steps: 60 # deprecated child-run limit alias
 #     general_max_tool_calls: 48 # 1..256; declared sub-agent tool-call cap
 #     no_progress_steps: 8 # 1..50; stop after consecutive no-progress steps
 

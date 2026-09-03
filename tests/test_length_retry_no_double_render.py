@@ -390,7 +390,7 @@ async def test_tool_argument_limit_injects_one_chunked_write_repair_without_boos
     assert len(injected) == 1
     assert "write_file" in injected[0].content
     assert "chunk_index=0" in injected[0].content
-    assert "工具没有执行" in injected[0].content
+    assert "no tool executed" in injected[0].content
     assert llm.ephemeral_max_tokens_history == [None, None]
 
 

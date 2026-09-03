@@ -28,7 +28,7 @@ Box-Agent 在两个边界控制持久上下文增长：
 
 只有当前主模型已知或预期支持图片输入时，才允许调用 `inspect_images(..., strategy="native")`。默认 `proxy` 策略保持原有工具模型路径并返回文本。
 
-原生策略沿用 proxy 路径的 PNG/JPEG 数量、尺寸、方向校正和降采样限制，然后通过 ToolResult 内部字段返回 provider-neutral 的 `input_image` 块。Core 只接受显式 opt-in 工具提供的这类内容，同时验证主模型能力，并对整批临时内容实施不超过安全输入上限 30% 的预算。图片成本按宽高保守估算，每张最少 512 tokens、最多 4,096 tokens；Base64 传输长度不会再被当作会话文本。
+原生策略沿用 proxy 路径的 PNG/JPEG 数量、尺寸、方向校正和降采样限制，然后通过 `ToolResult` 内部字段返回 provider-neutral 的 `input_image` 块。运行时只接受显式 opt-in 工具提供的这类内容，同时验证主模型能力，并对整批临时内容实施不超过安全输入上限 30% 的预算。图片成本按宽高保守估算，每张最少 512 tokens、最多 4,096 tokens；Base64 传输长度不会再被当作会话文本。
 
 覆盖层只追加到下一次 provider 调用的内存消息列表，不参与 ToolResult 序列化、会话持久化、普通 AgentLogger 历史、cache fingerprint 或摘要输入。Session trace 只保留文字以及图片的媒体类型、宽高、源字节数和摘要；provider debug log 会始终脱敏 Anthropic Base64 source 与 OpenAI-compatible data URL，即使显式开启 full-payload logging 也不会记录原图。空的 provider-stale 重试会暂时保留覆盖层；一旦收到实际内容或正常结束就立即释放。能力或预算校验失败时，工具结果会变成有界错误，提示改用 `strategy="proxy"` 或减少图片数量。
 
@@ -36,7 +36,9 @@ Provider 返回的 usage 仍会包含本次图片输入。因此对应 assistant
 
 ## 超长工具结果落盘
 
-`box_agent/tool_result_storage.py` 中的 `ToolResultStorage` 统一负责持久化、预览生成和会话内去重。共享执行循环同时用于串行和并行工具；CLI 与 ACP 不复制这套策略。
+`box_agent/tools/result_storage.py` 中的 `ToolResultStorage` 统一负责持久化、
+预览生成和会话内去重。它作为共享 runtime capability 被组装，CLI 与 ACP 不复制
+这套策略；根目录 `box_agent/tool_result_storage.py` 仅保留兼容 facade。
 
 ### 单结果即时检查
 
@@ -106,7 +108,7 @@ autoCompactThreshold = 0.9 * (context_window - max_output_tokens)
 
 `LLMConfig.context_token_limit` 会先预留配置的最大输出预算，再从剩余输入预算中保留 10% 作为 token 估算误差和摘要请求的余量。
 
-ACP 模型绑定可以通过当前所选模型的 `contextWindow` 和 `maxTokens` 覆盖这两个值。Agent 在创建会话时推导输入阈值，并在轮次之间切换模型绑定时重新计算。绑定没有提供能力数据时回退 `config.yaml`；用户自定义模型预设仍由这里的配置值提供能力声明。
+ACP 模型绑定可以通过当前所选模型的 `contextWindow` 和 `maxTokens` 覆盖这两个值。Context/runtime 组装在创建会话时推导输入阈值，并在轮次之间切换模型绑定时重新计算。绑定没有提供能力数据时回退 `config.yaml`；用户自定义模型预设仍由这里的配置值提供能力声明。
 
 ### 估算下一次请求
 
@@ -160,5 +162,7 @@ write/edit 工具调用参数会保留原文，直到整段历史压缩摘要其
 ## 验证
 
 - `tests/test_tool_result_storage.py`：类型处理、独占写入、预览、Read 单结果豁免、失败保留、去重和总预算排序；
-- `tests/test_core.py`：请求前执行、usage 加增量估算、原始前缀单次摘要、回退估算、近期消息边界与运行状态恢复；
+- `tests/test_context_engine.py`、`tests/test_context_compaction_e2e.py` 和
+  `tests/test_agent_loop_kernel.py`：请求前执行、usage 加增量估算、原始前缀摘要、
+  回退估算、近期消息边界与运行状态恢复；
 - `tests/test_auth.py`：阈值推导。

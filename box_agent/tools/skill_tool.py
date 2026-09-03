@@ -9,6 +9,7 @@ from hashlib import sha256
 from typing import Any, Dict, List, Literal, Mapping, MutableSet, Optional, Tuple
 
 from .base import Tool, ToolResult
+from .runtime_context import current_runtime_invocation
 from .skill_loader import SkillLoader
 
 SkillSource = Literal["builtin", "user"]
@@ -105,9 +106,20 @@ class GetSkillTool(Tool):
         # retried. The rendered content clearly tells the model to ask the
         # user to fix SKILL.md instead of proceeding.
         result = skill.to_prompt()
-        if self.preloaded_skill_hashes and self.preloaded_skill_hashes.get(
-            skill.name
-        ) == sha256(result.encode("utf-8")).hexdigest():
+        content_hash = sha256(result.encode("utf-8")).hexdigest()
+        runtime_hashes = current_runtime_invocation().metadata.get(
+            "active_skill_hashes",
+            {},
+        )
+        runtime_hash = (
+            runtime_hashes.get(skill.name)
+            if isinstance(runtime_hashes, Mapping)
+            else None
+        )
+        if (
+            self.preloaded_skill_hashes
+            and self.preloaded_skill_hashes.get(skill.name) == content_hash
+        ) or runtime_hash == content_hash:
             message = (
                 f"Skill '{skill.name}' is already preloaded in this session. "
                 "Follow its system instructions directly."

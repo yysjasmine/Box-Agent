@@ -217,7 +217,14 @@ class _CapturingLLM:
         self.tool_name_calls: list[list[str]] = []
 
     async def generate_stream(self, messages, tools=None, **_):
-        self.tool_name_calls.append([tool.name for tool in tools or []])
+        self.tool_name_calls.append(
+            [
+                str(tool.get("name") or tool.get("function", {}).get("name", ""))
+                if isinstance(tool, dict)
+                else tool.name
+                for tool in tools or []
+            ]
+        )
         response = self._responses.pop(0)
         if response.content:
             yield StreamEvent(type="text", delta=response.content)

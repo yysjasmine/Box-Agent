@@ -11,6 +11,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 import tiktoken
 
+from box_agent.api import ToolExecutionContext
 from box_agent.events import DoneEvent, StopReason, SubAgentEvent, WebSearchEvent
 from box_agent.context_resources import ResourceDescriptor
 from box_agent.schema import LLMResponse, Message, StreamEvent, TokenUsage
@@ -332,6 +333,40 @@ async def test_basic_execution():
     assert "revenue up 20%" in result.content
 
 
+async def test_kernel_invocation_publishes_sanitized_child_progress() -> None:
+    published = []
+
+    async def publish(event_type, payload):
+        published.append((event_type, payload))
+
+    tool = SubAgentTool(llm=_make_llm("summary"), parent_tools={})
+    result = await tool.invoke(
+        {"task": "Summarize one isolated task"},
+        context=ToolExecutionContext(
+            session_id="parent-session",
+            run_id="parent-run",
+            turn_id="parent-turn",
+            call_id="parent-call",
+            tool_name="sub_agent",
+            _publish=publish,
+        ),
+    )
+
+    assert result.success is True
+    progress = [payload for event_type, payload in published if event_type == "tool.progress"]
+    assert progress
+    assert all(item["call_id"] == "parent-call" for item in progress)
+    nested_types = {
+        item["data"]["event"]["type"]
+        for item in progress
+        if item["kind"] == "subagent.event"
+    }
+    assert "step.started" in nested_types
+    assert "model.response.completed" in nested_types
+    assert "run.completed" in nested_types
+    assert "model.requested" not in nested_types
+
+
 async def test_forwarded_events_carry_short_title():
     """A provided `title` becomes the SubAgentEvent label; task is unchanged."""
     llm = _make_llm(text="done")
@@ -449,7 +484,7 @@ async def test_agent_run_wires_parent_permission_negotiator_into_sub_agent(tmp_p
     assert tool._permission_negotiator is negotiator
 
 
-def test_sub_agent_prompt_replaces_parent_only_mcp_search_guidance(tmp_path):
+def test_sub_agent_prompt_keeps_parent_constraints_without_legacy_mcp_guidance(tmp_path):
     llm = AsyncMock()
     tool = SubAgentTool(llm=llm, parent_tools={})
 
@@ -462,8 +497,9 @@ def test_sub_agent_prompt_replaces_parent_only_mcp_search_guidance(tmp_path):
     )
 
     assert tool._parent_system_prompt is not None
+    assert "Parent constraint." in tool._parent_system_prompt
     assert "Use `tool_search`" not in tool._parent_system_prompt
-    assert "The parent agent owns deferred MCP discovery" in tool._parent_system_prompt
+    assert "The parent agent owns deferred MCP discovery" not in tool._parent_system_prompt
     assert "tool_search" not in agent._inherited_tools()
 
 
@@ -612,7 +648,8 @@ async def test_general_loop_uses_parent_permission_negotiator_and_retries(tmp_pa
 
     assert result.success is True
     assert result.content == "inventory complete"
-    assert read_tool.calls == 2
+    # Permission is resolved during preflight, before the executor is entered.
+    assert read_tool.calls == 1
     assert len(negotiator.requests) == 1
 
 
@@ -740,7 +777,7 @@ async def test_files_with_write_tools_stay_in_general_loop(tmp_path):
 
     assert result.success is True
     assert result.raw_output["strategy"] == "general_loop"
-    assert [candidate.name for candidate in captured["tools"]] == [
+    assert [candidate["name"] for candidate in captured["tools"]] == [
         "read_file",
         "write_file",
     ]
@@ -777,7 +814,7 @@ async def test_general_loop_uses_only_resolved_tools_and_inherits_parent_prompt(
     )
 
     assert result.success is True
-    assert [candidate.name for candidate in captured["tools"]] == ["read_file"]
+    assert [candidate["name"] for candidate in captured["tools"]] == ["read_file"]
     system_prompt = captured["messages"][0].content
     assert "Immutable rules" in system_prompt
     assert "SECRET_PARENT_PROMPT" in system_prompt
@@ -815,7 +852,7 @@ async def test_omitted_required_tools_exposes_only_trusted_local_readers(tmp_pat
     result = await tool.execute(task="Inspect safely")
 
     assert result.success is True
-    assert [candidate.name for candidate in captured_tools] == ["read_file"]
+    assert [candidate["name"] for candidate in captured_tools] == ["read_file"]
     assert result.raw_output["requested_tools"] == ["read_file"]
     assert "required_tools" in result.raw_output["defaults_applied"]
 
@@ -1301,7 +1338,7 @@ async def test_batch_files_reads_twenty_files_once_and_calls_generate_once(tmp_p
 
         async def generate_stream(self, messages, tools=None, **kwargs):
             self.stream_calls += 1
-            raise AssertionError("batch_files must not enter run_agent_loop")
+            raise AssertionError("batch_files must use the Kernel's generate-only port")
             yield
 
     llm = BatchLLM()
@@ -1325,8 +1362,9 @@ async def test_batch_files_reads_twenty_files_once_and_calls_generate_once(tmp_p
     assert len(read_tool.calls) == 20
     assert llm.generate_calls == 1
     assert llm.stream_calls == 0
-    assert llm.tools is None
-    assert "session_id" not in llm.generate_kwargs
+    assert llm.tools == []
+    assert llm.generate_kwargs["session_id"].startswith("subagent-")
+    assert llm.generate_kwargs["turn_id"].endswith(":turn-1")
     assert llm.generate_kwargs["call_kind"] == "subagent_step"
     assert "<<<UNTRUSTED_FILE" in llm.messages[-1].content
     assert llm.messages[-1].content.count("<<<UNTRUSTED_FILE") == 20
@@ -1889,7 +1927,7 @@ async def test_parallel_new_style_calls_do_not_leak_resolved_tools():
         async def generate_stream(self, messages, tools=None, **kwargs):
             task_text = messages[-1].content
             key = "read" if "read task" in task_text else "web"
-            observed[key] = [tool.name for tool in tools]
+            observed[key] = [tool["name"] for tool in tools]
             await asyncio.sleep(0.01)
             yield StreamEvent(type="text", delta=f"done {key}")
             yield StreamEvent(type="finish", finish_reason="stop", tool_calls=None)

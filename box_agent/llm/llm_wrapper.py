@@ -12,12 +12,10 @@ from typing import Any
 from uuid import uuid4
 
 from ..client_info import ClientInfo, scoped_client_info
-from ..retry import RetryConfig
+from .retry import RetryConfig
 from ..schema import LLMProvider, LLMResponse, Message, StreamEvent
-from ..session_trace import emit_session_trace
-from .anthropic_client import AnthropicClient
+from ..observability.session_trace import emit_session_trace
 from .base import LLMClientBase
-from .openai_client import OpenAIClient
 from .think_tag_splitter import split_inline_think, unwrap_think_tags
 from .token_meter import record_usage
 
@@ -200,6 +198,8 @@ class LLMClient:
         # Instantiate the appropriate client
         self._client: LLMClientBase
         if provider == LLMProvider.ANTHROPIC:
+            from .anthropic_client import AnthropicClient
+
             self._client = AnthropicClient(
                 api_key=api_key,
                 api_base=api_base,
@@ -211,6 +211,8 @@ class LLMClient:
                 timeout=timeout,
             )
         elif provider == LLMProvider.OPENAI:
+            from .openai_client import OpenAIClient
+
             self._client = OpenAIClient(
                 api_key=api_key,
                 api_base=api_base,
@@ -588,7 +590,7 @@ class SessionBoundLLM:
         if effective_call_kind:
             kwargs["call_kind"] = effective_call_kind
         with scoped_client_info(self._client_info):
-            return await client.generate(messages, tools, **kwargs)
+            return await client.generate(messages=messages, tools=tools, **kwargs)
 
     async def generate_stream(
         self,
@@ -611,7 +613,7 @@ class SessionBoundLLM:
         effective_call_kind = call_kind.strip() or self._call_kind
         if effective_call_kind:
             kwargs["call_kind"] = effective_call_kind
-        stream = client.generate_stream(messages, tools, **kwargs)
+        stream = client.generate_stream(messages=messages, tools=tools, **kwargs)
         while True:
             try:
                 with scoped_client_info(self._client_info):

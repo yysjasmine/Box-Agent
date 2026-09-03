@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "skill_name": "decision-skill",
+      "skill_source": "user",
+      "prompt": "/decision-skill choose the public layout",
+      "tool_call_id": "skill-decision-1",
+      "expected_event_types": [
+        "run.started",
+        "step.started",
+        "context.assembled",
+        "model.requested",
+        "model.response.completed",
+        "tool.call.requested",
+        "tool.call.completed",
+        "step.completed",
+        "workflow.checkpoint",
+        "run.completed"
+      ],
+      "expected_stop_reason": "checkpoint_paused",
+      "expected_stage": "skill_active"
+    }
+  ]
+}

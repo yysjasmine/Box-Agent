@@ -72,7 +72,8 @@ def main() -> None:
     # which would destroy sys.stderr when the wrapper is GC'd.
     sys.stdout = sys.stderr
 
-    # Now safe to import and run
+    if sys.argv[1:]:
+        raise SystemExit(f"unrecognized arguments: {' '.join(sys.argv[1:])}")
     import asyncio
     from box_agent.acp import run_acp_server
     asyncio.run(run_acp_server())

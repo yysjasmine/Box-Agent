@@ -221,6 +221,24 @@ class ObsidianCliClient:
         if permission_request.get("scope") == OBSIDIAN_PERMISSION_SCOPE and permission_request.get("requested_scope") == OBSIDIAN_LAUNCH_SCOPE:
             self._launch_approved_once = True
 
+    def permission_preflight(self) -> ToolResult | None:
+        """Return the launch approval request without starting Obsidian."""
+
+        config = load_obsidian_config(self.env_context)
+        ok, error = _validate_config(config)
+        if not ok:
+            return ToolResult(success=False, error=error)
+        if config.get("app_running") is False and not self._launch_performed_once:
+            if not self._launch_approved_once:
+                return ToolResult(
+                    success=False,
+                    error="需要启动 Obsidian 才能继续执行该操作。",
+                    permission_request=_launch_permission_request(
+                        "需要启动 Obsidian 以写入或打开笔记。"
+                    ),
+                )
+        return None
+
     async def run(self, args: list[str]) -> ToolResult:
         config = load_obsidian_config(self.env_context)
         ok, error = _validate_config(config)
@@ -267,6 +285,12 @@ class _ObsidianToolBase(Tool):
 
     def approve_permission_request(self, permission_request: dict[str, Any]) -> None:
         self.client.approve_permission_request(permission_request)
+
+    async def preflight(self, arguments: dict[str, Any], *, context=None) -> ToolResult | None:
+        """Check host-app launch permission before invoking the CLI."""
+
+        del arguments, context
+        return self.client.permission_preflight()
 
 
 class ObsidianCreateNoteTool(_ObsidianToolBase):

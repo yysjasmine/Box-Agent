@@ -4,11 +4,25 @@ Box-Agent 使用 Understand Anything 作为纳入版本管理的架构索引，�
 依赖检查和新成员引导。图谱可以加快定位，但源码、聚焦测试、日志和运行探针仍然是
 事实来源。
 
+## 安装与仓库目录
+
+在 Claude Code 中使用官方插件：
+
+```text
+/plugin marketplace add Egonex-AI/Understand-Anything
+/plugin install understand-anything@understand-anything
+```
+
+如果 slash command 没有立即出现，请重载客户端。当前 Understand Anything 对新项目
+默认使用 `.ua/`，但检测到已有 legacy `.understand-anything/` 时会继续使用旧目录。
+Box-Agent 有意保留这个已有目录，让贡献者和 CI 共用同一份受版本管理的基线。常规
+刷新不要另建并行 `.ua/` 基线，也不要迁移目录。
+
 ## 仓库范围
 
 共享分析范围由
 [`../.understand-anything/.understandignore`](../.understand-anything/.understandignore)
-定义。当前配置包含核心运行时、ACP 适配层、工具、配置、示例和文档；同时排除内置
+定义。当前配置包含核心运行时、ACP/CLI/SDK 适配层、工具、配置和文档；同时排除内置
 skill 资源、测试、workspace、虚拟环境和生成产物，使图谱聚焦产品架构。受控 PPTX
 编译器 `box_agent/skills/document-skills/pptx/` 是明确例外：其 DeckDocument、主题与
 构图解析、布局注册表、HTML runtime 和架构文档会进入共享图谱；其中 vendored runtime
@@ -53,7 +67,9 @@ Git 中只应提交以下共享文件：
    架构层。
 4. 验证通过后，在同一个可审查改动中一起更新 `knowledge-graph.json`、`meta.json`
    和 `fingerprints.json`，不要手工编辑这些生成文件。
-5. 在本地保留 `scan-result.json`，让后续增量运行可以复用确定性的文件清单。
+5. 在本地保留 `intermediate/scan-result.json`，供增量刷新复用确定性文件清单。
+   它和其他 intermediate、summary、trash、dashboard token、缓存都不提交；这些
+   是本地刷新状态，不属于共享基线。
 6. 启动 dashboard 后，应打开 plugin 输出的带 token URL；仅访问本地服务裸地址
    无法通过访问校验。
 

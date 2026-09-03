@@ -86,6 +86,17 @@ OfficeV3 不再需要单独实现注册逻辑：
 }
 ```
 
+嵌入 runtime 前先运行无凭据的 ACP 冒烟和端到端验收；它同时生成静态事件报告：
+
+```bash
+python tests/e2e/run_acp_cases.py --report tests/e2e/report.json
+python -m pytest tests/e2e -q
+python -m http.server 8765 --directory tests/e2e
+```
+
+浏览器打开 `http://localhost:8765/report.html`，检查事件顺序、权限先于执行器、
+插件 manifest、工作流续跑和持久化恢复证据。
+
 启动同步还会注册托管的 `web_search` MCP。首次迁移会启用旧模板中默认禁用的
 条目；后续启动会保留用户主动设置的 `disabled` 状态。已存在的 hosted-search URL
 继续由宿主或用户拥有，避免 test、pre、production 环境互相覆盖；runtime 相对路径
@@ -115,7 +126,21 @@ uv run box-agent-build-runtime --version X.Y.Z --install-officev3
 
 命令会自动查找常用的 `Dev/frontend/officev3` 目录。如果 officev3 位于其他
 位置，传入 `--install-officev3 /path/to/officev3` 或设置
-`BOX_AGENT_OFFICEV3_DIR`。
+`BOX_AGENT_OFFICEV3_DIR`。一键安装要求宿主仓库提供
+`scripts/install-box-agent-runtime.js`；没有该脚本时按下文手动复制。
+
+Windows 当前可先使用宿主 Python/Node 模式完成可重复打包（无需把大型
+数据科学栈塞进 ACP）：
+
+```powershell
+python scripts/build_runtime.py --external-python-sandbox --version X.Y.Z
+```
+
+生成的 `dist/runtime/box-agent-runtime` 可直接放入 officev3 的
+`build-resources/box-agent-runtime`，供开发态客户端探测。Electron 正式打包还必须
+在 `build.extraResources` 中声明该目录，并从
+`process.resourcesPath/box-agent-runtime` 查找；只复制目录不会自动进入安装包。
+也可以通过 `BOX_AGENT_ACP_COMMAND` 显式指定入口。
 
 运行时约束：
 

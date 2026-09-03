@@ -19,7 +19,7 @@ If Task, Proof, or Risk is missing, ask for that before doing a deep style pass.
 ## Ownership Checks
 
 - Shared agent-loop behavior belongs in shared core modules such as
-  `box_agent/core.py`, `box_agent/events.py`, and related shared helpers.
+  `box_agent/kernel/`, `box_agent/services/`, `box_agent/api/`, and related shared contracts.
 - CLI should handle terminal UX, slash commands, rendering, and local prompts.
   It should not fork behavior that ACP also needs.
 - ACP should translate shared events to protocol updates and host extension
@@ -27,7 +27,7 @@ If Task, Proof, or Risk is missing, ask for that before doing a deep style pass.
 - Provider wire behavior belongs in `box_agent/llm/`.
 - Tool semantics belong in `box_agent/tools/` and should return structured
   `ToolResult` data.
-- Skill loading belongs to `box_agent/skill_loader.py`, `box_agent/skills/`,
+- Skill loading belongs to `box_agent/tools/skill_loader.py`, `box_agent/skills/`,
   and `box_agent/skills/_manifest.json`.
 - PPT/document generation is skill-driven unless the PR explicitly changes a
   core contract.
@@ -67,8 +67,8 @@ Request changes when any of these apply:
 ```bash
 git diff --check
 uv run pytest tests/ -q
-uv run pytest tests/test_core.py -q
-uv run pytest tests/test_acp.py -q
+uv run pytest tests/test_agent_loop_kernel.py tests/test_kernel_service.py -q
+uv run pytest tests/test_acp_kernel_adapter.py tests/test_acp_projection.py -q
 uv run pytest tests/test_memory.py -q
 uv run python scripts/generate_skills_manifest.py
 uv run box-agent-build-runtime

@@ -4,16 +4,19 @@ from __future__ import annotations
 
 import copy
 import json
+import logging
 import re
 from pathlib import Path
 from typing import Any, Final, Literal
 
-from ..delivery import (
+from .delivery import (
     is_meta_prompt_rewrite_request,
     strip_negated_format_clauses,
 )
 from .presentation_contract import PRESENTATION_DELIVERY_KEYWORDS
 
+
+logger = logging.getLogger(__name__)
 
 _PREFLIGHT_CONFIG_PATH: Final[Path] = (
     Path(__file__).resolve().parents[1]
@@ -775,3 +778,68 @@ def build_presentation_preflight_result(
         "sources": sources,
         "autoStartSeconds": 30,
     }
+
+
+class PresentationPreflightService:
+    """Combine deterministic request analysis with an optional utility model."""
+
+    def __init__(self, utility_prompt_service: Any) -> None:
+        self._utility_prompt_service = utility_prompt_service
+
+    async def preflight(self, params: dict[str, Any]) -> dict[str, Any]:
+        prompt = params.get("prompt", "")
+        if not isinstance(prompt, str) or not prompt.strip():
+            return {
+                "error": {
+                    "code": "invalid_args",
+                    "message": "prompt must be a non-empty string",
+                }
+            }
+        has_existing = params.get("hasExistingPresentation") is True
+        raw_reference = params.get("referenceContext", "")
+        reference = raw_reference.strip() if isinstance(raw_reference, str) else ""
+        baseline = build_presentation_preflight_result(
+            prompt,
+            has_existing_presentation=has_existing,
+            reference_context=reference,
+        )
+        if not baseline.get("matched") or not baseline.get("shouldShow"):
+            return baseline
+
+        config = load_presentation_preflight_config()
+        missing_fields = baseline.get("missingFields", [])
+        model_text = ""
+        if missing_fields:
+            raw_meta = params.get("_meta")
+            preflight_meta = dict(raw_meta) if isinstance(raw_meta, dict) else {}
+            preflight_meta["purpose"] = "presentation_preflight"
+            result = await self._utility_prompt_service.prompt(
+                {
+                    "prompt": build_presentation_recommendation_prompt(
+                        build_presentation_preflight_analysis_text(prompt, reference),
+                        config,
+                        missing_fields,
+                    ),
+                    "systemPrompt": (
+                        "你是演示文稿配置分类器。严格从给定枚举中选择并只输出 JSON。"
+                    ),
+                    "timeoutMs": params.get("timeoutMs", 8000),
+                    "workspaceLabel": "presentation-preflight",
+                    "_meta": preflight_meta,
+                }
+            )
+            if isinstance(result.get("text"), str):
+                model_text = result["text"]
+            elif isinstance(result.get("error"), dict):
+                logger.warning(
+                    "presentation preflight utility fallback: code=%s message=%s",
+                    result["error"].get("code"),
+                    result["error"].get("message"),
+                )
+
+        return build_presentation_preflight_result(
+            prompt,
+            model_text=model_text,
+            has_existing_presentation=has_existing,
+            reference_context=reference,
+        )

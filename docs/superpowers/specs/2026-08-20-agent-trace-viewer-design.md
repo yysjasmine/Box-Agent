@@ -35,7 +35,7 @@ The viewer is a local diagnostic tool, not an end-user execution UI.
 
 ## Existing source contract
 
-`box_agent/session_trace.py` writes one append-only JSON record per line with:
+`box_agent/observability/session_trace.py` writes one append-only JSON record per line with:
 
 - `schema_version`, `timestamp`, and `event`;
 - `session_id`, `acp_session_id`, and `turn_id`;

@@ -314,6 +314,15 @@ def _detect_dingtalk_workspace_violation(command: str) -> str | None:
         command,
         posix=platform.system() != "Windows",
     )
+    # DWS policy is host-neutral, but Windows fallback sessions execute
+    # through PowerShell while many policy-sensitive payloads are POSIX
+    # ``bash -c``/``env -S`` snippets.  If the native parser cannot see a DWS
+    # executable, retry with POSIX quoting before allowing the command.
+    if platform.system() == "Windows" and not any(
+        is_dws_executable(invocation.executable)
+        for invocation in inspection.invocations
+    ):
+        inspection = inspect_shell_command(command, posix=True)
     dws_invocations = [
         invocation
         for invocation in inspection.invocations
@@ -860,11 +869,73 @@ class BashTool(Tool):
             elif isinstance(value, str):
                 self._subprocess_env[key] = value
 
+    def _dangerous_command_reason(self, command: str) -> str | None:
+        """Run safety inspection with the active shell's variable syntax.
+
+        ``shell_inspection`` intentionally models POSIX command words.  A
+        PowerShell assignment such as ``$s = 'x' * 60000`` is therefore
+        misread as a dynamically constructed executable, even though no
+        process is being selected.  Mask assignment variables for this
+        narrow case; commands using PowerShell's call operator (``&``) keep
+        the conservative dynamic-executable rejection.
+        """
+
+        inspected = command
+        if (
+            self.is_windows
+            and self._bundled_win_bash is None
+            and "&" not in command
+            and re.search(r"(?m)(?:^|[;{}])\s*\$[A-Za-z_]\w*\s*=", command)
+        ):
+            inspected = re.sub(
+                r"\$\{[^}\r\n]+\}|\$[A-Za-z_]\w*(?::[A-Za-z_]\w*)?",
+                "PS_VAR",
+                command,
+            )
+        return detect_dangerous_command(
+            inspected,
+            trusted_executable_references=trusted_runtime_executable_references(
+                self._subprocess_env
+            ),
+        )
+
+    @staticmethod
+    def _translate_export_for_powershell(command: str) -> str:
+        """Translate simple POSIX ``export NAME=value`` statements.
+
+        Skills use this form to set a child-process hint (for example the
+        optional Lark CLI path).  A Windows development install without
+        bundled Git Bash falls back to PowerShell, where ``export`` is not a
+        command.  Keep the translation deliberately limited to assignment
+        statements; command execution, chaining, and shell substitutions stay
+        untouched and continue through the normal safety inspection.
+        """
+
+        pattern = re.compile(
+            r"(?m)(^|[;])(?P<indent>\s*)export\s+"
+            r"(?P<name>[A-Za-z_][A-Za-z0-9_]*)="
+            r"(?P<quote>['\"]?)(?P<value>[^;\r\n]*?)(?P=quote)(?=\s*(?:;|$))"
+        )
+
+        def replace(match: re.Match[str]) -> str:
+            value = match.group("value").replace("'", "''")
+            return (
+                f"{match.group(1)}{match.group('indent')}"
+                f"$env:{match.group('name')} = '{value}'"
+            )
+
+        return pattern.sub(replace, command)
+
     async def cleanup_background_processes(self) -> list[str]:
         """Reclaim background processes created by this ACP session."""
         if self.process_owner_id is None:
             return []
         return await BackgroundShellManager.terminate_owner(self.process_owner_id)
+
+    async def end_run(self) -> None:
+        """Do not let child processes outlive the Run that created them."""
+
+        await self.cleanup_background_processes()
 
     def approve_permission_request(self, permission_request: dict[str, Any]) -> None:
         """Record a one-shot approval before core retries a safety-gated command."""
@@ -936,6 +1007,7 @@ class BashTool(Tool):
                 "bash/spawn shell=powershell cmd=%r cwd=%s merge_stderr=%s",
                 command[:500], self.workspace_dir, merge_stderr,
             )
+            command = self._translate_export_for_powershell(command)
             return await asyncio.create_subprocess_exec(
                 "powershell.exe", "-NoProfile", "-Command", command,
                 stdin=asyncio.subprocess.DEVNULL,
@@ -1111,6 +1183,18 @@ class BashTool(Tool):
 
         try:
             await asyncio.wait_for(killer.wait(), timeout=10.0)
+            # ``taskkill`` can return a non-zero status in restricted
+            # sandboxes (for example when the process belongs to a different
+            # integrity level).  Do not proceed to ``process.wait()`` with a
+            # live wrapper: that would leave the caller stuck forever after
+            # the communicate timeout.  The point-kill fallback at least
+            # reaps the process we own; a privileged host still gets the
+            # recursive tree kill above.
+            if killer.returncode not in (0, None) and process.returncode is None:
+                try:
+                    process.kill()
+                except ProcessLookupError:
+                    pass
         except asyncio.TimeoutError:
             try:
                 killer.kill()
@@ -1211,6 +1295,113 @@ Examples:
             "additionalProperties": False,
         }
 
+    async def preflight(self, arguments: dict[str, Any], *, context=None) -> ToolResult | None:
+        """Authorize shell safety and filesystem scope before spawning a process."""
+
+        del context
+        command = str(arguments["command"])
+        if len(command) > MAX_BASH_COMMAND_CHARS:
+            error = (
+                "BASH_ARGUMENT_TOO_LARGE: bash.command is "
+                f"{len(command)} characters; limit is {MAX_BASH_COMMAND_CHARS}."
+            )
+            return BashOutputResult(
+                success=False,
+                error=error,
+                stdout="",
+                stderr=error,
+                exit_code=1,
+            )
+
+        danger_reason = self._dangerous_command_reason(command)
+        if (
+            danger_reason
+            and not self.bypass_dangerous_command_approval
+            and not self._has_safety_approval(command, danger_reason)
+        ):
+            return BashOutputResult(
+                success=False,
+                error=f"Dangerous command requires approval: {danger_reason}. Command: {command}",
+                stdout="",
+                stderr=f"Approval required: {danger_reason}",
+                exit_code=-1,
+                permission_request=_dangerous_command_permission_request(
+                    command, danger_reason
+                ),
+            )
+
+        from .permissions import (
+            FILESYSTEM_READ,
+            FILESYSTEM_WRITE,
+            expand_inline_shell_path_variables,
+            extract_absolute_paths,
+        )
+
+        if self._perm:
+            permission_command = expand_inline_shell_path_variables(command)
+            escape_reason = detect_scope_escape(
+                permission_command,
+                workspace_dir=self.scope_root_dir,
+            )
+            abs_paths = extract_absolute_paths(permission_command)
+            if escape_reason and not abs_paths:
+                message = (
+                    f"Command blocked (phase 1 permission engine): {escape_reason}. "
+                    "Cannot verify path permissions for this command pattern. "
+                    "Use absolute paths or request broader access."
+                )
+                return BashOutputResult(
+                    success=False,
+                    error=message,
+                    stdout="",
+                    stderr=f"Blocked: {escape_reason}",
+                    exit_code=1,
+                )
+            for path in abs_paths:
+                if _is_temp_shell_redirect_path(permission_command, path):
+                    continue
+                capability = (
+                    FILESYSTEM_WRITE
+                    if _path_requires_write_permission(permission_command, path)
+                    else FILESYSTEM_READ
+                )
+                decision = self._perm.check(
+                    capability=capability,
+                    resource={"path": path},
+                    tool_name="bash",
+                )
+                if not decision.allowed:
+                    message = decision.reason or "Permission denied"
+                    if len(abs_paths) > 1:
+                        message += f" Extracted paths from command: {abs_paths}."
+                    return BashOutputResult(
+                        success=False,
+                        error=message,
+                        stdout="",
+                        stderr=decision.reason or "Permission denied",
+                        exit_code=1,
+                        permission_request=decision.permission_request,
+                    )
+        elif not self.allow_full_access:
+            escape_reason = detect_scope_escape(
+                command,
+                workspace_dir=self.scope_root_dir,
+            )
+            if escape_reason:
+                message = (
+                    f"Command blocked: {escape_reason}. Tools are restricted to workspace "
+                    f"({self.scope_root_dir}). Set 'allow_full_access: true' in config "
+                    "to allow full system access."
+                )
+                return BashOutputResult(
+                    success=False,
+                    error=message,
+                    stdout="",
+                    stderr=f"Blocked: {escape_reason}",
+                    exit_code=-1,
+                )
+        return None
+
     async def execute(
         self,
         command: str,
@@ -1286,12 +1477,7 @@ Examples:
 
             # 1. Only an explicitly trusted full-access session may bypass the
             # approval prompt. Hard product blocks above and deletion backups remain.
-            danger_reason = detect_dangerous_command(
-                command,
-                trusted_executable_references=trusted_runtime_executable_references(
-                    self._subprocess_env
-                ),
-            )
+            danger_reason = self._dangerous_command_reason(command)
             if danger_reason:
                 if (
                     not self.bypass_dangerous_command_approval

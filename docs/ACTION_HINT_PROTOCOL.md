@@ -135,8 +135,11 @@ function extractActionHints(text) {
 
 后端检测 & 注入的源码定位：
 
-- 纯函数检测层：`box_agent/acp/action_hints.py`
-- 注入挂载点：`box_agent/acp/__init__.py:_build_session_prompt → _build_action_hints_prompt`
+- 纯函数与 Context 贡献器：`box_agent/context/action_hints.py`
+- Plugin 注册：`box_agent/plugins/builtins.py` 中的
+  `register_builtin_context_contributors`
+- ACP 流式清理与投影：`box_agent/adapters/acp_kernel.py` 中的
+  `ActionHintStreamNormalizer`
 - 单元测试：`tests/test_action_hints.py`
 
 ---

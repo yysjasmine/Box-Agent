@@ -872,8 +872,8 @@ async def test_search_files_emits_heartbeat_and_stops_worker_on_cancel(tmp_path,
         )
     )
 
-    await asyncio.sleep(0.03)
-    assert not queue.empty()
+    heartbeat = await asyncio.wait_for(queue.get(), timeout=1.0)
+    assert "still scanning" in heartbeat.content
     task.cancel()
     with pytest.raises(asyncio.CancelledError):
         await task

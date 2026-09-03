@@ -17,6 +17,7 @@ from box_agent.tools.image_inspection_tool import (
     ImageInspectionTool,
 )
 from box_agent.tools.setup import add_workspace_tools
+from box_agent.tools.runtime_context import scoped_runtime_invocation
 
 
 _ONE_PIXEL_PNG = base64.b64decode(
@@ -427,6 +428,58 @@ async def test_inspect_images_caches_only_explicit_unsupported_image_input(
     assert first.raw_output["code"] == "IMAGE_INPUT_UNSUPPORTED"
     assert second.error == first.error
     assert llm.calls == 1
+
+
+@pytest.mark.asyncio
+async def test_inspect_images_binds_model_per_runtime_invocation_without_mutating_tool(
+    tmp_path: Path,
+):
+    (tmp_path / "slide.png").write_bytes(_ONE_PIXEL_PNG)
+
+    class BindableVisionLLM:
+        def __init__(self, model="base-model", calls=None):
+            self.model = model
+            self.max_output_tokens = 8_000
+            self.calls = calls if calls is not None else []
+
+        def for_model(self, model, *, max_output_tokens=None):
+            clone = BindableVisionLLM(model, self.calls)
+            clone.max_output_tokens = max_output_tokens or self.max_output_tokens
+            return clone
+
+        async def generate(self, **kwargs):
+            self.calls.append((self.model, kwargs.get("session_id"), kwargs.get("turn_id")))
+            return LLMResponse(content=f"seen-by-{self.model}", finish_reason="stop")
+
+    llm = BindableVisionLLM()
+    tool = _tool(tmp_path, llm)
+    arguments = {"image_paths": ["slide.png"], "instruction": "Review it."}
+    with scoped_runtime_invocation(
+        session_id="session-a",
+        run_id="run-a",
+        metadata={
+            "correlation_turn_id": "turn-a",
+            "llm_binding": {"source": "builtin", "model": "vision-a"},
+        },
+    ):
+        first = await tool.invoke(arguments)
+    with scoped_runtime_invocation(
+        session_id="session-a",
+        run_id="run-b",
+        metadata={
+            "correlation_turn_id": "turn-b",
+            "llm_binding": {"source": "builtin", "model": "vision-b"},
+        },
+    ):
+        second = await tool.invoke(arguments)
+
+    assert first.content == "seen-by-vision-a"
+    assert second.content == "seen-by-vision-b"
+    assert llm.model == "base-model"
+    assert llm.calls == [
+        ("vision-a", "session-a", "turn-a"),
+        ("vision-b", "session-a", "turn-b"),
+    ]
 
 
 @pytest.mark.asyncio

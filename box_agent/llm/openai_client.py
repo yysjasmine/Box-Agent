@@ -1,6 +1,5 @@
 """OpenAI LLM client implementation."""
 
-import inspect
 import json
 import logging
 import os
@@ -12,7 +11,8 @@ from typing import Any
 
 from openai import AsyncOpenAI
 
-from ..retry import RetryConfig, StreamInterrupted, async_retry, is_retryable_stream_error
+from .retry import RetryConfig, StreamInterrupted, async_retry, is_retryable_stream_error
+from .async_utils import await_if_needed
 from ..schema import FunctionCall, LLMResponse, Message, StreamEvent, TokenUsage, ToolCall
 from ..tools.argument_limits import (
     PROVIDER_STREAM_ACTIVITY_INTERVAL_SECONDS,
@@ -426,13 +426,6 @@ def _repair_tool_call_arguments(
     return None
 
 
-async def _await_if_needed(value: Any) -> Any:
-    """Return awaitable SDK values and direct SDK values through one path."""
-    if inspect.isawaitable(value):
-        return await value
-    return value
-
-
 def _get_field(value: Any, name: str) -> Any:
     """Read a field from an SDK model or a plain mapping."""
     if isinstance(value, dict):
@@ -566,7 +559,7 @@ class OpenAIClient(LLMClientBase):
         log_llm_request(provider="openai", mode="completion", api_base=self.api_base, params=params)
 
         try:
-            raw_response = await _await_if_needed(
+            raw_response = await await_if_needed(
                 self.client.chat.completions.with_raw_response.create(**params)
             )
             log_llm_response_meta(
@@ -575,12 +568,12 @@ class OpenAIClient(LLMClientBase):
                 request_id=getattr(raw_response, "request_id", None),
                 headers=getattr(raw_response, "headers", None),
             )
-            response = await _await_if_needed(raw_response.parse())
+            response = await await_if_needed(raw_response.parse())
         except AttributeError:
             # Test doubles and older SDK-compatible clients may not expose
             # ``with_raw_response``. Keep the request log and fall back to the
             # existing behavior, but request-id metadata will be unavailable.
-            response = await _await_if_needed(self.client.chat.completions.create(**params))
+            response = await await_if_needed(self.client.chat.completions.create(**params))
         except Exception as exc:
             log_llm_error_meta(provider="openai", mode="completion", exc=exc)
             raise
@@ -962,7 +955,7 @@ class OpenAIClient(LLMClientBase):
         async def _open_stream() -> Any:
             nonlocal provider_request_id
             try:
-                raw_response = await _await_if_needed(
+                raw_response = await await_if_needed(
                     self.client.chat.completions.with_raw_response.create(**params)
                 )
                 provider_request_id = getattr(raw_response, "request_id", None) or request_id_from_headers(
@@ -974,9 +967,9 @@ class OpenAIClient(LLMClientBase):
                     request_id=provider_request_id,
                     headers=getattr(raw_response, "headers", None),
                 )
-                return await _await_if_needed(raw_response.parse())
+                return await await_if_needed(raw_response.parse())
             except AttributeError:
-                return await _await_if_needed(self.client.chat.completions.create(**params))
+                return await await_if_needed(self.client.chat.completions.create(**params))
 
         import asyncio as _asyncio
 

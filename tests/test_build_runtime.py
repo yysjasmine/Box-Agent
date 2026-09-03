@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
+import os
 from pathlib import Path
 from subprocess import CompletedProcess
 
@@ -40,10 +42,10 @@ def test_relativize_node_manifest_rewrites_paths_under_node_root(tmp_path: Path)
     _relativize_node_manifest(node_root)
 
     active = json.loads((node_root / "manifest.json").read_text(encoding="utf-8"))["active"]
-    assert active["node"] == "versions/node-v24-test-darwin-arm64/bin/node"
-    assert active["npm"] == "versions/node-v24-test-darwin-arm64/bin/npm"
-    assert active["npx"] == "versions/node-v24-test-darwin-arm64/bin/npx"
-    assert active["node_modules"] == "sandbox/node_modules"
+    assert active["node"].replace("\\", "/") == "versions/node-v24-test-darwin-arm64/bin/node"
+    assert active["npm"].replace("\\", "/") == "versions/node-v24-test-darwin-arm64/bin/npm"
+    assert active["npx"].replace("\\", "/") == "versions/node-v24-test-darwin-arm64/bin/npx"
+    assert active["node_modules"].replace("\\", "/") == "sandbox/node_modules"
 
 
 def test_parse_target_accepts_darwin_x64() -> None:
@@ -95,6 +97,38 @@ def test_pyinstaller_target_arch_args_maps_darwin_x64() -> None:
 
 def test_pyinstaller_target_arch_args_omits_non_macos() -> None:
     assert build_runtime.pyinstaller_target_arch_args(plat="linux", arch="x64") == []
+
+
+def test_pyinstaller_binary_args_collect_conda_windows_runtime_dlls(
+    tmp_path: Path,
+) -> None:
+    library_bin = tmp_path / "Library" / "bin"
+    library_bin.mkdir(parents=True)
+    (library_bin / "libexpat.dll").write_bytes(b"dll")
+
+    assert build_runtime.pyinstaller_binary_args(
+        plat="win32",
+        python_prefix=tmp_path,
+    ) == [
+        "--add-binary",
+        f"{library_bin / '*.dll'}{os.pathsep}.",
+    ]
+
+
+def test_pyinstaller_binary_args_ignore_non_conda_or_non_windows(
+    tmp_path: Path,
+) -> None:
+    assert build_runtime.pyinstaller_binary_args(
+        plat="win32",
+        python_prefix=tmp_path,
+    ) == []
+    library_bin = tmp_path / "Library" / "bin"
+    library_bin.mkdir(parents=True)
+    (library_bin / "libexpat.dll").write_bytes(b"dll")
+    assert build_runtime.pyinstaller_binary_args(
+        plat="linux",
+        python_prefix=tmp_path,
+    ) == []
 
 
 def test_bundled_stable_runtime_components_default_platforms() -> None:
@@ -172,10 +206,34 @@ def test_pyinstaller_args_keep_bundled_sandbox_by_default() -> None:
     assert "pandas" in hidden
     assert "pip._internal.cli.main" in hidden
     assert "box_agent.mcp_servers.web_extract_server" in hidden
+    # Registry/factory-loaded native runtime modules are not always visible
+    # to PyInstaller's static graph and must remain in frozen bundles.
+    assert {
+        "box_agent.api.contracts",
+        "box_agent.kernel.loop",
+        "box_agent.plugins.host",
+        "box_agent.persistence.sqlite",
+        "box_agent.services.kernel",
+        "box_agent.workflows.goal",
+    }.issubset(hidden)
+    assert ("--collect-submodules", "box_agent") in collect_pairs
+    assert ("--collect-data", "rfc3987_syntax") in collect_pairs
     assert ("--collect-all", "ipykernel") in collect_pairs
     assert ("--collect-submodules", "pandas") in collect_pairs
     assert ("--collect-submodules", "pip") in collect_pairs
     assert exclude == []
+
+
+def test_pyinstaller_internal_hidden_imports_all_exist() -> None:
+    missing = [
+        name
+        for name in build_runtime.pyinstaller_hidden_imports(
+            external_python_sandbox=True
+        )
+        if name.startswith("box_agent.") and importlib.util.find_spec(name) is None
+    ]
+
+    assert missing == []
 
 
 def test_pyinstaller_args_drop_sandbox_stack_for_external_python_mode() -> None:
@@ -191,6 +249,8 @@ def test_pyinstaller_args_drop_sandbox_stack_for_external_python_mode() -> None:
     assert "dateutil" in hidden
     assert "dateutil.parser" in hidden
     assert "box_agent.mcp_servers.web_extract_server" in hidden
+    assert ("--collect-submodules", "box_agent") in collect_pairs
+    assert ("--collect-data", "rfc3987_syntax") in collect_pairs
     assert "ipykernel" not in hidden
     assert "pandas" not in hidden
     assert "pip._internal.cli.main" not in hidden

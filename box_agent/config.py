@@ -3,6 +3,7 @@
 Provides unified configuration loading and management functionality
 """
 
+import re
 import shutil
 from pathlib import Path
 from urllib.parse import urlparse
@@ -18,6 +19,33 @@ HOSTED_GATEWAY_API_KEY_PLACEHOLDER = "box-agent-auth-json"
 XIAOHUANXIONG_MAX_OUTPUT_TOKENS = 80000
 USER_CONFIGURED_MAX_OUTPUT_TOKENS = 63999
 CONTEXT_INPUT_SAFETY_RATIO = 0.9
+
+
+def _load_yaml_config(path: Path) -> object:
+    """Load YAML while accepting the Windows paths commonly emitted by hosts.
+
+    YAML double-quoted scalars treat ``\\`` as an escape introducer, so a
+    config generated with ``auth_file: "C:\\..."`` is rejected before Box-Agent
+    can validate it.  Keep normal YAML errors strict, but retry path-valued
+    fields with a single-quoted scalar when the only issue is that Windows
+    path spelling.
+    """
+
+    source = path.read_text(encoding="utf-8")
+    try:
+        return yaml.safe_load(source)
+    except yaml.YAMLError:
+        path_keys = r"(?:auth_file|workspace_dir|memory_dir|skills_dir|mcp_config_path)"
+        normalized = re.sub(
+            rf'(?m)^(\s*{path_keys}:\s*)"([^"\n]*)"\s*$',
+            lambda match: (
+                f"{match.group(1)}'{match.group(2).replace(chr(39), chr(39) * 2)}'"
+            ),
+            source,
+        )
+        if normalized == source:
+            raise
+        return yaml.safe_load(normalized)
 
 
 def derive_context_token_limit(context_window: int, max_output_tokens: int) -> int:
@@ -201,7 +229,7 @@ class SubAgentToolLimitsConfig(ToolLimitsModel):
 
     general_max_steps: int = Field(default=60, ge=1, le=256)
     general_max_tool_calls: int = Field(default=32, ge=1, le=256)
-    # Parsed for existing configs but no longer selects a separate legacy loop.
+    # Parsed for existing configs; retained as a deprecated child-run limit alias.
     legacy_max_steps: int = Field(default=60, ge=1, le=256)
     no_progress_steps: int = Field(default=6, ge=1, le=50)
 
@@ -425,8 +453,7 @@ class Config(BaseModel):
         if not config_path.exists():
             raise FileNotFoundError(f"Configuration file does not exist: {config_path}")
 
-        with open(config_path, encoding="utf-8") as f:
-            data = yaml.safe_load(f)
+        data = _load_yaml_config(config_path)
 
         if not data:
             raise ValueError("Configuration file is empty")

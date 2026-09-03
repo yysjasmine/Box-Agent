@@ -17,7 +17,7 @@ class MemoryWriteTool(Tool):
     """Tool for writing entries to long-term memory."""
 
     def __init__(self, memory_manager, llm=None):
-        from box_agent.memory import MemoryManager
+        from box_agent.memory_engine import MemoryManager
 
         self._mgr: MemoryManager = memory_manager
         self._llm = llm
@@ -116,7 +116,7 @@ class MemoryReadTool(Tool):
     """Tool for reading all long-term memory."""
 
     def __init__(self, memory_manager):
-        from box_agent.memory import MemoryManager
+        from box_agent.memory_engine import MemoryManager
 
         self._mgr: MemoryManager = memory_manager
 
@@ -161,7 +161,7 @@ class MemorySearchTool(Tool):
     """Tool for searching context memory by keyword."""
 
     def __init__(self, memory_manager):
-        from box_agent.memory import MemoryManager
+        from box_agent.memory_engine import MemoryManager
 
         self._mgr: MemoryManager = memory_manager
 

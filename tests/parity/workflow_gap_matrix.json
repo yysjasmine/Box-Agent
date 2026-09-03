@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "purpose": "Workflow promotion evidence map for the single Kernel runtime.",
+  "workflows": {
+    "goal": {
+      "fixture": "goal_plan_cases.json",
+      "native_covered": ["state transitions", "session scoping", "tool and ACP control parity", "between-run durable session updates", "checkpoint replay", "cancellation snapshot", "terminal goal snapshot metadata", "shared CLI/ACP terminal rendering"],
+      "remaining_gaps": []
+    },
+    "plan": {
+      "fixture": "plan_event_cases.json",
+      "native_covered": ["read/write payload", "session scoping", "canonical plan snapshot event name", "literal start-to-pause event sequence", "approval preflight", "approval rejection and approval replay", "plan-start detection without host metadata", "forced-plan context guidance", "start-snapshot recovery", "durable pause/restart", "legacy rawOutput shape", "interactive approval rendering"],
+      "remaining_gaps": []
+    },
+    "ppt": {
+      "fixture": "presentation_event_cases.json",
+      "native_covered": ["bounded checkpoint state", "single-plugin checkpoint envelope", "filesystem checkpoint before action decision", "deterministic action ordering", "tool restrictions", "repair fuse and terminal facts", "evidence callbacks", "registered PPTX Skill context", "run option restoration", "artifact event and result publication", "host rendering boundary", "ACP free-form selector routing", "ACP durable pause/reload/resume", "legacy PPT regression oracle"],
+      "remaining_gaps": []
+    },
+    "skill": {
+      "fixture": "skill_event_cases.json",
+      "native_covered": ["generic lifecycle policy", "artifact gate", "durable options", "selected Skill instruction context", "instruction identity hashing", "bounded tool budget", "pluggable ACP slash-Skill selection", "literal user-decision pause event sequence", "terminal lifecycle facts", "provider tool-call repair", "repair-boundary crash replay", "single-plugin checkpoint envelope"],
+      "remaining_gaps": []
+    },
+    "completion_gate": {
+      "fixture": "completion_gate_event_cases.json",
+      "native_covered": ["required-tool evidence", "artifact evidence", "data-only external configuration", "ACP workflow registration and routing", "literal recoverable-pause event sequence", "bounded continuation", "checkpoint replay", "generic CLI routing", "budget exemptions", "delegated/search budget enforcement", "native budget-boundary context guidance", "run-level tool-budget terminal boundary", "shared CLI/ACP wrap-up rendering"],
+      "remaining_gaps": []
+    },
+    "autopilot": {
+      "fixture": "autopilot_event_cases.json",
+      "native_covered": ["typed WorkflowContinuation", "literal multi-turn event sequence", "checkpoint-before-continuation durability", "ACP/CLI configured defaults", "progress signature parity", "checkpoint guard replay", "budget and no-progress stop reporting", "terminal metadata", "cancellation terminal snapshot", "artifact event/result boundary", "shared ACP/CLI terminal rendering", "deterministic terminal fixture"],
+      "remaining_gaps": []
+    }
+  }
+}

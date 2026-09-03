@@ -39,7 +39,7 @@ class CompactionE2ELLM:
 
 
 @pytest.mark.asyncio
-async def test_agent_compacts_above_derived_limit_and_resumes_from_synthetic_user_message(
+async def test_agent_compacts_above_limit_through_the_context_engine(
     tmp_path,
 ) -> None:
     llm = CompactionE2ELLM()
@@ -63,27 +63,11 @@ async def test_agent_compacts_above_derived_limit_and_resumes_from_synthetic_use
     compaction = next(event for event in events if isinstance(event, SummarizationEvent))
     assert compaction.token_limit == 104_400
     assert compaction.estimated_tokens >= 104_400
-    assert compaction.mode == "summary"
-    assert compaction.summary_calls == 1
+    assert compaction.mode == "priority"
+    assert compaction.summary_calls == 0
+    assert llm.summary_messages == []
 
-    assert len(llm.summary_messages) == len(original_prefix) + 1
-    assert all(
-        sent is original
-        for sent, original in zip(llm.summary_messages[:-1], original_prefix)
-    )
-    assert llm.summary_messages[-1].role == "user"
-
-    compacted_summary = llm.normal_messages[1]
-    assert compacted_summary.role == "user"
-    assert "Summary:\n1. Primary Request and Intent:" in str(
-        compacted_summary.content
-    )
-    assert "<summary>" not in str(compacted_summary.content)
-    assert "</summary>" not in str(compacted_summary.content)
-    assert "Pick up the last task as if the break never happened." in str(
-        compacted_summary.content
-    )
-    assert old_user not in llm.normal_messages
+    assert old_user in llm.normal_messages
     assert large_execution not in llm.normal_messages
     assert latest_user in llm.normal_messages
 

@@ -392,7 +392,11 @@ def test_self_managed_node_runtime_from_manifest(tmp_path: Path) -> None:
     skill_tools = tmp_path / ".box-agent" / "skill-tools"
     assert execution_env["NPM_CONFIG_CACHE"] == str(skill_tools / "npm-cache")
     assert execution_env["NPM_CONFIG_PREFIX"] == str(skill_tools)
-    assert execution_env["PATH"].split(":")[0] == str(skill_tools / "bin")
+    # Follow the host's default layout here: Windows npm prefixes use the
+    # prefix root, while POSIX prefixes expose ``bin``.  ``os.pathsep`` keeps
+    # the assertion valid on both hosts.
+    expected_bin = skill_tools if os.name == "nt" else skill_tools / "bin"
+    assert execution_env["PATH"].startswith(str(expected_bin) + os.pathsep)
 
 
 def test_self_managed_node_runtime_accepts_relative_manifest_paths(tmp_path: Path) -> None:
@@ -583,6 +587,39 @@ def test_install_linux_downloads_verifies_extracts_and_writes_manifest(tmp_path:
     assert runtime.status == "available"
     assert active["platform"] == "linux-arm64"
     assert Path(active["node"]).is_file()
+
+
+def test_install_linux_retries_transient_directory_promotion(
+    tmp_path: Path, monkeypatch
+) -> None:
+    root = tmp_path / ".box-agent" / "runtimes" / "node"
+    archive_name = f"node-{DEFAULT_NODE_VERSION}-linux-arm64.tar.gz"
+    archive, checksum = _make_node_archive(tmp_path, platform_id="linux-arm64")
+    version_name = archive_name.removesuffix(".tar.gz")
+    original_rename = Path.rename
+    promotion_attempts = 0
+
+    def transient_rename(source: Path, target: Path) -> Path:
+        nonlocal promotion_attempts
+        if source.name == version_name and source.parent.name == f".{version_name}.tmp":
+            promotion_attempts += 1
+            if promotion_attempts == 1:
+                raise PermissionError("transient file scanner handle")
+        return original_rename(source, target)
+
+    monkeypatch.setattr(Path, "rename", transient_rename)
+
+    runtime = NodeRuntimeManager(root=root).install_linux(
+        platform_id="linux-arm64",
+        downloader=_fake_node_downloader(
+            archive=archive,
+            checksum=checksum,
+            archive_name=archive_name,
+        ),
+    )
+
+    assert runtime.status == "available"
+    assert promotion_attempts == 2
 
 
 def test_install_macos_failure_preserves_existing_manifest(tmp_path: Path) -> None:
@@ -939,22 +976,31 @@ def test_skill_execution_env_prefers_managed_tools_and_shared_browser(tmp_path: 
         home_dir=tmp_path,
     )
     skill_tools = tmp_path / ".box-agent" / "skill-tools"
-    path_entries = env["PATH"].split(":")
+    path_value = env["PATH"]
 
-    assert path_entries[0] == str(skill_tools / "bin")
-    assert path_entries.index(str(node_dir)) < path_entries.index("/user/node/bin")
-    assert path_entries.index(str(python_dir)) < path_entries.index("/user/node/bin")
+    # ``tmp_path`` is a Windows path even though the target platform is
+    # Darwin; use substring positions instead of splitting on the synthetic
+    # POSIX separator, which would break the drive letter.
+    assert path_value.startswith(str(skill_tools / "bin") + ":")
+    assert path_value.index(str(node_dir)) < path_value.index("/user/node/bin")
+    assert path_value.index(str(python_dir)) < path_value.index("/user/node/bin")
     assert env["NPM_CONFIG_PREFIX"] == str(skill_tools)
     assert env["PYTHONUSERBASE"] == str(skill_tools / "python")
-    assert env["PYTHONPATH"].split(":")[0] == str(
+    expected_python_site = str(
         skill_tools
         / "python"
         / "lib"
         / f"python{sys.version_info.major}.{sys.version_info.minor}"
         / "site-packages"
     )
+    assert env["PYTHONPATH"] == expected_python_site or env["PYTHONPATH"].startswith(
+        expected_python_site + ":"
+    )
     assert env["AGENT_BROWSER_EXECUTABLE_PATH"] == str(chromium)
-    assert env["NODE_PATH"].split(":")[0] == str(skill_tools / "lib" / "node_modules")
+    expected_node_modules = str(skill_tools / "lib" / "node_modules")
+    assert env["NODE_PATH"] == expected_node_modules or env["NODE_PATH"].startswith(
+        expected_node_modules + ":"
+    )
 
 
 def test_skill_execution_env_uses_windows_global_bin_layout(tmp_path: Path) -> None:

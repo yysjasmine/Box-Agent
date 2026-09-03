@@ -8,8 +8,8 @@ from hashlib import sha256
 from typing import Any, Literal, Mapping
 
 from box_agent.config import ToolLimitsConfig
-from box_agent.execution_profile import ExecutionProfile
-from box_agent.loop_guards import CompletionGate
+from box_agent.workflows.execution_profile import ExecutionProfile
+from box_agent.workflows.guards import CompletionGate
 from box_agent.tools.skill_loader import SkillLoader
 from box_agent.workflows.external_skill import EXTERNAL_SKILL_WORKFLOW_KIND
 from box_agent.workflows.presentation_contract import RESEARCH_MODE_OPTION

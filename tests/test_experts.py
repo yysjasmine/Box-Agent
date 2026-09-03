@@ -2,29 +2,11 @@ from types import SimpleNamespace
 
 import pytest
 
-from box_agent.acp import BoxACPAgent
-from box_agent.config import AgentConfig, Config, LLMConfig, ToolsConfig
+from box_agent.context import ContextBuildRequest, ExpertContextContributor
 from box_agent.experts import ExpertSessionContext
-from box_agent.schema import LLMResponse, StreamEvent
-from box_agent.tools.skill_loader import SKILL_SLOT_SENTINEL, SkillLoader
+from box_agent.tools.experts import ExpertSkillToolContributor
+from box_agent.tools.skill_loader import SkillLoader
 from box_agent.tools.skill_tool import GetSkillTool
-
-
-class DoneLLM:
-    async def generate_stream(self, messages, tools=None, **_):
-        yield StreamEvent(type="text", delta="done")
-        yield StreamEvent(type="finish", finish_reason="stop")
-
-    async def generate(self, messages, tools=None):
-        return LLMResponse(content="done", finish_reason="stop")
-
-
-class DummyConn:
-    def __init__(self):
-        self.updates = []
-
-    async def sessionUpdate(self, payload):
-        self.updates.append(payload)
 
 
 def _write_skill(root, name: str, description: str = "") -> None:
@@ -144,107 +126,57 @@ def test_expert_session_context_parses_camel_and_snake_case() -> None:
 
 
 @pytest.mark.asyncio
-async def test_acp_session_injects_expert_prompt_and_returns_meta(tmp_path) -> None:
-    config = Config(
-        llm=LLMConfig(api_key="test-key"),
-        agent=AgentConfig(max_steps=2, workspace_dir=str(tmp_path)),
-        tools=ToolsConfig(enable_mcp=False),
-    )
-    agent = BoxACPAgent(DummyConn(), config, DoneLLM(), [], "base system")
-
-    session = await agent.newSession(
-        SimpleNamespace(
-            cwd=str(tmp_path),
-            field_meta={
-                "session_mode": "general",
+async def test_context_plugin_contributes_expert_prompt_and_metadata() -> None:
+    result = await ExpertContextContributor().provide(
+        ContextBuildRequest(
+            items=(),
+            token_budget=2_000,
+            metadata={
                 "expert": {
                     "id": "ppt-designer",
                     "name": "PPT 设计师",
                     "instructions": ["先统一结构，再做页面表达"],
                     "defaultSkills": ["pptx"],
-                },
+                }
             },
         )
     )
 
-    state = agent._sessions[session.sessionId]
-    assert "## Expert Profile" in state.agent.system_prompt
-    assert "PPT 设计师" in state.agent.system_prompt
-    assert "先统一结构" in state.agent.system_prompt
-    assert session.field_meta["expert_context"]["expert"]["id"] == "ppt-designer"
+    assert len(result.items) == 1
+    item = result.items[0]
+    assert item.pinned is True
+    assert "## Expert Profile" in item.content
+    assert "PPT 设计师" in item.content
+    assert "先统一结构" in item.content
+    assert item.metadata["expert"]["id"] == "ppt-designer"
 
 
 @pytest.mark.asyncio
-async def test_acp_expert_context_is_session_scoped(tmp_path) -> None:
-    config = Config(
-        llm=LLMConfig(api_key="test-key"),
-        agent=AgentConfig(max_steps=2, workspace_dir=str(tmp_path)),
-        tools=ToolsConfig(enable_mcp=False),
-    )
-    agent = BoxACPAgent(DummyConn(), config, DoneLLM(), [], "base system")
+async def test_expert_context_is_derived_only_from_session_metadata() -> None:
+    contributor = ExpertContextContributor()
+    durable_session_metadata = {
+        "expert": {
+            "id": "ppt-designer",
+            "name": "PPT 设计师",
+            "defaultSkills": ["pptx"],
+        }
+    }
 
-    expert_session = await agent.newSession(
-        SimpleNamespace(
-            cwd=str(tmp_path),
-            field_meta={
-                "session_mode": "general",
-                "expert": {
-                    "id": "ppt-designer",
-                    "name": "PPT 设计师",
-                    "defaultSkills": ["pptx"],
-                },
-            },
-        )
+    first = await contributor.provide(
+        ContextBuildRequest((), 2_000, metadata=durable_session_metadata)
     )
-    expert_state = agent._sessions[expert_session.sessionId]
-    assert "## Expert Profile" in expert_state.agent.system_prompt
+    resumed = await contributor.provide(
+        ContextBuildRequest((), 2_000, metadata=durable_session_metadata)
+    )
+    normal = await contributor.provide(ContextBuildRequest((), 2_000, metadata={}))
 
-    await agent.prompt(
-        SimpleNamespace(
-            sessionId=expert_session.sessionId,
-            prompt=[{"text": "普通下一轮，不再传 expert meta"}],
-            field_meta={},
-        )
-    )
-    assert "## Expert Profile" in expert_state.agent.system_prompt
-
-    team_session = await agent.newSession(
-        SimpleNamespace(
-            cwd=str(tmp_path),
-            field_meta={
-                "session_mode": "general",
-                "expert_team": {
-                    "id": "deck-team",
-                    "name": "Deck 专家团",
-                    "leader": {"id": "lead", "name": "负责人"},
-                    "members": [{"id": "designer", "name": "设计专家"}],
-                },
-            },
-        )
-    )
-    team_state = agent._sessions[team_session.sessionId]
-    assert "## Expert Team" in team_state.agent.system_prompt
-
-    await agent.prompt(
-        SimpleNamespace(
-            sessionId=team_session.sessionId,
-            prompt=[{"text": "普通下一轮，不再传 expert_team meta"}],
-            field_meta={},
-        )
-    )
-    assert "## Expert Team" in team_state.agent.system_prompt
-
-    normal_session = await agent.newSession(
-        SimpleNamespace(cwd=str(tmp_path), field_meta={"session_mode": "general"})
-    )
-    normal_state = agent._sessions[normal_session.sessionId]
-    assert normal_state.expert_context is None
-    assert "## Expert Profile" not in normal_state.agent.system_prompt
-    assert "## Expert Team" not in normal_state.agent.system_prompt
+    assert "## Expert Profile" in first.items[0].content
+    assert resumed.items[0].content == first.items[0].content
+    assert normal == ()
 
 
 @pytest.mark.asyncio
-async def test_acp_expert_session_can_select_disabled_skill(tmp_path) -> None:
+async def test_expert_tool_plugin_can_select_only_declared_disabled_skill(tmp_path) -> None:
     skills_dir = tmp_path / "skills"
     skills_dir.mkdir()
     _write_skill(skills_dir, "disabled-skill", "Disabled expert-only capability")
@@ -259,42 +191,24 @@ async def test_acp_expert_session_can_select_disabled_skill(tmp_path) -> None:
     skill_loader.discover_skills()
     assert skill_loader.get_skill("disabled-skill") is None
 
-    config = Config(
-        llm=LLMConfig(api_key="test-key"),
-        agent=AgentConfig(max_steps=2, workspace_dir=str(tmp_path)),
-        tools=ToolsConfig(enable_mcp=False),
-    )
-    agent = BoxACPAgent(
-        DummyConn(),
-        config,
-        DoneLLM(),
-        [GetSkillTool(skill_loader)],
-        f"base system\n{SKILL_SLOT_SENTINEL}",
-        skill_loader=skill_loader,
-    )
-
-    session = await agent.newSession(
+    tools = ExpertSkillToolContributor(skill_loader).provide_tools(
         SimpleNamespace(
-            cwd=str(tmp_path),
-            field_meta={
+            metadata={
                 "expert": {
                     "id": "expert-with-disabled-skill",
                     "name": "禁用技能专家",
                     "defaultSkills": ["disabled-skill"],
-                },
+                }
             },
         )
     )
-
-    state = agent._sessions[session.sessionId]
-    assert "disabled-skill" in state.agent.system_prompt
-    result = await state.agent.tools["get_skill"].execute("disabled-skill")
+    result = await tools[0].execute("disabled-skill")
     assert result.success is True
     assert "disabled-skill content" in result.content
 
 
 @pytest.mark.asyncio
-async def test_acp_expert_can_use_uninstalled_recommended_skill_without_leaking_to_normal_session(tmp_path) -> None:
+async def test_expert_tool_plugin_scopes_uninstalled_recommendation_to_one_session(tmp_path) -> None:
     skills_dir = tmp_path / "skills"
     skills_dir.mkdir()
     _write_skill(skills_dir, "expert-only-skill", "Bundled recommendation for one expert")
@@ -304,58 +218,33 @@ async def test_acp_expert_can_use_uninstalled_recommended_skill_without_leaking_
     skill_loader.discover_skills()
     assert skill_loader.get_skill("expert-only-skill") is None
 
-    config = Config(
-        llm=LLMConfig(api_key="test-key"),
-        agent=AgentConfig(max_steps=2, workspace_dir=str(tmp_path)),
-        tools=ToolsConfig(enable_mcp=False),
-    )
-    agent = BoxACPAgent(
-        DummyConn(),
-        config,
-        DoneLLM(),
-        [GetSkillTool(skill_loader)],
-        f"base system\n{SKILL_SLOT_SENTINEL}",
-        skill_loader=skill_loader,
-    )
-
-    normal_session = await agent.newSession(SimpleNamespace(cwd=str(tmp_path), field_meta={}))
-    normal_state = agent._sessions[normal_session.sessionId]
-    normal_result = await normal_state.agent.tools["get_skill"].execute("expert-only-skill")
+    normal_result = await GetSkillTool(skill_loader).execute("expert-only-skill")
     assert normal_result.success is False
 
-    expert_session = await agent.newSession(
+    expert_tools = ExpertSkillToolContributor(skill_loader).provide_tools(
         SimpleNamespace(
-            cwd=str(tmp_path),
-            field_meta={
+            metadata={
                 "expert": {
                     "id": "expert-with-recommendation",
                     "name": "推荐技能专家",
                     "requiredSkills": ["expert-only-skill"],
-                },
+                }
             },
         )
     )
-    expert_state = agent._sessions[expert_session.sessionId]
-    assert "expert-only-skill" in expert_state.agent.system_prompt
-    expert_result = await expert_state.agent.tools["get_skill"].execute("expert-only-skill")
+    expert_result = await expert_tools[0].execute("expert-only-skill")
     assert expert_result.success is True
     assert "expert-only-skill content" in expert_result.content
+    assert skill_loader.get_skill("expert-only-skill") is None
 
 
 @pytest.mark.asyncio
-async def test_acp_prompt_emits_expert_team_progress_without_internal_rules(tmp_path) -> None:
-    config = Config(
-        llm=LLMConfig(api_key="test-key"),
-        agent=AgentConfig(max_steps=2, workspace_dir=str(tmp_path)),
-        tools=ToolsConfig(enable_mcp=False),
-    )
-    conn = DummyConn()
-    agent = BoxACPAgent(conn, config, DoneLLM(), [], "base system")
-
-    session = await agent.newSession(
-        SimpleNamespace(
-            cwd=str(tmp_path),
-            field_meta={
+async def test_expert_context_emits_typed_team_projection_without_internal_rules() -> None:
+    result = await ExpertContextContributor().provide(
+        ContextBuildRequest(
+            items=(),
+            token_budget=2_000,
+            metadata={
                 "session_mode": "general",
                 "expert_team": {
                     "id": "report-team",
@@ -390,23 +279,13 @@ async def test_acp_prompt_emits_expert_team_progress_without_internal_rules(tmp_
             },
         )
     )
-
-    response = await agent.prompt(
-        SimpleNamespace(sessionId=session.sessionId, prompt=[{"text": "写一份项目报告"}])
-    )
-
-    assert response.stopReason == "end_turn"
-    progress = [
-        update.update.rawOutput
-        for update in conn.updates
-        if getattr(update.update, "rawOutput", None)
-        and isinstance(update.update.rawOutput, dict)
-        and update.update.rawOutput.get("type") == "expert_team_progress"
-    ]
-    assert len(progress) == 1
-    assert progress[0]["event"] == "team_start"
-    assert progress[0]["team"]["id"] == "report-team"
-    assert progress[0]["leader"]["name"] == "团长"
-    assert progress[0]["orchestration"]["workstreams"][0]["title"] == "写作线"
-    assert "展示成员贡献" in str(progress[0])
-    assert "这条内部规则不能出现在进度事件里" not in str(progress[0])
+    assert len(result.host_projections) == 1
+    projection = result.host_projections[0]
+    progress = projection.payload
+    assert projection.projection_id == "expert-team-progress"
+    assert progress["event"] == "team_start"
+    assert progress["team"]["id"] == "report-team"
+    assert progress["leader"]["name"] == "团长"
+    assert progress["orchestration"]["workstreams"][0]["title"] == "写作线"
+    assert "展示成员贡献" in str(progress)
+    assert "这条内部规则不能出现在进度事件里" not in str(progress)

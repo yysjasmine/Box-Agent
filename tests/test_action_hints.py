@@ -6,7 +6,8 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
-from box_agent.acp.action_hints import (
+from box_agent.context.action_hints import (
+    ActionHintContextContributor,
     ActionHintStreamNormalizer,
     build_action_hints_prompt,
     is_memory_scarce,
@@ -14,6 +15,7 @@ from box_agent.acp.action_hints import (
     is_playwright_unavailable_from_env_context,
     normalize_action_hint_blocks,
 )
+from box_agent.context import ContextBuildRequest
 
 
 # ── is_memory_scarce ────────────────────────────────────────────
@@ -207,6 +209,26 @@ def test_prompt_forbids_json_on_action_hint_fence_line() -> None:
     assert "JSON 必须从下一行开始" in out
     assert "display_text" in out
     assert "不要包含换行符" in out
+
+
+def test_action_hint_guidance_is_a_context_plugin(tmp_path: Path) -> None:
+    contributor = ActionHintContextContributor(
+        mcp_config_path=tmp_path / "missing-mcp.json"
+    )
+    items = contributor.provide(
+        ContextBuildRequest(
+            session_id="session-1",
+            run_id="run-1",
+            items=(),
+            token_budget=10_000,
+            metadata={},
+        )
+    )
+
+    assert len(items) == 1
+    assert items[0].metadata["contributor"] == "action_hints"
+    assert "onboarding" in items[0].content
+    assert "browser-tools" in items[0].content
 
 
 def test_normalize_action_hint_repairs_json_on_fence_line() -> None:

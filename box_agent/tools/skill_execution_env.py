@@ -23,7 +23,15 @@ def build_skill_execution_env(
     is_windows = target_platform == "win32"
     separator = ";" if is_windows else ":"
 
-    default_root = (home_dir or Path.home()) / ".box-agent" / "skill-tools"
+    # Respect an explicitly supplied HOME on every platform.  ``Path.home()``
+    # resolves USERPROFILE first on Windows, which makes embedded/portable
+    # hosts (and their isolated test homes) unexpectedly write into the real
+    # user profile even when HOME is intentionally overridden.
+    effective_home = home_dir
+    if effective_home is None:
+        configured_home = os.environ.get("HOME")
+        effective_home = Path(configured_home) if configured_home else Path.home()
+    default_root = effective_home / ".box-agent" / "skill-tools"
     skill_tools_root = _safe_skill_tools_root(
         inherited.get("BOX_AGENT_SKILL_TOOLS_ROOT"),
         default=default_root,
@@ -40,10 +48,20 @@ def build_skill_execution_env(
     # a dependency installed with pip --user can be imported immediately by
     # that same long-running process.
     python_user_site.mkdir(parents=True, exist_ok=True)
+    # A host can provision a POSIX Node archive (``bin/node``) even when the
+    # ACP process itself runs on Windows.  npm's global prefix follows the
+    # archive layout in that case, so use ``lib/node_modules`` just as we do on
+    # Darwin/Linux; native Windows bundles use ``node_modules`` at the prefix
+    # root.  This keeps NODE_PATH stable for cross-platform Skill packages.
+    node_executable = runtime_env.get("BOX_AGENT_NODE", "")
+    portable_node_layout = bool(
+        node_executable
+        and Path(node_executable).parent.name.casefold() == "bin"
+    )
     npm_global_modules = (
-        skill_tools_root / "node_modules"
-        if is_windows
-        else skill_tools_root / "lib" / "node_modules"
+        skill_tools_root / "lib" / "node_modules"
+        if not is_windows or portable_node_layout
+        else skill_tools_root / "node_modules"
     )
 
     managed_dirs: list[str] = [str(npm_bin_dir)]
@@ -76,7 +94,7 @@ def build_skill_execution_env(
 
     browser_root = Path(
         inherited.get("PLAYWRIGHT_BROWSERS_PATH")
-        or (home_dir or Path.home()) / ".box-agent" / "browsers"
+        or effective_home / ".box-agent" / "browsers"
     )
     browser_executable = _resolve_skill_browser_executable(
         inherited,

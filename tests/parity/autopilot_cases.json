@@ -1,0 +1,75 @@
+[
+  {
+    "objective": "Ship the release",
+    "progress": [],
+    "evidence": [],
+    "enabled": false,
+    "max_continuations": 3,
+    "no_progress_turns": 2,
+    "turns": 1,
+    "stop_reason": "end_turn",
+    "expected": {
+      "enabled": false,
+      "continuations": 0,
+      "budgetExhausted": false,
+      "noProgressExhausted": false,
+      "lastStopReason": "end_turn",
+      "stopCause": "disabled"
+    }
+  },
+  {
+    "objective": "Ship the release",
+    "progress": ["implemented"],
+    "evidence": ["tests passed"],
+    "enabled": true,
+    "max_continuations": 1,
+    "no_progress_turns": 2,
+    "turns": 2,
+    "stop_reason": "end_turn",
+    "expected": {
+      "enabled": true,
+      "continuations": 1,
+      "budgetExhausted": true,
+      "noProgressExhausted": false,
+      "lastStopReason": "end_turn",
+      "stopCause": "continuation_budget"
+    }
+  },
+  {
+    "objective": "Ship the release",
+    "progress": [],
+    "evidence": [],
+    "enabled": true,
+    "max_continuations": 3,
+    "no_progress_turns": 1,
+    "turns": 2,
+    "stop_reason": "end_turn",
+    "expected": {
+      "enabled": true,
+      "continuations": 1,
+      "budgetExhausted": false,
+      "noProgressExhausted": true,
+      "noProgressTurns": 1,
+      "lastStopReason": "end_turn",
+      "stopCause": "no_progress"
+    }
+  },
+  {
+    "objective": "Ship the release",
+    "progress": ["implemented"],
+    "evidence": [],
+    "enabled": true,
+    "max_continuations": 1,
+    "no_progress_turns": 2,
+    "turns": 1,
+    "stop_reason": "stop",
+    "expected": {
+      "enabled": true,
+      "continuations": 1,
+      "budgetExhausted": false,
+      "noProgressExhausted": false,
+      "lastStopReason": "stop",
+      "stopCause": null
+    }
+  }
+]
