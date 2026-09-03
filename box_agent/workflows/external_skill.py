@@ -186,15 +186,17 @@ def build_external_skill_completion_gate(
     """Build a generic lifecycle gate for one explicit Skill invocation."""
     artifact_globs = infer_skill_delivery_globs(skill)
     skill_root = str(skill.skill_path.parent) if skill.skill_path is not None else None
-    limits = (tool_limits or ToolLimitsConfig()).external_skill
+    effective_limits = tool_limits or ToolLimitsConfig()
+    completion_limits = effective_limits.completion
+    limits = effective_limits.external_skill
     return CompletionGate(
         required_changed_artifact_globs=artifact_globs,
         baseline_artifact_signatures=artifact_signatures_for_globs(
             artifact_globs,
             str(workspace_dir),
         ),
-        max_continuations=3,
-        deadline_seconds=900.0,
+        max_continuations=completion_limits.max_continuations,
+        deadline_seconds=completion_limits.deadline_seconds,
         max_tool_calls=limits.max_tool_calls,
         max_delegated_tool_calls=limits.max_delegated_tool_calls,
         completion_reserve_tool_calls=(
@@ -238,15 +240,17 @@ def build_external_skill_completion_gate_from_options(
             limit=_MAX_FAILURES,
         ),
     )
-    limits = (tool_limits or ToolLimitsConfig()).external_skill
+    effective_limits = tool_limits or ToolLimitsConfig()
+    completion_limits = effective_limits.completion
+    limits = effective_limits.external_skill
     return CompletionGate(
         required_changed_artifact_globs=artifact_globs,
         baseline_artifact_signatures=artifact_signatures_for_globs(
             artifact_globs,
             str(workspace_dir),
         ),
-        max_continuations=3,
-        deadline_seconds=900.0,
+        max_continuations=completion_limits.max_continuations,
+        deadline_seconds=completion_limits.deadline_seconds,
         max_tool_calls=limits.max_tool_calls,
         max_delegated_tool_calls=limits.max_delegated_tool_calls,
         completion_reserve_tool_calls=(

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import sys
+from datetime import date
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, List, Mapping, Optional
 
@@ -55,6 +56,19 @@ from box_agent.tools.image_inspection_tool import ImageInspectionTool
 
 if TYPE_CHECKING:
     from box_agent.tools.permissions import PermissionEngine
+
+
+def render_system_prompt_template(
+    prompt: str,
+    *,
+    current_date: str | None = None,
+    language: str = "",
+) -> str:
+    """Render the stable scalar placeholders in a system-prompt template."""
+    return (
+        prompt.replace("{{.CurrentDate}}", current_date or date.today().isoformat())
+        .replace("{{.Language}}", language)
+    )
 
 
 def set_mcp_timeout_config(**kwargs: Any) -> None:
@@ -122,7 +136,12 @@ def build_sandbox_info_prompt(use_output_dir: bool = True) -> str:
             "沙箱有独立 `sys.executable`，cwd 已是 `{workspace}/output/`"
             "（或 host 指定的当前会话 output 根），"
             "存盘用相对路径（如 `plt.savefig(\"chart.png\")`）；禁写 `/mnt/data/`、"
-            "`sandbox:` 前缀；读用户上传文件用 `../<name>` 回 workspace 根。"
+            "`sandbox:` 前缀；读取用户上传文件时优先原样使用 host 在当前消息中提供的完整路径；"
+            "若仅有文件名，或完整路径返回 `FileNotFoundError` / `No such file or directory`，"
+            "不要猜测 `../` 层级；直接调用 `search_files`，以 `File Access Context` 中的 "
+            "`Current workspace` 为 `path`、原文件名为 `pattern`、`target=\"files\"` 精确定位，"
+            "找到唯一结果后，将搜索 `path` 与返回的相对路径拼接为绝对路径再重试；"
+            "无结果或有多个同名结果时停止并请用户确认。"
         )
     else:
         location_line = (
@@ -173,7 +192,12 @@ def build_file_delivery_prompt(use_output_dir: bool = True) -> str:
             "- **目录**：交付物落当前会话的 output 根目录；以沙箱 cwd 和 host 提供的工作区信息为准，"
             "不要写到 `~/.box-agent/` 等内部目录。\n"
             "- **相对路径**：bash、文件工具、`generate_image` 和视觉检查的相对路径都已从当前 output 根开始；"
-            "使用 `assets/generated/a.png`，不要再添加 `output/` 前缀。读取会话根的上传文件时使用 `../<name>`。\n"
+            "使用 `assets/generated/a.png`，不要再添加 `output/` 前缀。读取上传文件时优先原样使用 host 提供的完整路径；"
+            "若仅有文件名，或完整路径返回 `FileNotFoundError` / `No such file or directory`，"
+            "不要猜测 `../` 层级；直接调用 `search_files`，以 `File Access Context` 中的 "
+            "`Current workspace` 为 `path`、原文件名为 `pattern`、`target=\"files\"` 精确定位，"
+            "找到唯一结果后，将搜索 `path` 与返回的相对路径拼接为绝对路径再重试；"
+            "无结果或有多个同名结果时停止并请用户确认。\n"
             "- **桌面交付**：完成后说明文件名即可。宿主会从结构化 ArtifactEvent 渲染可打开的文件卡。"
             + preview_guidance
         )
@@ -634,6 +658,8 @@ def add_workspace_tools(tools: List[Tool], config: Config, workspace_dir: Path, 
             runtime_env=runtime_env,
             process_owner_id=process_owner_id,
             bypass_dangerous_command_approval=bypass_dangerous_command_approval,
+            default_timeout_seconds=config.tools.bash_default_timeout_seconds,
+            max_timeout_seconds=config.tools.bash_max_timeout_seconds,
         )
         tools.append(bash_tool)
         if process_owner_id is not None:

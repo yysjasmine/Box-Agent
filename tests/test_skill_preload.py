@@ -91,11 +91,11 @@ def test_external_skill_gate_preloads_selected_skill_not_builtin_document_skill(
 def test_research_synthesis_expands_web_search_budget() -> None:
     assert web_search_total_limit_for_active_skills(
         ("research-synthesis",),
-    ) == 100
+    ) == 150
     assert web_search_total_limit_for_active_skills(
         (),
         ("research-synthesis",),
-    ) == 100
+    ) == 150
     assert web_search_total_limit_for_active_skills(
         ("research-synthesis",),
         tool_limits=ToolLimitsConfig(
@@ -111,7 +111,7 @@ def test_research_synthesis_expands_web_search_budget() -> None:
         (),
         ("research-synthesis",),
         execution_profile="fast",
-    ) == 100
+    ) == 150
 
 
 class SummaryLLM:

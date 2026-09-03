@@ -153,6 +153,27 @@ async def test_kernel_acp_negotiates_and_seeds_bounded_continuation_once() -> No
     assert service.started_request.user_input.content == "继续"
 
 
+@pytest.mark.asyncio
+async def test_kernel_acp_advertises_only_negotiated_skillhub_capabilities() -> None:
+    agent = KernelACPAgent(_Connection(), _Service())
+
+    session = await agent.newSession(
+        SimpleNamespace(
+            cwd=".",
+            field_meta={
+                "host_capabilities": {
+                    "skillhub_search": {"version": 1},
+                    "skillhub_install": 1,
+                }
+            },
+        )
+    )
+
+    capabilities = session.field_meta["capabilities"]
+    assert capabilities["skillhub_search_versions"] == [1]
+    assert capabilities["skillhub_install_versions"] == [1]
+
+
 def test_native_autopilot_terminal_text_counts_no_progress_turns() -> None:
     """Native host rendering must match legacy CLI's no-progress count."""
 

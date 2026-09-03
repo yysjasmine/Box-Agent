@@ -28,6 +28,39 @@ from box_agent.tools.bash_tool import (
 from box_agent.tools.permissions import CapabilityPolicy, PermissionEngine
 
 
+def test_add_workspace_tools_applies_configured_bash_timeouts(tmp_path):
+    config = Config(
+        llm=LLMConfig(api_key="test"),
+        agent=AgentConfig(workspace_dir=str(tmp_path)),
+        tools=ToolsConfig(
+            enable_bash=True,
+            bash_default_timeout_seconds=450,
+            bash_max_timeout_seconds=1800,
+            enable_file_tools=False,
+            enable_todo=False,
+            enable_plan=False,
+            enable_sub_agent=False,
+            enable_skills=False,
+            enable_mcp=False,
+        ),
+    )
+    tools = []
+
+    add_workspace_tools(
+        tools,
+        config,
+        tmp_path,
+        allow_full_access=False,
+        output=lambda *_: None,
+        use_output_dir=False,
+    )
+
+    bash_tool = next(tool for tool in tools if tool.name == "bash")
+    timeout_schema = bash_tool.parameters["properties"]["timeout"]
+    assert timeout_schema["default"] == 450
+    assert timeout_schema["maximum"] == 1800
+
+
 def test_file_tool_package_preserves_legacy_imports():
     from box_agent.tools.file import JsonlQueryTool as PackagedJsonlQueryTool
     from box_agent.tools.file import ReadTool as PackagedReadTool
@@ -1228,6 +1261,28 @@ def test_lark_user_mode_policy_allows_local_embedded_skill_reads(command):
 
 def test_lark_user_mode_policy_does_not_exempt_other_skill_commands():
     error = _detect_lark_user_mode_violation("lark-cli skills install lark-base")
+
+    assert error is not None
+    assert "must pass `--as user`" in error
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "lark-cli auth login --recommend",
+        r'"D:\Soft\xiaohuanxiong-ai\raccoon-ai\resources\cli-bundle\node_modules\.bin\lark-cli.cmd" auth login',
+        r"'C:\Program Files\Raccoon\lark-cli.exe' auth login --no-wait --json",
+        "$BOX_AGENT_LARK_CLI auth status",
+    ],
+)
+def test_lark_user_mode_policy_allows_oauth_with_quoted_executable_paths(command):
+    assert _detect_lark_user_mode_violation(command) is None
+
+
+def test_lark_user_mode_policy_still_blocks_business_commands_with_quoted_executable_paths():
+    error = _detect_lark_user_mode_violation(
+        r'"D:\Soft\Raccoon\lark-cli.cmd" docs +fetch --doc abc'
+    )
 
     assert error is not None
     assert "must pass `--as user`" in error

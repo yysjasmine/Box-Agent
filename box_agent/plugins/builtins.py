@@ -40,6 +40,11 @@ from box_agent.observability import SessionTraceHook
 from box_agent.observability.session_trace import session_trace_enabled
 from box_agent.tools.registration import MCPToolRegistryController
 from box_agent.tools.experts import ExpertSkillToolContributor
+from box_agent.tools.skillhub_contributor import (
+    SkillHubContextContributor,
+    SkillHubDiscoveryState,
+    SkillHubToolContributor,
+)
 from box_agent.workflows import (
     AttachmentInspectionPolicy,
     BrowserIntentWorkflowPolicy,
@@ -337,25 +342,56 @@ def register_builtin_context_contributors(
         version=__version__,
         state_schema="1",
     )
+    registry.register(
+        "skill-marketplace",
+        SkillHubContextContributor(),
+        source="box-agent.builtin-context",
+        priority=40,
+        version=__version__,
+        state_schema="1",
+    )
 
 
 def register_builtin_session_tool_contributors(
     host: Any,
     *,
     skill_loader: Any | None,
+    skillhub_connection: Any | None = None,
+    skillhub_discovery_state: SkillHubDiscoveryState | None = None,
 ) -> None:
     """Register Tool factories whose instances must stay Session-local."""
 
-    if skill_loader is None:
-        return
-    host.registries["tools.session_contributors"].register(
-        "expert-skills",
-        ExpertSkillToolContributor(skill_loader),
-        source="box-agent.builtin-tools",
-        priority=100,
-        version=__version__,
-        state_schema="1",
-    )
+    registry = host.registries["tools.session_contributors"]
+    if skill_loader is not None:
+        registry.register(
+            "expert-skills",
+            ExpertSkillToolContributor(skill_loader),
+            source="box-agent.builtin-tools",
+            priority=100,
+            version=__version__,
+            state_schema="1",
+        )
+    if skillhub_connection is not None:
+        registry.register(
+            "skill-marketplace",
+            SkillHubToolContributor(
+                skillhub_connection,
+                skill_loader=skill_loader,
+                discovery_state=skillhub_discovery_state,
+            ),
+            source="box-agent.builtin-tools",
+            priority=90,
+            version=__version__,
+            state_schema="1",
+        )
+    if skillhub_discovery_state is not None:
+        host.registries["hooks"].register(
+            "skill-marketplace-discovery",
+            skillhub_discovery_state,
+            source="box-agent.builtin-tools",
+            version=__version__,
+            state_schema="1",
+        )
 
 
 def register_builtin_memory_extraction_hook(

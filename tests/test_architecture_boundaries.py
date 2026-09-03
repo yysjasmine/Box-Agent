@@ -97,6 +97,32 @@ def test_no_production_module_imports_retired_core_implementation() -> None:
     )
 
 
+def test_runtime_has_no_competing_session_log_recovery_owner() -> None:
+    assert not (PACKAGE_ROOT / "session_log.py").exists()
+    violations: list[str] = []
+    for path in PACKAGE_ROOT.rglob("*.py"):
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                modules = [alias.name for alias in node.names]
+            elif isinstance(node, ast.ImportFrom):
+                modules = [node.module or ""]
+            else:
+                continue
+            if any(
+                module == "box_agent.session_log"
+                or module.endswith(".session_log")
+                or module == "session_log"
+                for module in modules
+            ):
+                violations.append(f"{path.relative_to(PACKAGE_ROOT)}:{node.lineno}")
+
+    assert violations == [], (
+        "SQLite event/checkpoint/effect stores are the sole recovery source; "
+        f"a second append-only Session Log must not be imported: {violations}"
+    )
+
+
 def test_core_does_not_depend_on_application_adapters() -> None:
     core_path = PACKAGE_ROOT / "core.py"
     forbidden = _application_adapter_imports(core_path)

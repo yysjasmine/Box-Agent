@@ -3,7 +3,9 @@
 import asyncio
 import math
 import os
+import shlex
 import unittest.mock
+from pathlib import Path
 
 import pytest
 
@@ -17,6 +19,28 @@ from box_agent.tools.bash_tool import (
     _truncate_bash_streams,
 )
 from box_agent.tools.argument_limits import MAX_BASH_COMMAND_CHARS
+from box_agent.tools.pptx_safety import (
+    _SYNC_IMAGE_STATUS_SCRIPT,
+    detect_pptx_image_status_command_bypass,
+)
+
+
+def test_timeout_schema_uses_configured_bounds():
+    bash_tool = BashTool(default_timeout_seconds=450, max_timeout_seconds=1800)
+
+    timeout_schema = bash_tool.parameters["properties"]["timeout"]
+    assert timeout_schema["default"] == 450
+    assert timeout_schema["minimum"] == 1
+    assert timeout_schema["maximum"] == 1800
+    assert "default: 450, max: 1800" in bash_tool.description
+
+
+def test_timeout_constructor_rejects_inverted_bounds():
+    with pytest.raises(
+        ValueError,
+        match="max_timeout_seconds cannot be lower than default_timeout_seconds",
+    ):
+        BashTool(default_timeout_seconds=600, max_timeout_seconds=300)
 
 
 def test_bash_tools_opt_out_of_shared_result_compression():
@@ -109,6 +133,80 @@ async def test_blocks_pptx_self_check_bypass_command():
     assert not result.success
     assert result.exit_code == 1
     assert "PPTX HTML self-check bypass blocked" in result.error
+
+
+def _image_status_command(
+    artifact_root: Path,
+    *,
+    node_token: str = "node",
+    script_path: Path = _SYNC_IMAGE_STATUS_SCRIPT,
+    manifest_path: Path | None = None,
+) -> str:
+    manifest = manifest_path or (
+        artifact_root / "assets" / "generated" / "manifest.json"
+    )
+    return (
+        f"{node_token} {shlex.quote(str(script_path))} "
+        f"{shlex.quote(str(manifest))}"
+    )
+
+
+def test_allows_exact_pptx_image_status_command(tmp_path: Path):
+    command = _image_status_command(tmp_path, node_token="${BOX_AGENT_NODE:-node}")
+
+    assert detect_pptx_image_status_command_bypass(
+        command,
+        workspace_dir=str(tmp_path),
+        runtime_env={"BOX_AGENT_OUTPUT_DIR": str(tmp_path)},
+    ) is None
+
+
+@pytest.mark.parametrize(
+    "node_token",
+    [
+        "nodeBOX_AGENT_NODE",
+        "./nodeBOX_AGENT_NODE",
+        "$(touch${IFS}/tmp/pwn_BOX_AGENT_NODE)",
+        "`touch${IFS}/tmp/pwn_BOX_AGENT_NODE`",
+    ],
+)
+@pytest.mark.asyncio
+async def test_blocks_disguised_pptx_image_status_node_tokens(
+    tmp_path: Path,
+    node_token: str,
+):
+    bash_tool = BashTool(
+        workspace_dir=str(tmp_path),
+        runtime_env={"BOX_AGENT_OUTPUT_DIR": str(tmp_path)},
+    )
+
+    result = await bash_tool.execute(
+        command=_image_status_command(tmp_path, node_token=node_token)
+    )
+
+    assert result.success is False
+    assert result.exit_code == 1
+    assert "PPTX image-status synchronization blocked" in result.error
+
+
+@pytest.mark.parametrize("command_suffix", [" && echo bypass", " | cat", "\nnode --version"])
+@pytest.mark.asyncio
+async def test_blocks_pptx_image_status_command_chaining(
+    tmp_path: Path,
+    command_suffix: str,
+):
+    bash_tool = BashTool(
+        workspace_dir=str(tmp_path),
+        runtime_env={"BOX_AGENT_OUTPUT_DIR": str(tmp_path)},
+    )
+
+    result = await bash_tool.execute(
+        command=f"{_image_status_command(tmp_path)}{command_suffix}"
+    )
+
+    assert result.success is False
+    assert result.exit_code == 1
+    assert "PPTX image-status synchronization blocked" in result.error
 
 
 @pytest.mark.asyncio

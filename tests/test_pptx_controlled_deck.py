@@ -214,9 +214,9 @@ def test_every_collection_layout_publishes_one_typed_count_contract() -> None:
         for dna_id in theme["selection"]["visual_dna_ids"]
     }
     assert len(visual_dna_ids) == 32
-    assert len(theme_ids) == 48
-    assert visual_dna_ids <= theme_ids
-    assert covered_dna_ids == visual_dna_ids | {
+    assert len(theme_ids) == 47
+    assert visual_dna_ids - theme_ids == {"playful"}
+    assert covered_dna_ids == (visual_dna_ids - {"playful"}) | {
         "comic-panel",
         "technical-blueprint",
         "product-console",
@@ -345,7 +345,7 @@ def test_every_collection_layout_publishes_one_typed_count_contract() -> None:
         "data-intelligence"
     ]
     assert data_intelligence["composition"]["family"] == "analytical-exhibit"
-    assert len(manifest["layouts"]) == 31
+    assert len(manifest["layouts"]) == 33
     assert {layout["id"] for layout in manifest["layouts"]} >= {
         "cover-hero-v1",
         "cover-editorial-v1",
@@ -2266,8 +2266,8 @@ console.log(JSON.stringify({ layouts: slides.length, migrations, enumControls, c
 
     assert result.returncode == 0, result.stderr
     assert json.loads(result.stdout) == {
-        "layouts": 31,
-        "migrations": 961,
+        "layouts": 33,
+        "migrations": 1089,
         "enumControls": 29,
         "collectionControls": 31,
     }
@@ -2302,8 +2302,9 @@ def test_compact_theme_and_layout_list_aliases_are_supported() -> None:
     layout_payload = json.loads(layouts.stdout)
     theme_ids = [item["id"] for item in theme_payload["themes"]]
     assert theme_payload["composition_directions"] == list(COMPOSITION_DIRECTIONS)
-    assert len(theme_ids) == 48
+    assert len(theme_ids) == 47
     assert theme_ids == sorted(theme_ids)
+    assert "playful" not in theme_ids
     assert {
         "signal",
         "studio",
@@ -2323,7 +2324,7 @@ def test_compact_theme_and_layout_list_aliases_are_supported() -> None:
         "commerce-pulse",
         "logistics-control-tower",
     } <= set(theme_ids)
-    assert layout_payload["count"] == 31
+    assert layout_payload["count"] == 33
     assert {item["id"] for item in layout_payload["layouts"]} >= {
         "architecture-layered-v1",
         "system-integration-v1",
@@ -2470,7 +2471,8 @@ def test_deck_contract_scaffolds_ordered_repeated_layouts_once(tmp_path: Path) -
     assert image_payload["deck"]["design"] == payload["deck_skeleton"]["design"]
     assert len(image_payload["image_plan"]) == 3
     assert image_payload["image_plan"][0]["slot"] == "hero"
-    assert image_payload["image_plan"][0]["decision"] == "skip"
+    assert image_payload["image_plan"][0]["decision"] == "generate"
+    assert image_payload["image_plan"][0]["status"] == "pending"
     assert image_payload["image_plan"][1]["slot"] == "image"
     assert image_payload["image_plan"][1]["decision"] == "generate"
     assert image_payload["image_plan"][1]["status"] == "pending"
@@ -12863,3 +12865,913 @@ def test_typography_cover_role_wins_over_roadmap_words_in_deck_title(
     assert scaffold.returncode == 0, scaffold.stdout + scaffold.stderr
     deck = json.loads(deck_path.read_text(encoding="utf-8"))
     assert deck["slides"][0]["layout_id"] == "cover-editorial-v1"
+
+def _mix_hex(foreground: str, background: str, foreground_weight: float) -> str:
+    foreground_channels = [
+        int(foreground[index : index + 2], 16) for index in (1, 3, 5)
+    ]
+    background_channels = [
+        int(background[index : index + 2], 16) for index in (1, 3, 5)
+    ]
+    channels = [
+        round(front * foreground_weight + back * (1 - foreground_weight))
+        for front, back in zip(foreground_channels, background_channels, strict=True)
+    ]
+    return "#" + "".join(f"{channel:02X}" for channel in channels)
+
+
+def test_spec_sheet_measurement_rail_uses_one_consistent_left_gutter() -> None:
+    composition_css = (SKILL_DIR / "runtime" / "composition.css").read_text(encoding="utf-8")
+
+    assert (
+        'body[data-deck-composition="technical-schematic"]'
+        '[data-deck-composition-variant="spec-sheet"] '
+        ".composition-schematic-spec-rail {\n"
+        "  left: 48px;"
+    ) in composition_css
+    assert (
+        'body[data-deck-composition="technical-schematic"]'
+        '[data-deck-composition-variant="spec-sheet"] .data-table-wrap {\n'
+        "  margin-left: 150px;"
+    ) in composition_css
+
+
+def test_factory_floor_uses_role_based_page_rhythm() -> None:
+    manifest = json.loads((SKILL_DIR / "layouts" / "manifest.json").read_text(encoding="utf-8"))
+    factory_floor = next(
+        theme for theme in manifest["themes"] if theme["id"] == "factory-floor"
+    )
+    palette = factory_floor["palette"]
+
+    assert palette["alt_background"] == "#173F5F"
+    assert palette["alt_primary"] == "#F2C94C"
+    assert _contrast_ratio(palette["alt_text"], palette["alt_background"]) >= 4.5
+    assert _contrast_ratio(palette["alt_muted"], palette["alt_background"]) >= 3
+
+    deck_css = (SKILL_DIR / "runtime" / "deck.css").read_text(encoding="utf-8")
+    assert (
+        'body[data-deck-theme="factory-floor"] .layout-kpis .kpi-card:first-child'
+        " { background: var(--deck-primary-soft); }"
+    ) in deck_css
+    assert 'body[data-deck-theme="factory-floor"] .layout-statement {' in deck_css
+    assert 'body[data-deck-theme="factory-floor"] .layout-closing {' in deck_css
+    assert "  --deck-bg: #F2C94C;" in deck_css
+
+    composition_css = (SKILL_DIR / "runtime" / "composition.css").read_text(encoding="utf-8")
+    assert (
+        'body[data-deck-theme-id="factory-floor"]'
+        '[data-deck-composition="technical-schematic"]\n'
+        "  .slide\n"
+        "  :is(.slide-header, .cover-copy) {\n"
+        "  border-left: 0;"
+    ) in composition_css
+    assert (
+        'body[data-deck-theme-id="factory-floor"]'
+        '[data-deck-composition="technical-schematic"]\n'
+        "  .slide\n"
+        "  .eyebrow {"
+    ) in composition_css
+    assert "  background: var(--deck-primary);" in composition_css
+    assert "  color: var(--deck-bg);" in composition_css
+    assert (
+        'body[data-deck-theme-id="factory-floor"]'
+        '[data-deck-composition="technical-schematic"]\n'
+        "  .layout-data-table\n"
+        "  .data-table-wrap {\n"
+        "  margin-left: 0;"
+    ) in composition_css
+
+
+def test_comparison_table_emphasizes_body_column_without_tinting_header() -> None:
+    deck_css = (SKILL_DIR / "runtime" / "deck.css").read_text(encoding="utf-8")
+
+    assert (
+        ".table-comparison .data-table td:last-child {\n"
+        "  background: var(--deck-primary-soft);"
+    ) in deck_css
+    assert (
+        ".table-comparison .data-table th:last-child,\n"
+        ".table-comparison .data-table td:last-child"
+    ) not in deck_css
+
+
+def test_all_themes_receive_contrast_safe_role_surface_rhythm() -> None:
+    manifest = json.loads((SKILL_DIR / "layouts" / "manifest.json").read_text(encoding="utf-8"))
+    for theme in manifest["themes"]:
+        palette = theme["palette"]
+        role_surface = _mix_hex(palette["primary"], palette["surface"], 0.1)
+        assert _contrast_ratio(palette["text"], role_surface) >= 4.5, theme["id"]
+
+    deck_css = (SKILL_DIR / "runtime" / "deck.css").read_text(encoding="utf-8")
+    assert ".slide.layout-kpis .kpi-card:first-child," in deck_css
+    assert ".slide.layout-comparison .comparison-right," in deck_css
+    assert ".slide.layout-timeline .timeline-step:nth-child(even)" in deck_css
+    assert "var(--deck-primary) 10%, var(--deck-surface)" in deck_css
+    assert ".layout-statement," in deck_css
+
+
+def test_flagship_themes_define_distinct_contrast_safe_role_pages() -> None:
+    manifest = json.loads((SKILL_DIR / "layouts" / "manifest.json").read_text(encoding="utf-8"))
+    themes = {theme["id"]: theme for theme in manifest["themes"]}
+
+    orbit = themes["8-bit-orbit"]["palette"]
+    for background in (orbit["chart"][0], orbit["chart"][3], orbit["chart"][1]):
+        assert _contrast_ratio(orbit["inverse"], background) >= 4.5
+
+    daisy_text = themes["daisy-days"]["palette"]["text"]
+    for background in ("#A8E6CF", "#F7C8D4", "#FDE68A"):
+        assert _contrast_ratio(daisy_text, background) >= 4.5
+
+    editorial_text = themes["soft-editorial"]["palette"]["text"]
+    for background in ("#B7C7A8", "#E8C9B6", "#D6DD63"):
+        assert _contrast_ratio(editorial_text, background) >= 4.5
+
+    studio = themes["studio"]["palette"]
+    assert _contrast_ratio(studio["alt_text"], studio["alt_background"]) >= 4.5
+    intelligence = themes["data-intelligence"]["palette"]
+    assert (
+        _contrast_ratio(
+            intelligence["alt_text"], intelligence["alt_background"]
+        )
+        >= 4.5
+    )
+
+    deck_css = (SKILL_DIR / "runtime" / "deck.css").read_text(encoding="utf-8")
+    for theme_id in ("8-bit-orbit", "daisy-days", "soft-editorial", "factory-floor"):
+        assert f'body[data-deck-theme="{theme_id}"] .layout-statement' in deck_css
+        assert f'body[data-deck-theme="{theme_id}"] .layout-closing' in deck_css
+    assert 'body[data-deck-theme="studio"] .layout-statement' in deck_css
+    assert themes["studio"]["style"]["alternation"] == "section"
+    assert (
+        'body[data-deck-theme="data-intelligence"] :is('
+        ".layout-comparison, .layout-data-table)"
+    ) in deck_css
+    assert themes["data-intelligence"]["style"]["alternation"] == "section"
+
+
+def test_outline_role_pages_choose_role_layouts_and_preserve_overflow(
+    tmp_path: Path,
+) -> None:
+    outline_path = tmp_path / "outline.json"
+    outline = _write_outline(outline_path, page_count=5, source_mode="user_provided")
+    outline["slides"] = [
+        {
+            "page": 1,
+            "title": "第一章",
+            "message": "从问题背景进入主题。",
+            "bullets": [],
+            "layout": "章节页",
+            "visual": "章节分隔页",
+            "evidence": [],
+        },
+        {
+            "page": 2,
+            "title": "核心结论",
+            "message": "一句话说明最需要被记住的判断。",
+            "bullets": ["证明点甲", "证明点乙", "证明点丙"],
+            "layout": "观点页",
+            "visual": "单一核心结论与三个证明点",
+            "evidence": [],
+        },
+        {
+            "page": 3,
+            "title": "四项总结",
+            "message": "四项内容必须全部保留。",
+            "bullets": ["总结甲", "总结乙", "总结丙", "总结丁"],
+            "layout": "观点页",
+            "visual": "核心结论要点",
+            "evidence": [],
+        },
+        {
+            "page": 4,
+            "title": "行动式收尾",
+            "message": "把结论落实为三个后续动作。",
+            "bullets": ["行动甲", "行动乙", "行动丙"],
+            "layout": "closing-next-steps-v1",
+            "visual": "行动式收尾",
+            "evidence": [],
+        },
+        {
+            "page": 5,
+            "title": "五项后续行动",
+            "message": "五项行动必须全部保留。",
+            "bullets": ["行动一", "行动二", "行动三", "行动四", "行动五"],
+            "layout": "closing-next-steps-v1",
+            "visual": "行动式收尾",
+            "evidence": [],
+        },
+    ]
+    outline_path.write_text(json.dumps(outline, ensure_ascii=False), encoding="utf-8")
+    deck_path = tmp_path / "deck.json"
+
+    scaffold = _run(
+        "inspect_deck_contract.js",
+        "--theme",
+        "blue-professional",
+        "--outline",
+        str(outline_path),
+        "--out",
+        str(deck_path),
+    )
+
+    assert scaffold.returncode == 0, scaffold.stdout + scaffold.stderr
+    deck = json.loads(deck_path.read_text(encoding="utf-8"))
+    assert [slide["layout_id"] for slide in deck["slides"]] == [
+        "section-marker-v1",
+        "statement-focus-v1",
+        "cards-grid-v1",
+        "closing-next-steps-v1",
+        "cards-grid-v1",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("theme_id", "prompt", "expected_signal"),
+    [
+        (
+            "block-frame-mono-blue",
+            "黑白新野兽主义结构，只用克制的电光蓝点缀，硬阴影和零圆角。",
+            "user intent rule: monochrome electric-blue neo-brutalism",
+        ),
+        (
+            "creative-mode",
+            "创意机构作品汇报，使用绿色、粉色、橙色和黄色的高饱和色块海报。",
+            "user intent rule: multicolor creative-agency poster",
+        ),
+        (
+            "retro-windows",
+            "用 Windows 95 复古电脑窗口界面介绍软件发展历史。",
+            "user intent rule: classic desktop operating-system interface",
+        ),
+        (
+            "studio",
+            "创意工作室品牌提案，黑底配电光黄，高冲击大字与克制图形。",
+            "user intent rule: warm-black and electric-yellow studio",
+        ),
+    ],
+)
+def test_distinctive_visual_briefs_reach_registered_theme(
+    tmp_path: Path,
+    theme_id: str,
+    prompt: str,
+    expected_signal: str,
+) -> None:
+    deck_path = tmp_path / theme_id / "deck.json"
+    scaffold = _run(
+        "inspect_deck_contract.js",
+        "cover-hero-v1",
+        "cards-grid-v1",
+        "closing-next-steps-v1",
+        "--theme",
+        "auto",
+        "--title",
+        prompt,
+        "--fact",
+        prompt,
+        "--out",
+        str(deck_path),
+    )
+
+    assert scaffold.returncode == 0, scaffold.stdout + scaffold.stderr
+    report = json.loads(
+        (deck_path.parent / "qa" / "deck_contract.json").read_text(encoding="utf-8")
+    )
+    assert report["theme_selection"]["theme_id"] == theme_id
+    assert report["theme_selection"]["confidence"] == "high"
+    assert expected_signal in {
+        item["signal"]
+        for item in report["theme_selection"]["matched_signals"]
+    }
+
+
+def test_auto_theme_prompts_cover_every_registered_theme(tmp_path: Path) -> None:
+    manifest = json.loads(
+        (SKILL_DIR / "layouts" / "manifest.json").read_text(encoding="utf-8")
+    )
+    distinctive_prompts = {
+        "block-frame-mono-blue": (
+            "黑白新野兽主义结构，只用克制的电光蓝点缀，"
+            "硬阴影和零圆角。"
+        ),
+        "capsule": "小红书春季年轻美妆与护肤新品发布，清新活泼。",
+        "creative-mode": (
+            "创意机构作品汇报，使用绿色、粉色、橙色和黄色的"
+            "高饱和色块海报。"
+        ),
+        "daisy-days": (
+            "给小学生做一份儿童科普课堂课件，气质亲切活泼，"
+            "使用奶油底和彩虹粉彩。"
+        ),
+        "legal-docket": (
+            "法律意见书与案件分析，整理证据链、诉讼策略和合规审查。"
+        ),
+        "retro-windows": "用 Windows 95 复古电脑窗口界面介绍软件发展历史。",
+        "retro-zine": (
+            "为独立乐队新专辑和巡演制作发布演示，"
+            "地下音乐杂志与 riso 油墨。"
+        ),
+        "studio": (
+            "创意工作室品牌提案，黑底配电光黄，"
+            "高冲击大字与克制图形。"
+        ),
+        "vellum": "介绍哈利波特与霍格沃茨魔法世界的奇幻文学演示。",
+    }
+    missed = []
+
+    for theme in manifest["themes"]:
+        theme_id = theme["id"]
+        selection = theme["selection"]
+        prompt = distinctive_prompts.get(theme_id)
+        if prompt is None:
+            industries = "、".join(selection["industry_fit"][:3])
+            moods = "、".join(selection["mood_keywords"][:5])
+            prompt = (
+                f"请制作一份关于 {industries} 的演示。"
+                f"视觉希望 {moods}，{selection['scheme']} 配色，"
+                f"{selection.get('formality', 'medium')} 正式度。"
+            )
+
+        deck_path = tmp_path / theme_id / "deck.json"
+        scaffold = _run(
+            "inspect_deck_contract.js",
+            "cover-editorial-v1",
+            "--theme",
+            "auto",
+            "--title",
+            f"Auto selection coverage: {theme_id}",
+            "--fact",
+            prompt,
+            "--out",
+            str(deck_path),
+        )
+        assert scaffold.returncode == 0, scaffold.stdout + scaffold.stderr
+        report = json.loads(
+            (deck_path.parent / "qa" / "deck_contract.json").read_text(encoding="utf-8")
+        )
+        selected = report["theme_selection"]["theme_id"]
+        if selected != theme_id:
+            missed.append((theme_id, selected))
+
+    assert missed == []
+
+
+def test_theme_rank_preflight_returns_bounded_model_shortlist() -> None:
+    prompt = "创意机构年度品牌活动复盘，现代大胆，不要复古或像素风。"
+    ranked = _run(
+        "inspect_deck_contract.js",
+        "--rank-themes",
+        "--title",
+        "品牌活动复盘",
+        "--fact",
+        prompt,
+    )
+
+    assert ranked.returncode == 0, ranked.stdout + ranked.stderr
+    payload = json.loads(ranked.stdout)
+    assert payload["mode"] == "theme_shortlist"
+    assert 5 <= payload["candidate_count"] <= 8
+    assert payload["candidate_count"] == len(payload["candidates"])
+    assert len({item["id"] for item in payload["candidates"]}) == len(
+        payload["candidates"]
+    )
+    assert "creative-mode" in {item["id"] for item in payload["candidates"]}
+    assert all(
+        isinstance(item["eligible_for_model_choice"], bool)
+        and "deterministic_score" in item
+        and "matched_signals" in item
+        and "hard_conflicts" in item
+        for item in payload["candidates"]
+    )
+    assert payload["model_choice_contract"]["choose_from_candidates_only"] is True
+
+
+def test_model_theme_choice_reranks_only_within_deterministic_shortlist(
+    tmp_path: Path,
+) -> None:
+    prompt = "创意机构年度品牌活动复盘，现代大胆，不要复古或像素风。"
+    deck_path = tmp_path / "accepted" / "deck.json"
+    scaffold = _run(
+        "inspect_deck_contract.js",
+        "cover-editorial-v1",
+        "cards-grid-v1",
+        "--theme",
+        "auto",
+        "--theme-model-choice",
+        "creative-mode",
+        "--theme-model-reason",
+        "创意机构场景与多彩海报语法更匹配。",
+        "--title",
+        "品牌活动复盘",
+        "--fact",
+        prompt,
+        "--out",
+        str(deck_path),
+    )
+
+    assert scaffold.returncode == 0, scaffold.stdout + scaffold.stderr
+    report = json.loads(
+        (deck_path.parent / "qa" / "deck_contract.json").read_text(encoding="utf-8")
+    )
+    selection = report["theme_selection"]
+    assert selection["theme_id"] == "creative-mode"
+    assert selection["source"] == "model_reranked"
+    assert selection["model_choice"] == {
+        "theme_id": "creative-mode",
+        "reason": "创意机构场景与多彩海报语法更匹配。",
+        "accepted": True,
+    }
+    assert selection["deterministic_recommendation"]["theme_id"] != "creative-mode"
+
+
+def test_model_theme_choice_outside_shortlist_is_rejected(tmp_path: Path) -> None:
+    prompt = "创意机构年度品牌活动复盘，现代大胆，不要复古或像素风。"
+    deck_path = tmp_path / "rejected" / "deck.json"
+    scaffold = _run(
+        "inspect_deck_contract.js",
+        "cover-editorial-v1",
+        "--theme",
+        "auto",
+        "--theme-model-choice",
+        "8-bit-orbit",
+        "--theme-model-reason",
+        "尝试使用像素主题。",
+        "--title",
+        "品牌活动复盘",
+        "--fact",
+        prompt,
+        "--out",
+        str(deck_path),
+    )
+
+    assert scaffold.returncode == 0, scaffold.stdout + scaffold.stderr
+    report = json.loads(
+        (deck_path.parent / "qa" / "deck_contract.json").read_text(encoding="utf-8")
+    )
+    selection = report["theme_selection"]
+    assert selection["theme_id"] != "8-bit-orbit"
+    assert selection["source"] == "model_choice_rejected"
+    assert selection["model_choice"]["accepted"] is False
+    assert selection["model_choice"]["rejection_reason"] == (
+        "outside_deterministic_shortlist"
+    )
+
+
+def test_model_theme_choice_cannot_override_protected_subject_rule(
+    tmp_path: Path,
+) -> None:
+    deck_path = tmp_path / "protected" / "deck.json"
+    scaffold = _run(
+        "inspect_deck_contract.js",
+        "cover-editorial-v1",
+        "--theme",
+        "auto",
+        "--theme-model-choice",
+        "data-intelligence",
+        "--theme-model-reason",
+        "复盘包含经营数据。",
+        "--title",
+        "智能制造工厂运营复盘",
+        "--fact",
+        "生产线 OEE、良率、精益生产与质量管理。",
+        "--out",
+        str(deck_path),
+    )
+
+    assert scaffold.returncode == 0, scaffold.stdout + scaffold.stderr
+    report = json.loads(
+        (deck_path.parent / "qa" / "deck_contract.json").read_text(encoding="utf-8")
+    )
+    selection = report["theme_selection"]
+    assert selection["theme_id"] == "factory-floor"
+    assert selection["source"] == "model_choice_rejected"
+    assert selection["model_choice"]["rejection_reason"] == (
+        "protected_deterministic_signal"
+    )
+
+
+def test_model_theme_choice_cannot_impersonate_explicit_user_lock(
+    tmp_path: Path,
+) -> None:
+    result = _run(
+        "inspect_deck_contract.js",
+        "cover-editorial-v1",
+        "--theme",
+        "studio",
+        "--lock-theme",
+        "--theme-model-choice",
+        "creative-mode",
+        "--theme-model-reason",
+        "模型偏好。",
+        "--out",
+        str(tmp_path / "deck.json"),
+    )
+
+    assert result.returncode != 0
+    assert "--theme-model-choice requires --theme auto" in result.stderr
+
+
+def test_removed_playful_theme_is_rejected_by_validation(tmp_path: Path) -> None:
+    deck = json.loads(EXAMPLE.read_text(encoding="utf-8"))
+    deck["theme_id"] = "playful"
+    deck_path = tmp_path / "removed-playful-theme.json"
+    deck_path.write_text(json.dumps(deck, ensure_ascii=False), encoding="utf-8")
+
+    result = _run("validate_deck_spec.js", str(deck_path))
+
+    assert result.returncode == 1
+    payload = json.loads(result.stdout.split("\nDeck spec validation", 1)[0])
+    assert payload["issues"][0].startswith('Unknown theme_id: "playful"')
+
+
+def test_auto_image_mode_generates_a_generic_standard_cover_by_default(
+    tmp_path: Path,
+) -> None:
+    deck_path = tmp_path / "deck.json"
+
+    result = _run(
+        "inspect_deck_contract.js",
+        "cover-hero-v1",
+        "--title",
+        "季度经营复盘",
+        "--image-mode",
+        "auto",
+        "--out",
+        str(deck_path),
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    manifest = json.loads(
+        (tmp_path / "assets" / "generated" / "manifest.json").read_text(encoding="utf-8")
+    )
+    cover = manifest["image_plan"][0]
+    assert cover["required"] is True
+    assert cover["decision"] == "generate"
+    assert cover["status"] == "pending"
+    assert "defaults an eligible standard cover" in cover["decision_reason"]
+
+
+def test_auto_image_mode_uses_an_optional_inner_media_slot_by_default(
+    tmp_path: Path,
+) -> None:
+    outline_path = tmp_path / "outline.json"
+    outline = _write_outline(
+        outline_path,
+        page_count=2,
+        source_mode="user_provided",
+    )
+    outline["slides"][0].update(
+        {
+            "title": "年度作品集",
+            "layout": "cover",
+            "visual": "纯文字编辑式封面",
+        }
+    )
+    outline["slides"][1].update(
+        {
+            "title": "重点案例",
+            "layout": "project case",
+            "visual": "案例成果与关键指标",
+        }
+    )
+    outline_path.write_text(
+        json.dumps(outline, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    deck_path = tmp_path / "deck.json"
+
+    result = _run(
+        "inspect_deck_contract.js",
+        "cover-editorial-v1",
+        "project-case-study-v1",
+        "--outline",
+        str(outline_path),
+        "--image-mode",
+        "auto",
+        "--out",
+        str(deck_path),
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    manifest = json.loads(
+        (tmp_path / "assets" / "generated" / "manifest.json").read_text(encoding="utf-8")
+    )
+    cover, case_study = manifest["image_plan"]
+    assert cover["decision"] == "skip"
+    assert case_study["slot"] == "image"
+    assert case_study["required"] is True
+    assert case_study["decision"] == "generate"
+    assert "eligible media slot" in case_study["decision_reason"]
+
+
+def test_full_bleed_layout_scaffolds_a_required_background_contract(
+    tmp_path: Path,
+) -> None:
+    outline_path = tmp_path / "outline.json"
+    outline = _write_outline(
+        outline_path,
+        page_count=1,
+        source_mode="user_provided",
+    )
+    outline["slides"][0].update(
+        {
+            "title": "未来工作方式",
+            "message": "用一个沉浸场景建立未来愿景。",
+            "layout": "整页主视觉",
+            "visual": "整页生图，左侧文字安全区、右侧视觉焦点",
+        }
+    )
+    outline_path.write_text(
+        json.dumps(outline, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    deck_path = tmp_path / "deck.json"
+
+    result = _run(
+        "inspect_deck_contract.js",
+        "--outline",
+        str(outline_path),
+        "--image-mode",
+        "auto",
+        "--out",
+        str(deck_path),
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    deck = json.loads(deck_path.read_text(encoding="utf-8"))
+    manifest = json.loads(
+        (tmp_path / "assets" / "generated" / "manifest.json").read_text(encoding="utf-8")
+    )
+    entry = manifest["image_plan"][0]
+    assert deck["slides"][0]["layout_id"] == "image-full-bleed-v1"
+    assert entry["slot"] == "background"
+    assert entry["prop_path"] == "background"
+    assert entry["required"] is True
+    assert entry["decision"] == "generate"
+    assert entry["kind"] == "background"
+    assert entry["placement"] == "full-slide"
+    assert entry["treatment"] == "wash-dark"
+    assert entry["layout_contract"] == {
+        "slide_size": {"width": 1920, "height": 1080},
+        "text_regions": [
+            {
+                "name": "full-bleed-copy",
+                "x": 120,
+                "y": 170,
+                "width": 760,
+                "height": 650,
+            }
+        ],
+        "visual_focus_regions": [
+            {
+                "name": "primary-visual-focus",
+                "x": 1040,
+                "y": 80,
+                "width": 800,
+                "height": 920,
+            }
+        ],
+    }
+    assert "text-safe region" in entry["prompt"]
+    assert "primary-visual-focus" in entry["prompt"]
+
+
+def test_full_bleed_generated_background_binds_and_matches_dom_contract(
+    tmp_path: Path,
+) -> None:
+    outline_path = tmp_path / "outline.json"
+    outline = _write_outline(
+        outline_path,
+        page_count=1,
+        source_mode="user_provided",
+    )
+    outline["slides"][0].update(
+        {
+            "title": "未来工作方式",
+            "message": "用一个沉浸场景建立未来愿景。",
+            "layout": "整页主视觉",
+            "visual": "整页生图，左侧文字安全区、右侧视觉焦点",
+        }
+    )
+    outline_path.write_text(json.dumps(outline, ensure_ascii=False), encoding="utf-8")
+    deck_path = tmp_path / "deck.json"
+    scaffold = _run(
+        "inspect_deck_contract.js",
+        "--outline",
+        str(outline_path),
+        "--out",
+        str(deck_path),
+    )
+    assert scaffold.returncode == 0, scaffold.stdout + scaffold.stderr
+
+    generated = tmp_path / "assets" / "generated" / "slide-01-background.png"
+    generated.write_bytes(
+        base64.b64decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+        )
+    )
+    synced = _run(
+        "sync_image_manifest_status.js",
+        str(tmp_path / "assets" / "generated" / "manifest.json"),
+    )
+    assert synced.returncode == 0, synced.stdout + synced.stderr
+    patch_path = tmp_path / "deck.patch.json"
+    patch_path.write_text('{"slides":{}}', encoding="utf-8")
+    patched = _run("apply_deck_patch.js", str(deck_path), str(patch_path))
+    assert patched.returncode == 0, patched.stdout + patched.stderr
+
+    deck = json.loads(deck_path.read_text(encoding="utf-8"))
+    assert deck["slides"][0]["background"]["treatment"] == "wash-dark"
+    html_path = tmp_path / "index.html"
+    rendered = _run("render_deck_html.js", str(deck_path), "--out", str(html_path))
+    assert rendered.returncode == 0, rendered.stdout + rendered.stderr
+    html = html_path.read_text(encoding="utf-8")
+    assert "layout-image-full-bleed" in html
+    assert "background-wash-dark" in html
+
+    validated = _run(
+        "validate_image_layout_contract.js",
+        str(html_path),
+        str(tmp_path / "assets" / "generated" / "manifest.json"),
+    )
+    assert validated.returncode == 0, validated.stdout + validated.stderr
+
+
+def test_no_images_uses_registered_fallback_for_full_bleed_layout(
+    tmp_path: Path,
+) -> None:
+    deck_path = tmp_path / "deck.json"
+
+    result = _run(
+        "inspect_deck_contract.js",
+        "image-full-bleed-v1",
+        "--no-images",
+        "--out",
+        str(deck_path),
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    deck = json.loads(deck_path.read_text(encoding="utf-8"))
+    manifest = json.loads(
+        (tmp_path / "assets" / "generated" / "manifest.json").read_text(encoding="utf-8")
+    )
+    assert deck["slides"][0]["layout_id"] == "statement-focus-v1"
+    assert manifest["image_plan"][0]["decision"] == "skip"
+
+
+def test_outline_requires_a_data_visual_for_multiple_real_values(
+    tmp_path: Path,
+) -> None:
+    outline_path = tmp_path / "outline.json"
+    outline = _write_outline(
+        outline_path,
+        page_count=3,
+        source_mode="user_provided",
+    )
+    outline["slides"][1].update(
+        {
+            "title": "业务增长",
+            "message": "ARR 从 500 万元增长到 800 万元。",
+            "bullets": ["上期 ARR 500 万元", "本期 ARR 800 万元"],
+            "layout": "业务进展页",
+            "visual": "三张摘要信息卡",
+        }
+    )
+    outline_path.write_text(
+        json.dumps(outline, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    result = _run("validate_outline.js", str(outline_path))
+
+    assert result.returncode == 1
+    payload = json.loads(result.stdout)
+    assert any(
+        "appears data-heavy but visual does not name" in issue
+        for issue in payload["issues"]
+    )
+
+
+def test_near_duplicate_themes_own_distinct_composition_overrides() -> None:
+    css = (SKILL_DIR / "runtime" / "deck.css").read_text(encoding="utf-8")
+
+    assert 'body[data-deck-theme-id="coral"] .layout-cards' in css
+    assert (
+        'body[data-deck-theme-id="coral"][data-deck-composition] '
+        ".cards-count-3 .cards-grid"
+    ) in css
+    assert (
+        'body[data-deck-theme-id="block-frame-mono-blue"]'
+        '[data-deck-composition] .layout-cards.cards-count-3 .cards-grid'
+    ) in css
+    assert (
+        'body[data-deck-theme-id="creative-mode"][data-deck-composition] '
+        ".cards-count-3 .cards-grid"
+    ) in css
+    assert 'body[data-deck-theme-id="creative-mode"] .layout-cover-editorial' in css
+    assert 'body[data-deck-theme-id="coral"] [data-pptx-diagram]' not in css
+    assert (
+        'body[data-deck-theme-id="block-frame-mono-blue"] [data-pptx-diagram]'
+        not in css
+    )
+    assert 'body[data-deck-theme-id="creative-mode"] [data-pptx-diagram]' not in css
+    assert (
+        'body[data-deck-theme-id="consulting-navy"] '
+        ".layout-cover-editorial .editorial-cover-copy::after"
+    ) in css
+    assert (
+        'body[data-deck-theme-id="consulting-navy"][data-deck-composition] '
+        ".layout-cards.cards-count-3 .cards-grid"
+    ) in css
+    assert 'body[data-deck-theme-id="monochrome"] .composition-ledger-rail' in css
+    assert (
+        'body[data-deck-theme-id="monochrome"][data-deck-composition] '
+        ".layout-cards.cards-count-3 .cards-grid"
+    ) in css
+    assert 'body[data-deck-theme-id="consulting-navy"] [data-pptx-diagram]' not in css
+    assert 'body[data-deck-theme-id="monochrome"] [data-pptx-diagram]' not in css
+
+
+def test_institutional_balanced_grid_preserves_six_numbered_cards(
+    tmp_path: Path,
+) -> None:
+    deck_path = tmp_path / "deck.json"
+    scaffold = _run(
+        "inspect_deck_contract.js",
+        "cards-grid-v1",
+        "--theme",
+        "product-console",
+        "--family",
+        "institutional-grid",
+        "--design-seed",
+        "numbered-capacity-003",
+        "--out",
+        str(deck_path),
+    )
+    assert scaffold.returncode == 0, scaffold.stdout + scaffold.stderr
+    deck = json.loads(deck_path.read_text(encoding="utf-8"))
+    assert deck["design"]["variant"] == "balanced-grid"
+    deck["slides"][0]["props"].update(
+        {
+            "eyebrow": "汇报结构",
+            "title": "汇报目录",
+            "subtitle": (
+                "本页以编号卡片网格完整呈现6个汇报板块，"
+                "便于管理层快速把握整体结构。"
+            ),
+            "variant": "numbered",
+            "items": [
+                {
+                    "kicker": f"{index:02d}",
+                    "title": title,
+                    "body": body,
+                }
+                for index, (title, body) in enumerate(
+                    [
+                        (
+                            "大会概况与产品发布",
+                            "概览大会基本信息、参会目标及重点产品发布内容。",
+                        ),
+                        (
+                            "论坛核心亮点",
+                            "梳理主论坛与专题论坛中的关键议题、观点输出和业务价值。",
+                        ),
+                        (
+                            "生态合作成果",
+                            "汇总合作伙伴互动、合作签约、联合发布及生态建设进展。",
+                        ),
+                        (
+                            "展区与产品展示",
+                            "呈现展区动线、重点展项、产品演示和现场反馈。",
+                        ),
+                        (
+                            "媒体传播成效",
+                            "总结媒体曝光、传播渠道、重点报道和品牌声量表现。",
+                        ),
+                        (
+                            "总结与后续计划",
+                            "提炼大会成效、待跟进事项和下一阶段行动安排。",
+                        ),
+                    ],
+                    start=1,
+                )
+            ],
+        }
+    )
+    deck_path.write_text(json.dumps(deck, ensure_ascii=False), encoding="utf-8")
+    html_path = tmp_path / "index.html"
+    report_path = tmp_path / "html_self_check.json"
+
+    rendered = _run("render_deck_html.js", str(deck_path), "--out", str(html_path))
+    self_check = _run(
+        "html_self_check.js",
+        str(html_path),
+        "--dom-to-pptx",
+        "--report",
+        str(report_path),
+    )
+
+    assert rendered.returncode == 0, rendered.stdout + rendered.stderr
+    assert self_check.returncode == 0, self_check.stdout + self_check.stderr
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["issues"] == []
+    assert report["warnings"] == []

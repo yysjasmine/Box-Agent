@@ -86,6 +86,11 @@ class MCPToolExposureEngine:
     def supports_workflow_action(self, tool_name: str, capability: str) -> bool:
         return self._refresh().supports_workflow_action(tool_name, capability)
 
+    def restricted_passthrough_tool_names(self) -> frozenset[str]:
+        """Keep session-activated MCP tools visible under restrictive gates."""
+        self._refresh()
+        return frozenset(self._offered_generations)
+
     def unoffered_call_error(self, tool_name: str) -> str:
         return f"Tool '{tool_name}' was not offered in this model step."
 

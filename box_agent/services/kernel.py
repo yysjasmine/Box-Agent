@@ -16,9 +16,11 @@ import asyncio
 import hashlib
 import inspect
 import json
+import os
 from collections.abc import AsyncIterator, Callable, Mapping
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
@@ -74,6 +76,29 @@ _CHECKPOINT_EVENTS = {
     "step.completed",
     *_TERMINAL_EVENTS,
 }
+
+
+def _workspace_identity(metadata: Mapping[str, Any]) -> str | None:
+    value = metadata.get("workspace_dir")
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value.strip():
+        raise PersistenceConflictError("session workspace_dir must be a non-empty string")
+    resolved = Path(value).expanduser().resolve(strict=False)
+    return os.path.normcase(str(resolved))
+
+
+def _validate_session_workspace(
+    session: SessionInfo,
+    requested_metadata: Mapping[str, Any],
+) -> None:
+    """Keep a durable Session bound to its original filesystem authority."""
+    existing = _workspace_identity(session.metadata)
+    requested = _workspace_identity(requested_metadata)
+    if existing is not None and requested is not None and existing != requested:
+        raise PersistenceConflictError(
+            f"session {session.session_id!r} is bound to a different workspace"
+        )
 
 
 def _error(
@@ -652,12 +677,14 @@ class KernelAgentService:
         session_id = request.session_id or uuid4().hex
         existing = self._sessions.get(session_id)
         if existing is not None:
+            _validate_session_workspace(existing, request.metadata)
             return existing
         if self._session_store is not None:
             get_session = getattr(self._session_store, "get", None)
             if callable(get_session):
                 existing = await get_session(session_id)
                 if existing is not None:
+                    _validate_session_workspace(existing, request.metadata)
                     self._sessions[session_id] = existing
                     return existing
         session = SessionInfo(
@@ -702,12 +729,14 @@ class KernelAgentService:
             raise ValueError("load_session requires an explicit session_id")
         existing = self._sessions.get(session_id)
         if existing is not None:
+            _validate_session_workspace(existing, request.metadata)
             return existing
         if self._session_store is not None:
             get_session = getattr(self._session_store, "get", None)
             if callable(get_session):
                 existing = await get_session(session_id)
                 if existing is not None:
+                    _validate_session_workspace(existing, request.metadata)
                     self._sessions[session_id] = existing
                     return existing
         raise ValueError(f"unknown durable session: {session_id}")
@@ -726,6 +755,7 @@ class KernelAgentService:
                 existing = await get_session(session_id)
         if existing is None:
             raise ValueError(f"unknown durable session: {session_id}")
+        _validate_session_workspace(existing, metadata)
         updated = SessionInfo(
             session_id=existing.session_id,
             created_at=existing.created_at,
@@ -749,6 +779,10 @@ class KernelAgentService:
                         self._sessions[request.session_id] = restored
             if request.session_id not in self._sessions:
                 raise ValueError(f"unknown session: {request.session_id}")
+        _validate_session_workspace(
+            self._sessions[request.session_id],
+            request.metadata,
+        )
         key = (request.session_id, request.request_id)
         existing_run_id = self._request_runs.get(key)
         if existing_run_id is not None:

@@ -3121,7 +3121,24 @@ class AgentLoopKernel:
                     getattr(policy, "restrict_tools_until_required_succeed", False)
                 )
                 if restrict and required_names:
-                    allowed = required_names | {"tool_search"}
+                    passthrough_names: set[str] = set()
+                    passthrough_method = getattr(
+                        self._tools,
+                        "restricted_passthrough_tool_names",
+                        None,
+                    )
+                    if callable(passthrough_method):
+                        try:
+                            passthrough = passthrough_method()
+                            if not inspect.isawaitable(passthrough):
+                                passthrough_names = {
+                                    str(name)
+                                    for name in (passthrough or ())
+                                    if isinstance(name, str) and name.strip()
+                                }
+                        except Exception:
+                            passthrough_names = set()
+                    allowed = required_names | {"tool_search"} | passthrough_names
                     schemas = tuple(
                         schema
                         for schema in schemas

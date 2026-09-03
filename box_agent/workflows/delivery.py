@@ -25,12 +25,81 @@ DELIVERABLE_INTENT_KEYWORDS: Final[tuple[str, ...]] = (
     "create",
     "generate",
     "make",
+    "remake",
     "build",
     "export",
     "save",
     "continue",
     "resume",
     "finish",
+)
+
+_DELIVERABLE_CLAUSE_RE: Final[re.Pattern[str]] = re.compile(r"[^。！？!?；;\n]+")
+_DELIVERABLE_ACTION_PATTERN: Final[str] = "|".join(
+    (
+        rf"(?<![A-Za-z0-9_]){re.escape(keyword)}(?![A-Za-z0-9_])"
+        if keyword.isascii()
+        else re.escape(keyword)
+    )
+    for keyword in sorted(DELIVERABLE_INTENT_KEYWORDS, key=len, reverse=True)
+)
+_DELIVERABLE_ACTION_RE: Final[re.Pattern[str]] = re.compile(
+    _DELIVERABLE_ACTION_PATTERN,
+    re.IGNORECASE,
+)
+_ACTION_CONNECTOR_RE: Final[re.Pattern[str]] = re.compile(
+    r"(?:然后|随后|接着|之后|再|并且|并|"
+    r"\b(?:and(?:\s+then)?|then|afterwards)\b)",
+    re.IGNORECASE,
+)
+_ACTION_AFTER_CONNECTOR_RE: Final[re.Pattern[str]] = re.compile(r"后\s*$")
+_INFORMATIONAL_ACTION_PREFIXES: Final[tuple[str, ...]] = (
+    "关于",
+    "如何",
+    "怎么",
+    "怎样",
+    "介绍",
+    "文档",
+    "教程",
+    "能力",
+    "用法",
+    "阅读",
+    "了解",
+    "学习",
+    "掌握",
+    "研究",
+    "查阅",
+    "说明",
+    "how to",
+    "learn",
+    "read",
+    "understand",
+    "explain",
+    "documentation",
+    "guide",
+)
+_NEGATED_ACTION_PREFIXES: Final[tuple[str, ...]] = (
+    "不要",
+    "不用",
+    "无需",
+    "禁止",
+    "避免",
+    "do not",
+    "don't",
+    "without",
+    "avoid",
+    "never",
+)
+_INFORMATIONAL_ACTION_SUFFIX_RE: Final[re.Pattern[str]] = re.compile(
+    r"^\s*(?:"
+    r"(?:能力(?:介绍|说明)?|用法|方法)"
+    r"|(?:的(?:模型(?:的)?)?|模型(?:的)?)"
+    r"(?:介绍|能力(?:介绍|说明)?|文档|教程|用法|方法|说明)"
+    r"|[^，,。！？!?；;\n]{1,32}?的"
+    r"(?:介绍|能力(?:介绍|说明)?|教程|用法|方法|说明)"
+    r"(?:部分|一下)?\s*$"
+    r")",
+    re.IGNORECASE,
 )
 
 NEGATED_FORMAT_CLAUSE_RE: Final[re.Pattern[str]] = re.compile(
@@ -90,11 +159,78 @@ _DIRECT_PRESENTATION_REMAKE_RE: Final[re.Pattern[str]] = re.compile(
 )
 
 
-def has_deliverable_intent(text: str) -> bool:
-    normalized = text.strip().lower()
-    return bool(normalized) and any(
-        keyword in normalized for keyword in DELIVERABLE_INTENT_KEYWORDS
+def _local_action_start(
+    clause: str,
+    action_start: int,
+    *,
+    comma_is_boundary: bool,
+) -> int:
+    """Return the start governed by connectors and optional comma locality."""
+    prefix = clause[:action_start]
+    boundary = (
+        max(prefix.rfind("，"), prefix.rfind(","))
+        if comma_is_boundary
+        else -1
     )
+    for match in _ACTION_CONNECTOR_RE.finditer(prefix):
+        boundary = max(boundary, match.end() - 1)
+    after_match = _ACTION_AFTER_CONNECTOR_RE.search(prefix)
+    if after_match is not None:
+        boundary = max(boundary, after_match.start())
+    return boundary + 1
+
+
+def _local_action_bounds(clause: str, action_start: int) -> tuple[int, int]:
+    """Return the connector-delimited delivery segment for one action."""
+    following_connector = next(
+        _ACTION_CONNECTOR_RE.finditer(clause, action_start),
+        None,
+    )
+    end = (
+        following_connector.start()
+        if following_connector is not None
+        else len(clause)
+    )
+    return (
+        _local_action_start(clause, action_start, comma_is_boundary=False),
+        end,
+    )
+
+
+def _local_action_prefix(clause: str, action_start: int) -> str:
+    """Return text governing one action after its nearest local boundary."""
+    start = _local_action_start(clause, action_start, comma_is_boundary=True)
+    return clause[start:action_start].strip().casefold()
+
+
+def _action_is_informational(clause: str, action: re.Match[str]) -> bool:
+    local_prefix = _local_action_prefix(clause, action.start())
+    if any(marker in local_prefix for marker in _NEGATED_ACTION_PREFIXES):
+        return True
+    if any(marker in local_prefix for marker in _INFORMATIONAL_ACTION_PREFIXES):
+        return True
+    return bool(_INFORMATIONAL_ACTION_SUFFIX_RE.match(clause[action.end() :]))
+
+
+def extract_deliverable_clauses(text: str) -> tuple[str, ...]:
+    """Extract local segments containing an executable artifact-delivery action."""
+    clauses: list[str] = []
+    for clause_match in _DELIVERABLE_CLAUSE_RE.finditer(text):
+        clause = clause_match.group(0).strip()
+        if not clause:
+            continue
+        for action in _DELIVERABLE_ACTION_RE.finditer(clause):
+            if _action_is_informational(clause, action):
+                continue
+            start, end = _local_action_bounds(clause, action.start())
+            segment = clause[start:end].strip(" ，,")
+            if segment and segment not in clauses:
+                clauses.append(segment)
+    return tuple(clauses)
+
+
+def has_deliverable_intent(text: str) -> bool:
+    return bool(extract_deliverable_clauses(text))
 
 
 def strip_negated_format_clauses(text: str) -> str:

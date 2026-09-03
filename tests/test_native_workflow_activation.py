@@ -6,6 +6,7 @@ import pytest
 from dataclasses import replace
 
 from box_agent.api import Message, ModelChunk, RunOptions, RunRequest
+from box_agent.config import ToolLimitsConfig
 from box_agent.plugins import PluginHost
 from box_agent.services.kernel import KernelAgentService
 from box_agent.tools.base import ToolResult
@@ -156,7 +157,8 @@ def test_native_external_skill_enforces_bounded_completion_and_terminal_facts() 
         )
     )
 
-    for _ in range(3):
+    max_continuations = ToolLimitsConfig().completion.max_continuations
+    for _ in range(max_continuations):
         continuation = policy.next_continuation(
             stop_reason="stop",
             final_content="done",
@@ -167,7 +169,7 @@ def test_native_external_skill_enforces_bounded_completion_and_terminal_facts() 
         stop_reason="stop", final_content="done", step=1
     ) is None
     terminal = policy.terminal_metadata("stop", "done")["externalSkill"]
-    assert terminal["continuations"] == 3
+    assert terminal["continuations"] == max_continuations
     assert terminal["gaps"]
     assert policy.terminal_message("stop", "done")
 
@@ -364,7 +366,10 @@ async def test_service_kernel_persists_external_skill_terminal_facts(tmp_path) -
     result = await (await service.start(request)).wait()
 
     assert result.status == "completed"
-    assert result.metadata["externalSkill"]["continuations"] == 3
+    assert (
+        result.metadata["externalSkill"]["continuations"]
+        == ToolLimitsConfig().completion.max_continuations
+    )
     assert result.final_message.startswith("The Skill reached")
 
 

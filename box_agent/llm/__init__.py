@@ -16,6 +16,16 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "LightweightPromptError": (".lightweight", "LightweightPromptError"),
     "LightweightTimeout": (".lightweight", "LightweightTimeout"),
     "LightweightInvalidArgs": (".lightweight", "LightweightInvalidArgs"),
+    "ModelProfileUnavailable": (".model_profiles", "ModelProfileUnavailable"),
+    "client_for_model_profile": (".model_profiles", "client_for_model_profile"),
+    "default_model_profile_registry_path": (
+        ".model_profiles",
+        "default_model_profile_registry_path",
+    ),
+    "load_model_profile_revision": (
+        ".model_profiles",
+        "load_model_profile_revision",
+    ),
 }
 
 
@@ -45,4 +55,8 @@ __all__ = [
     "LightweightPromptError",
     "LightweightTimeout",
     "LightweightInvalidArgs",
+    "ModelProfileUnavailable",
+    "client_for_model_profile",
+    "default_model_profile_registry_path",
+    "load_model_profile_revision",
 ]

@@ -1506,13 +1506,13 @@ def build_checkpoint_text(
     research_search_exhausted: bool = False,
     direct_research_read_complete: bool = False,
     direct_research_read_available: bool = True,
+    pending_write: dict[str, int | str] | None = None,
 ) -> str | None:
     """Return an authoritative next-stage checkpoint for controlled decks.
 
-    The checkpoint intentionally uses only filesystem evidence. It is safe to
-    recompute before every model request; core keeps one refreshed copy as the
-    latest instruction while emitting a new checkpoint event only when the
-    filesystem-backed stage changes.
+    Persisted stage evidence comes from the filesystem. A live workflow policy
+    may additionally supply one ephemeral atomic-write transaction so an
+    accepted chunk is not mistaken for a missing canonical artifact.
     """
     if not workspace_dir:
         return None
@@ -2515,6 +2515,43 @@ def build_checkpoint_text(
     deck_label = str(deck_path.relative_to(Path(workspace_dir))) if deck_path else "missing"
     patch_label = str(patch_path.relative_to(Path(workspace_dir))) if patch_path.is_file() else "missing"
     html_label = str(html_path.relative_to(Path(workspace_dir))) if html_path else "missing"
+    pending_write_payload: str | None = None
+    if pending_write is not None:
+        pending_path = pending_write.get("path")
+        next_chunk_index = pending_write.get("next_chunk_index")
+        size_bytes = pending_write.get("size_bytes")
+        if (
+            pending_path in {"outline.json", "deck.patch.json", "deck.redesign.json"}
+            and isinstance(next_chunk_index, int)
+            and not isinstance(next_chunk_index, bool)
+            and next_chunk_index > 0
+            and isinstance(size_bytes, int)
+            and not isinstance(size_bytes, bool)
+            and size_bytes >= 0
+        ):
+            pending_write_payload = json.dumps(
+                {
+                    "path": pending_path,
+                    "next_chunk_index": next_chunk_index,
+                    "size_bytes": size_bytes,
+                },
+                ensure_ascii=False,
+                separators=(",", ":"),
+            )
+            if pending_path == "outline.json":
+                outline_label = "write_pending"
+            elif pending_path == "deck.patch.json":
+                patch_label = "write_pending"
+            next_action = (
+                "Continue the active atomic write transaction. Your very next tool "
+                f"call must be write_file with path={pending_path!r} and "
+                f"chunk_index={next_chunk_index}. Do not restart at chunk_index=0, "
+                "change paths, read the unchanged target, or call another tool. If "
+                "the already accepted prefix contains the complete JSON document, "
+                'send content="" with final=true. Otherwise send only the next fresh '
+                "suffix, using final=false until the last chunk and final=true on "
+                "the last chunk."
+            )
     research_input = (
         json.dumps(
             {
@@ -2577,6 +2614,11 @@ def build_checkpoint_text(
         + (f"PATCH_INPUT={patch_input}\n" if patch_input is not None else "")
         + (f"REPAIR_INPUT={repair_input}\n" if repair_input is not None else "")
         + (f"RESEARCH_INPUT={research_input}\n" if research_input is not None else "")
+        + (
+            f"WRITE_PENDING={pending_write_payload}\n"
+            if pending_write_payload is not None
+            else ""
+        )
         + f"NEXT_ACTION={next_action}"
     )
 

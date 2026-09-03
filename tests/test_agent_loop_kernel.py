@@ -1141,3 +1141,55 @@ async def test_kernel_applies_workflow_tool_catalog_visibility() -> None:
 
     assert result.status == "completed"
     assert [schema["name"] for schema in llm.tools] == ["required", "tool_search"]
+
+
+@pytest.mark.asyncio
+async def test_restrictive_workflow_preserves_dynamically_activated_tools() -> None:
+    class Workflow:
+        restrict_tools_until_required_succeed = True
+
+        def required_tool_names(self):
+            return {"generate_image"}
+
+    class LLM:
+        def __init__(self) -> None:
+            self.tools = ()
+
+        async def stream(self, request):
+            self.tools = request.tools
+            yield ModelChunk(content="done", finish_reason="stop")
+
+    class Tools:
+        def schemas(self):
+            return (
+                {"name": "generate_image", "input_schema": {"type": "object"}},
+                {"name": "tool_search", "input_schema": {"type": "object"}},
+                {"name": "lookup", "input_schema": {"type": "object"}},
+                {"name": "fallback", "input_schema": {"type": "object"}},
+            )
+
+        def restricted_passthrough_tool_names(self):
+            return frozenset({"lookup"})
+
+    llm = LLM()
+    result = await AgentLoopKernel(
+        llm=llm,
+        tool_engine=Tools(),
+        workflow_policy=Workflow(),
+    ).run(
+        RunRequest(
+            request_id="dynamic-catalog-visibility",
+            session_id="session-1",
+            turn_id="turn-1",
+            user_input=Message.user("create an image using discovered data"),
+        ),
+        emit=lambda event: None,
+        cancel_event=asyncio.Event(),
+    )
+
+    assert result.status == "completed"
+    assert [schema["name"] for schema in llm.tools] == [
+        "generate_image",
+        "tool_search",
+        "lookup",
+    ]

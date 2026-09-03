@@ -411,7 +411,10 @@ def _format_cli_section(cli: dict[str, str | None]) -> list[str]:
             lines.append(
                 "- 飞书/Lark CLI 策略：officev3 本地会话只允许用户身份；业务命令必须显式加 "
                 "`--as user`，不要使用 `--as bot`、`config bind --identity bot-only` 或 "
-                "`config strict-mode`。"
+                "`config strict-mode`。OAuth 命令不接受 `--as user`；需要用户授权且用户已同意时，"
+                "使用 `lark-cli auth login --no-wait --json`（按需附加 `--recommend` 或 `--scope`）"
+                "取得 CLI 返回的 `verification_url`，再调用可用的 `user_browser_open_tab_and_read` "
+                "打开该地址。只有浏览器工具成功后才能声称已打开；工具不可用时必须把地址明确交给用户。"
             )
         if cli.get("dws"):
             lines.append(

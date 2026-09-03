@@ -61,9 +61,14 @@ from box_agent.tools.setup import (
     build_sandbox_info_prompt,
     initialize_base_tools,
     merge_mcp_tools,
+    render_system_prompt_template,
 )
 from box_agent.tools.workspace import SessionScopedToolEngineFactory
 from box_agent.tools.session_workspace import SessionWorkspaceToolBuilder
+from box_agent.tools.skillhub_contributor import (
+    SkillHubDiscoveryState,
+    SkillHubHostBridge,
+)
 from box_agent.workflows import (
     WorkflowEventHook,
     workflow_selector_from_registry,
@@ -73,7 +78,7 @@ from box_agent.workflows import (
 def _build_system_prompt(config: Config, *, skills_enabled: bool) -> str:
     prompt_path = Config.find_config_file(config.agent.system_prompt_path)
     prompt = (
-        prompt_path.read_text(encoding="utf-8")
+        render_system_prompt_template(prompt_path.read_text(encoding="utf-8"))
         if prompt_path and prompt_path.exists()
         else "You are Box-Agent, an intelligent assistant that can help users complete tasks."
     )
@@ -241,7 +246,18 @@ async def build_kernel_acp_runtime(
         sandbox_prompt_builder=build_sandbox_info_prompt,
         file_delivery_prompt_builder=build_file_delivery_prompt,
     )
-    register_builtin_session_tool_contributors(host, skill_loader=skill_loader)
+    skillhub_bridge = SkillHubHostBridge()
+    skillhub_discovery_state = SkillHubDiscoveryState(
+        tool_search_available=(
+            config.tools.enable_mcp and config.tools.mcp.deferred_loading_enabled
+        )
+    )
+    register_builtin_session_tool_contributors(
+        host,
+        skill_loader=skill_loader,
+        skillhub_connection=skillhub_bridge,
+        skillhub_discovery_state=skillhub_discovery_state,
+    )
     register_builtin_session_trace_hook(host)
 
     def memory_planning_llm(session_id: str) -> SessionBoundLLM:
@@ -354,6 +370,7 @@ async def build_kernel_acp_runtime(
 
     def build_agent(conn: Any) -> KernelACPAgent:
         permission_gateway.bind(conn)
+        skillhub_bridge.bind(conn)
         return KernelACPAgent(
             conn,
             service,

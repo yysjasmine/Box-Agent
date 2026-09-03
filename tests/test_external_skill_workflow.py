@@ -105,7 +105,10 @@ def test_external_skill_gate_has_bounded_host_lifecycle(tmp_path: Path) -> None:
 
     assert gate.workflow_checkpoint_kind == EXTERNAL_SKILL_WORKFLOW_KIND
     assert gate.required_changed_artifact_globs == ("output/**/*.pptx",)
-    assert gate.max_tool_calls == 128
+    defaults = ToolLimitsConfig()
+    assert gate.max_continuations == defaults.completion.max_continuations
+    assert gate.deadline_seconds == defaults.completion.deadline_seconds
+    assert gate.max_tool_calls == defaults.external_skill.max_tool_calls
     assert gate.max_delegated_tool_calls == 512
     assert gate.completion_reserve_tool_calls == 10
     assert gate.pause_tools == frozenset({"request_user_input", "request_user_decision"})
@@ -119,6 +122,7 @@ def test_external_skill_gate_uses_configured_tool_limits(tmp_path: Path) -> None
         workspace_dir=tmp_path,
         skill=_skill(tmp_path),
         tool_limits=ToolLimitsConfig(
+            completion={"max_continuations": 7, "deadline_seconds": 2400},
             external_skill={
                 "max_tool_calls": 96,
                 "max_delegated_tool_calls": 320,
@@ -130,6 +134,8 @@ def test_external_skill_gate_uses_configured_tool_limits(tmp_path: Path) -> None
     assert gate.max_tool_calls == 96
     assert gate.max_delegated_tool_calls == 320
     assert gate.completion_reserve_tool_calls == 18
+    assert gate.max_continuations == 7
+    assert gate.deadline_seconds == 2400.0
 
 
 def test_policy_tracks_only_existing_workspace_or_skill_paths(tmp_path: Path) -> None:

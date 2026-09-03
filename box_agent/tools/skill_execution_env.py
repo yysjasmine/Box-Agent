@@ -113,6 +113,11 @@ def build_skill_execution_env(
         "PYTHONPATH": separator.join(python_path),
         "PLAYWRIGHT_BROWSERS_PATH": str(browser_root),
     }
+    if is_windows:
+        # BashTool decodes subprocess streams as UTF-8. Force Python-based
+        # Skill commands to preserve non-ASCII paths on Windows hosts.
+        result["PYTHONUTF8"] = "1"
+        result["PYTHONIOENCODING"] = "utf-8"
     if node_path:
         result["NODE_PATH"] = separator.join(node_path)
     if browser_executable:

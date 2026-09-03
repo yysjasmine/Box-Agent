@@ -76,15 +76,23 @@ class LLMClientPort:
         binding = normalize_llm_binding(metadata)
         client = self._client
         if binding is not None:
-            clone_for_model = getattr(client, "for_model", None)
-            if not callable(clone_for_model):
-                raise ValueError(
-                    "configured LLM client does not support session model binding"
+            if binding["source"] == "profile":
+                from box_agent.llm.model_profiles import client_for_model_profile
+
+                client = client_for_model_profile(
+                    binding,
+                    fallback_client=client,
                 )
-            client = clone_for_model(
-                binding["model"],
-                max_output_tokens=binding.get("maxTokens"),
-            )
+            else:
+                clone_for_model = getattr(client, "for_model", None)
+                if not callable(clone_for_model):
+                    raise ValueError(
+                        "configured LLM client does not support session model binding"
+                    )
+                client = clone_for_model(
+                    binding["model"],
+                    max_output_tokens=binding.get("maxTokens"),
+                )
         client_info = ClientInfo.from_meta(
             metadata.get("client_info", metadata.get("clientInfo"))
         )

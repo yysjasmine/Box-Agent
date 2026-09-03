@@ -10,7 +10,7 @@ from typing import Final
 from ..config import ToolLimitsConfig
 from ..persistence.artifacts import OUTPUT_SUBDIR
 from .delivery import (
-    has_deliverable_intent,
+    extract_deliverable_clauses,
     is_meta_prompt_rewrite_request,
     strip_negated_format_clauses,
 )
@@ -243,6 +243,8 @@ def build_auto_completion_gate(
     execution_profile: ExecutionProfile = "standard",
 ) -> CompletionGate | None:
     """Create an evidence-backed gate for a recognized deliverable request."""
+    effective_tool_limits = tool_limits or ToolLimitsConfig()
+    completion_limits = effective_tool_limits.completion
     requires_host_receipt, execution_result_criteria_count = (
         _host_execution_contract(user_text)
     )
@@ -252,23 +254,28 @@ def build_auto_completion_gate(
         return CompletionGate(
             required_tools=frozenset({"report_execution_result"}),
             execution_result_criteria_count=execution_result_criteria_count,
-            max_continuations=3,
-            deadline_seconds=900.0,
+            max_continuations=completion_limits.max_continuations,
+            deadline_seconds=completion_limits.deadline_seconds,
         )
+    deliverable_clauses = extract_deliverable_clauses(user_text)
     if (
         not confirmed_presentation
-        and not has_deliverable_intent(user_text)
+        and not deliverable_clauses
         and not requires_host_receipt
     ):
         return None
 
+    deliverable_text = "\n".join(deliverable_clauses).strip()
     presentation_gate = (
         build_presentation_completion_gate(
             user_text,
             workspace_dir,
             confirmed_presentation=confirmed_presentation,
-            tool_limits=tool_limits,
+            tool_limits=effective_tool_limits,
             execution_profile=execution_profile,
+            routing_text=(
+                user_text if confirmed_presentation else deliverable_text
+            ),
         )
         if allow_controlled_presentation
         else None
@@ -285,7 +292,7 @@ def build_auto_completion_gate(
             execution_result_criteria_count=execution_result_criteria_count,
         )
 
-    text = user_text.strip().lower()
+    text = deliverable_text.lower()
     positive_format_text = strip_negated_format_clauses(text)
     native_image_generation = _is_native_image_generation_request(
         text,
@@ -309,8 +316,8 @@ def build_auto_completion_gate(
         return CompletionGate(
             required_tools=required_tools,
             execution_result_criteria_count=execution_result_criteria_count,
-            max_continuations=3,
-            deadline_seconds=900.0,
+            max_continuations=completion_limits.max_continuations,
+            deadline_seconds=completion_limits.deadline_seconds,
         )
 
     deduped_patterns = tuple(dict.fromkeys(patterns))
@@ -331,6 +338,6 @@ def build_auto_completion_gate(
             deduped_patterns,
             workspace,
         ),
-        max_continuations=3,
-        deadline_seconds=900.0,
+        max_continuations=completion_limits.max_continuations,
+        deadline_seconds=completion_limits.deadline_seconds,
     )

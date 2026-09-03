@@ -54,6 +54,7 @@ from box_agent.tools.setup import (
     build_image_generation_prompt,
     build_sandbox_info_prompt,
     initialize_base_tools,
+    render_system_prompt_template,
 )
 from box_agent.tools.runtime import (
     DEFAULT_NODE_VERSION,
@@ -409,6 +410,8 @@ def _config_summary(config: Config, config_path: Path, show_secrets: bool = Fals
         "tools": {
             "enable_file_tools": config.tools.enable_file_tools,
             "enable_bash": config.tools.enable_bash,
+            "bash_default_timeout_seconds": config.tools.bash_default_timeout_seconds,
+            "bash_max_timeout_seconds": config.tools.bash_max_timeout_seconds,
             "enable_todo": config.tools.enable_todo,
             "enable_plan": config.tools.enable_plan,
             "enable_sub_agent": config.tools.enable_sub_agent,
@@ -2207,7 +2210,9 @@ async def run_agent(
     # 5. Load System Prompt (with priority search)
     system_prompt_path = Config.find_config_file(config.agent.system_prompt_path)
     if system_prompt_path and system_prompt_path.exists():
-        system_prompt = system_prompt_path.read_text(encoding="utf-8")
+        system_prompt = render_system_prompt_template(
+            system_prompt_path.read_text(encoding="utf-8")
+        )
         print(f"{Colors.GREEN}✅ Loaded system prompt (from: {system_prompt_path}){Colors.RESET}")
     else:
         system_prompt = "You are Box-Agent, an intelligent assistant that can help users complete various tasks."

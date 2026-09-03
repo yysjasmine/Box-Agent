@@ -3125,8 +3125,8 @@
       },
       "palette": {
         "background": "#1A1A1A",
-        "surface": "#F5F0E8",
-        "surface_strong": "#E8E0D4",
+        "surface": "#26201F",
+        "surface_strong": "#352826",
         "primary": "#E85D5D",
         "primary_soft": "#462727",
         "text": "#F5F0E8",
@@ -3143,7 +3143,7 @@
           "#E85D5D",
           "#F5F0E8",
           "#A56E68",
-          "#D44A4A"
+          "#4F7C78"
         ]
       },
       "typography": {
@@ -4003,6 +4003,13 @@
         "muted": "#53636D",
         "border": "#81939D",
         "inverse": "#FFFFFF",
+        "alt_background": "#173F5F",
+        "alt_surface": "#214E70",
+        "alt_text": "#F7FAFC",
+        "alt_muted": "#CFDAE0",
+        "alt_border": "#6F8798",
+        "alt_primary": "#F2C94C",
+        "alt_primary_text": "#F2C94C",
         "chart": [
           "#173F5F",
           "#F2C94C",
@@ -5940,7 +5947,7 @@
       "palette": {
         "background": "#060507",
         "surface": "#171017",
-        "surface_strong": "#F5EDF1",
+        "surface_strong": "#3A2634",
         "primary": "#ED3D8C",
         "primary_soft": "#3B1028",
         "text": "#F5EDF1",
@@ -5957,7 +5964,7 @@
           "#ED3D8C",
           "#FF66A8",
           "#F5EDF1",
-          "#B81D67"
+          "#6F5AE8"
         ]
       },
       "typography": {
@@ -6091,183 +6098,6 @@
               "blueprint-canvas",
               "annotated-system",
               "spec-sheet"
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "id": "playful",
-      "name": "Playful",
-      "description": "Warm peach and sand with ink-black geometry and friendly cream surfaces.",
-      "source_reference": "beautiful-html-templates/playful",
-      "selection": {
-        "visual_dna_ids": [
-          "playful"
-        ],
-        "mood_keywords": [
-          "playful",
-          "warm",
-          "friendly",
-          "peach",
-          "geometric",
-          "桃色",
-          "亲和",
-          "活泼"
-        ],
-        "industry_fit": [
-          "consumer product",
-          "education",
-          "community",
-          "wellness",
-          "lifestyle",
-          "startup"
-        ],
-        "density": "medium",
-        "scheme": "light",
-        "formality": "medium-low",
-        "fallback": false
-      },
-      "palette": {
-        "background": "#F0C8A0",
-        "surface": "#F7DEC6",
-        "surface_strong": "#E8B88E",
-        "primary": "#1A1A1A",
-        "primary_soft": "#F7DEC6",
-        "text": "#1A1A1A",
-        "muted": "#6E5543",
-        "border": "#1A1A1A",
-        "inverse": "#F7DEC6",
-        "chart": [
-          "#1A1A1A",
-          "#C76F52",
-          "#8E5B45",
-          "#E29D76"
-        ]
-      },
-      "typography": {
-        "display": "Syne, Arial Black, PingFang SC, Microsoft YaHei, sans-serif",
-        "body": "Space Grotesk, Noto Sans SC, PingFang SC, Arial, sans-serif",
-        "label": "Space Grotesk, Noto Sans SC, PingFang SC, Arial, sans-serif"
-      },
-      "shape": {
-        "radius_small": 16,
-        "radius_medium": 28,
-        "radius_large": 40,
-        "border_width": 2
-      },
-      "style": {
-        "canvas": "gradient",
-        "surface": "soft",
-        "shadow": "soft",
-        "heading": "standard",
-        "label": "pill",
-        "accent": "dot",
-        "alternation": "none"
-      },
-      "composition": {
-        "family": "playful-collage",
-        "direction": "expressive-objects",
-        "variants": [
-          "mosaic",
-          "staggered",
-          "capsule"
-        ],
-        "default_family": "playful-collage",
-        "default_direction": "expressive-objects",
-        "allowed_families": [
-          "playful-collage",
-          "cinematic-canvas",
-          "product-showcase",
-          "editorial-spread"
-        ],
-        "allowed_directions": [
-          "narrative-pages",
-          "visual-impact",
-          "interface-modules",
-          "expressive-objects"
-        ],
-        "directions": [
-          {
-            "id": "narrative-pages",
-            "label": "编辑与叙事",
-            "families": [
-              "editorial-spread"
-            ]
-          },
-          {
-            "id": "visual-impact",
-            "label": "视觉冲击",
-            "families": [
-              "cinematic-canvas"
-            ]
-          },
-          {
-            "id": "interface-modules",
-            "label": "产品与界面",
-            "families": [
-              "product-showcase"
-            ]
-          },
-          {
-            "id": "expressive-objects",
-            "label": "表达性构件",
-            "families": [
-              "playful-collage"
-            ]
-          }
-        ],
-        "families": [
-          {
-            "family": "playful-collage",
-            "selection_signals": [
-              "教育与社区",
-              "工作坊",
-              "轻松表达"
-            ],
-            "variants": [
-              "mosaic",
-              "staggered",
-              "capsule"
-            ]
-          },
-          {
-            "family": "cinematic-canvas",
-            "selection_signals": [
-              "图片主导",
-              "人物故事",
-              "章节转场"
-            ],
-            "variants": [
-              "full-bleed",
-              "split-film",
-              "chapter-cut"
-            ]
-          },
-          {
-            "family": "product-showcase",
-            "selection_signals": [
-              "UI 截图",
-              "功能演示",
-              "产品流程"
-            ],
-            "variants": [
-              "device-stage",
-              "browser-story",
-              "annotated-flow"
-            ]
-          },
-          {
-            "family": "editorial-spread",
-            "selection_signals": [
-              "研究叙事",
-              "杂志跨页",
-              "图文长内容"
-            ],
-            "variants": [
-              "split-spread",
-              "feature-spread",
-              "banded-spread"
             ]
           }
         ]
@@ -8263,11 +8093,11 @@
       "palette": {
         "background": "#1C1C1C",
         "surface": "#242422",
-        "surface_strong": "#F5D200",
+        "surface_strong": "#4B4212",
         "primary": "#F5D200",
         "primary_soft": "#3D3811",
-        "text": "#F5D200",
-        "muted": "#A79100",
+        "text": "#F4EEDC",
+        "muted": "#B8AA72",
         "border": "#4B4619",
         "inverse": "#1C1C1C",
         "alt_background": "#F5D200",
@@ -8278,9 +8108,9 @@
         "alt_primary": "#1C1C1C",
         "chart": [
           "#F5D200",
-          "#FFF28A",
-          "#A79100",
-          "#F0CC00"
+          "#F4EEDC",
+          "#8F9AA5",
+          "#E66A3D"
         ]
       },
       "typography": {
@@ -8825,6 +8655,7 @@
         "background": {
           "supported": true,
           "path": "background",
+          "required": false,
           "strategies": [
             "generate",
             "use_existing",
@@ -8978,6 +8809,7 @@
         "background": {
           "supported": true,
           "path": "background",
+          "required": false,
           "strategies": [
             "generate",
             "use_existing",
@@ -8991,9 +8823,25 @@
           ],
           "requiresLayoutContract": true,
           "textRegionNames": [
-            "editorial-cover-copy",
-            "editorial-cover-meta"
+            "editorial-cover-safe"
           ],
+          "layoutContract": {
+            "slide_size": {
+              "width": 1920,
+              "height": 1080
+            },
+            "text_regions": [
+              {
+                "name": "editorial-cover-safe",
+                "x": 92,
+                "y": 78,
+                "width": 1736,
+                "height": 930
+              }
+            ],
+            "visual_focus_regions": []
+          },
+          "defaultTreatment": "wash-light",
           "recommendation": "preferred",
           "useWhen": [
             "cover",
@@ -9134,6 +8982,7 @@
         "background": {
           "supported": true,
           "path": "background",
+          "required": false,
           "strategies": [
             "generate",
             "use_existing",
@@ -9285,6 +9134,7 @@
         "background": {
           "supported": true,
           "path": "background",
+          "required": false,
           "strategies": [
             "generate",
             "use_existing",
@@ -9488,6 +9338,7 @@
         "background": {
           "supported": true,
           "path": "background",
+          "required": false,
           "strategies": [
             "generate",
             "use_existing",
@@ -9676,6 +9527,7 @@
         "background": {
           "supported": true,
           "path": "background",
+          "required": false,
           "strategies": [
             "generate",
             "use_existing",
@@ -9887,6 +9739,7 @@
         "background": {
           "supported": true,
           "path": "background",
+          "required": false,
           "strategies": [
             "generate",
             "use_existing",
@@ -10070,6 +9923,7 @@
         "background": {
           "supported": true,
           "path": "background",
+          "required": false,
           "strategies": [
             "generate",
             "use_existing",
@@ -10272,6 +10126,7 @@
         "background": {
           "supported": true,
           "path": "background",
+          "required": false,
           "strategies": [
             "generate",
             "use_existing",
@@ -10503,6 +10358,7 @@
         "background": {
           "supported": true,
           "path": "background",
+          "required": false,
           "strategies": [
             "generate",
             "use_existing",
@@ -10720,6 +10576,7 @@
         "background": {
           "supported": true,
           "path": "background",
+          "required": false,
           "strategies": [
             "generate",
             "use_existing",
@@ -10929,6 +10786,7 @@
         "background": {
           "supported": true,
           "path": "background",
+          "required": false,
           "strategies": [
             "generate",
             "use_existing",
@@ -11218,6 +11076,7 @@
         "background": {
           "supported": true,
           "path": "background",
+          "required": false,
           "strategies": [
             "generate",
             "use_existing",
@@ -11480,6 +11339,7 @@
         "background": {
           "supported": true,
           "path": "background",
+          "required": false,
           "strategies": [
             "generate",
             "use_existing",
@@ -11699,6 +11559,7 @@
         "background": {
           "supported": true,
           "path": "background",
+          "required": false,
           "strategies": [
             "generate",
             "use_existing",
@@ -11983,6 +11844,7 @@
         "background": {
           "supported": true,
           "path": "background",
+          "required": false,
           "strategies": [
             "generate",
             "use_existing",
@@ -12318,6 +12180,7 @@
         "background": {
           "supported": true,
           "path": "background",
+          "required": false,
           "strategies": [
             "generate",
             "use_existing",
@@ -12548,6 +12411,7 @@
         "background": {
           "supported": true,
           "path": "background",
+          "required": false,
           "strategies": [
             "generate",
             "use_existing",
@@ -12766,6 +12630,7 @@
         "background": {
           "supported": true,
           "path": "background",
+          "required": false,
           "strategies": [
             "generate",
             "use_existing",
@@ -12982,6 +12847,7 @@
         "background": {
           "supported": true,
           "path": "background",
+          "required": false,
           "strategies": [
             "generate",
             "use_existing",
@@ -13217,6 +13083,7 @@
         "background": {
           "supported": true,
           "path": "background",
+          "required": false,
           "strategies": [
             "generate",
             "use_existing",
@@ -13458,6 +13325,7 @@
         "background": {
           "supported": true,
           "path": "background",
+          "required": false,
           "strategies": [
             "generate",
             "use_existing",
@@ -13696,6 +13564,7 @@
         "background": {
           "supported": true,
           "path": "background",
+          "required": false,
           "strategies": [
             "generate",
             "use_existing",
@@ -13930,6 +13799,7 @@
         "background": {
           "supported": true,
           "path": "background",
+          "required": false,
           "strategies": [
             "generate",
             "use_existing",
@@ -14110,6 +13980,7 @@
         "background": {
           "supported": true,
           "path": "background",
+          "required": false,
           "strategies": [
             "generate",
             "use_existing",
@@ -14322,6 +14193,7 @@
         "background": {
           "supported": true,
           "path": "background",
+          "required": false,
           "strategies": [
             "generate",
             "use_existing",
@@ -14551,6 +14423,7 @@
         "background": {
           "supported": true,
           "path": "background",
+          "required": false,
           "strategies": [
             "generate",
             "use_existing",
@@ -14769,6 +14642,7 @@
         "background": {
           "supported": true,
           "path": "background",
+          "required": false,
           "strategies": [
             "generate",
             "use_existing",
@@ -15001,6 +14875,7 @@
         "background": {
           "supported": true,
           "path": "background",
+          "required": false,
           "strategies": [
             "generate",
             "use_existing",
@@ -15197,6 +15072,7 @@
         "background": {
           "supported": true,
           "path": "background",
+          "required": false,
           "strategies": [
             "generate",
             "use_existing",
@@ -15289,6 +15165,290 @@
       }
     },
     {
+      "id": "image-feature-v1",
+      "label": "Wide image feature with supporting narrative",
+      "noImageFallbackLayoutId": "statement-focus-v1",
+      "editor": {
+        "label": "大图叙事",
+        "description": "一张横向大图与下方双栏叙事",
+        "controls": {},
+        "defaultProps": {
+          "eyebrow": "视觉故事",
+          "title": "用大图建立这一页的核心场景",
+          "body": "用一段简洁叙述解释图片与核心观点之间的关系。",
+          "image": {
+            "src": "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==",
+            "alt": "双击替换横向大图"
+          },
+          "caption": ""
+        }
+      },
+      "roles": [
+        "visual-story",
+        "product",
+        "solution",
+        "vision",
+        "case-study"
+      ],
+      "density": "medium-low",
+      "contentShape": [
+        "wide-media",
+        "story",
+        "caption"
+      ],
+      "mediaSlots": {
+        "min": 1,
+        "max": 1,
+        "ratios": [
+          "16:9",
+          "3:2"
+        ],
+        "countIncludesBackground": false,
+        "decision": {
+          "mode": "auto",
+          "rule": "Resolve the required wide image from generation or a source-backed asset; keep the supporting narrative editable below it."
+        },
+        "slots": [
+          {
+            "id": "image",
+            "propPath": "image",
+            "role": "wide-story-visual",
+            "required": true,
+            "strategies": [
+              "generate",
+              "use_existing"
+            ],
+            "preferredRatio": "16:9",
+            "placementControlledBy": "layout"
+          }
+        ],
+        "background": {
+          "supported": true,
+          "path": "background",
+          "required": false,
+          "strategies": [
+            "generate",
+            "use_existing",
+            "skip"
+          ],
+          "preferredRatio": "16:9",
+          "treatments": [
+            "wash-light",
+            "wash-dark",
+            "none"
+          ],
+          "requiresLayoutContract": true,
+          "textRegionNames": [
+            "image-feature-copy"
+          ],
+          "recommendation": "optional",
+          "useWhen": [
+            "atmosphere",
+            "brand-texture",
+            "low-detail-context"
+          ],
+          "avoidWhen": [
+            "dense-data",
+            "table",
+            "high-contrast-detail-behind-copy"
+          ]
+        }
+      },
+      "capabilities": [
+        "editable",
+        "pptx-safe",
+        "generated-image"
+      ],
+      "variants": [
+        "wide-image"
+      ],
+      "fields": {
+        "eyebrow": {
+          "type": "text",
+          "maxChars": 32,
+          "required": true,
+          "editor": true,
+          "role": "label"
+        },
+        "title": {
+          "type": "text",
+          "maxChars": 72,
+          "required": true,
+          "editor": true,
+          "role": "heading"
+        },
+        "body": {
+          "type": "text",
+          "maxChars": 220,
+          "required": true,
+          "editor": true,
+          "role": "lead"
+        },
+        "image": {
+          "type": "media",
+          "required": true,
+          "editor": true,
+          "aspectRatio": "16:9",
+          "allowedKinds": [
+            "image"
+          ]
+        },
+        "caption": {
+          "type": "text",
+          "maxChars": 80,
+          "required": false,
+          "editor": true,
+          "role": "caption"
+        }
+      },
+      "defaultProps": {
+        "caption": ""
+      }
+    },
+    {
+      "id": "image-full-bleed-v1",
+      "label": "Full-bleed generated image with safe text region",
+      "noImageFallbackLayoutId": "statement-focus-v1",
+      "editor": {
+        "label": "整页主视觉",
+        "description": "整页背景图与固定文字安全区",
+        "controls": {},
+        "defaultProps": {
+          "eyebrow": "VISION",
+          "title": "用整页视觉承载一个值得记住的观点",
+          "body": "文字保持精简，视觉焦点位于右侧安全区域之外。",
+          "caption": ""
+        }
+      },
+      "roles": [
+        "full-bleed",
+        "visual-story",
+        "poster",
+        "vision",
+        "campaign",
+        "divider"
+      ],
+      "density": "low",
+      "contentShape": [
+        "full-slide-image",
+        "headline",
+        "short-narrative"
+      ],
+      "mediaSlots": {
+        "min": 0,
+        "max": 0,
+        "ratios": [
+          "16:9"
+        ],
+        "countIncludesBackground": false,
+        "decision": {
+          "mode": "auto",
+          "rule": "Generate or bind one full-slide 16:9 image; keep the primary subject in the right focus region and the left text-safe region calm."
+        },
+        "slots": [],
+        "background": {
+          "supported": true,
+          "path": "background",
+          "required": true,
+          "strategies": [
+            "generate",
+            "use_existing",
+            "skip"
+          ],
+          "preferredRatio": "16:9",
+          "treatments": [
+            "wash-light",
+            "wash-dark",
+            "none"
+          ],
+          "requiresLayoutContract": true,
+          "textRegionNames": [
+            "full-bleed-copy"
+          ],
+          "layoutContract": {
+            "slide_size": {
+              "width": 1920,
+              "height": 1080
+            },
+            "text_regions": [
+              {
+                "name": "full-bleed-copy",
+                "x": 120,
+                "y": 170,
+                "width": 760,
+                "height": 650
+              }
+            ],
+            "visual_focus_regions": [
+              {
+                "name": "primary-visual-focus",
+                "x": 1040,
+                "y": 80,
+                "width": 800,
+                "height": 920
+              }
+            ]
+          },
+          "defaultTreatment": "wash-dark",
+          "recommendation": "preferred",
+          "useWhen": [
+            "cover",
+            "divider",
+            "vision",
+            "poster",
+            "cinematic-pause"
+          ],
+          "avoidWhen": [
+            "dense-data",
+            "table",
+            "long-body"
+          ]
+        }
+      },
+      "capabilities": [
+        "editable",
+        "pptx-safe",
+        "generated-background",
+        "full-bleed-image"
+      ],
+      "variants": [
+        "copy-left"
+      ],
+      "fields": {
+        "eyebrow": {
+          "type": "text",
+          "maxChars": 32,
+          "required": true,
+          "editor": true,
+          "role": "label"
+        },
+        "title": {
+          "type": "text",
+          "maxChars": 72,
+          "required": true,
+          "editor": true,
+          "role": "display"
+        },
+        "body": {
+          "type": "text",
+          "maxChars": 180,
+          "required": true,
+          "editor": true,
+          "role": "lead"
+        },
+        "caption": {
+          "type": "text",
+          "maxChars": 80,
+          "required": false,
+          "editor": true,
+          "role": "caption"
+        }
+      },
+      "defaultProps": {
+        "caption": ""
+      }
+    },
+    {
       "id": "closing-next-steps-v1",
       "label": "Closing statement with next steps or contact",
       "editor": {
@@ -15368,6 +15528,7 @@
         "background": {
           "supported": true,
           "path": "background",
+          "required": false,
           "strategies": [
             "generate",
             "use_existing",

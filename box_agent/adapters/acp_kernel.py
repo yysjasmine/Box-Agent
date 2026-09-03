@@ -39,6 +39,9 @@ from box_agent.adapters.service import request_from_payload
 from box_agent.adapters.projections import PostRunProjectionRequest
 from box_agent.context.action_hints import ActionHintStreamNormalizer
 from box_agent.persistence import parse_session_continuation
+from box_agent.tools.skillhub_contributor import skillhub_capabilities
+from box_agent.tools.skillhub_install_tool import SKILLHUB_INSTALL_CAPABILITY_VERSION
+from box_agent.tools.skillhub_search_tool import SKILLHUB_SEARCH_CAPABILITY_VERSION
 from box_agent.workflows.routing import text_requests_native_plan
 from box_agent.workflows.goal import (
     GoalToolStore,
@@ -562,14 +565,22 @@ class KernelACPAgent:
                 session.session_id,
                 goal_request,
             )
+        response_capabilities = {
+            "session_continuation_versions": [1],
+            "managed_mcp_config_versions": [1],
+        }
+        skillhub_search, skillhub_install = skillhub_capabilities(session_metadata)
+        if skillhub_search:
+            response_capabilities["skillhub_search_versions"] = [
+                SKILLHUB_SEARCH_CAPABILITY_VERSION
+            ]
+        if skillhub_install:
+            response_capabilities["skillhub_install_versions"] = [
+                SKILLHUB_INSTALL_CAPABILITY_VERSION
+            ]
         return NewSessionResponse(
             sessionId=session.session_id,
-            field_meta={
-                "capabilities": {
-                    "session_continuation_versions": [1],
-                    "managed_mcp_config_versions": [1],
-                }
-            },
+            field_meta={"capabilities": response_capabilities},
         )
 
     async def loadSession(self, params: Any) -> Any:

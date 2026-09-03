@@ -28,8 +28,9 @@ provider: "anthropic"
 # comma/whitespace-separated; built-ins are always kept:
 #   export BOX_AGENT_SENSENOVA_MODEL_PREFIXES="my-family-,another-"
 # Hosted officev3 login auth lives outside config.yaml so token refreshes do not
-# mark model/provider config dirty. By default Box-Agent reads auth.json next to
-# this file before every LLM request and URL-based MCP connection.
+# mark model/provider config dirty. Before each LLM request, xiaohuanxiong.com
+# providers refresh a near-expiry JWT with auth.json's refresh_token and
+# atomically persist rotated tokens. URL-based MCP connections read the same file.
 # auth_file: "/path/to/auth.json"
 
 # Model token budget. `context_window` is the total context the model accepts;
@@ -44,10 +45,10 @@ max_output_tokens: 63999
 
 # Per-request wall-clock cap (seconds) handed to the provider SDK. For streaming
 # calls this bounds the gap between bytes (connect + per-read), not the total
-# generation — a long answer is fine as long as tokens keep flowing. Defaults to
-# the SDK default of 600. Lower it to fail fast with a clean error instead of
-# hanging when a gateway stalls before the first token.
-timeout: 600.0
+# generation — a long answer is fine as long as tokens keep flowing. Agent
+# sessions default to 1200 seconds. Lower it to fail fast with a clean error
+# instead of hanging when a gateway stalls before the first token.
+timeout: 1200.0
 
 # ===== Lite LLM (Optional) =====
 # Lightweight model for small, tool-free tasks: session-title generation,
@@ -75,7 +76,7 @@ retry:
 # max_steps: 300 # Maximum execution steps
 max_parallel_tools: 8 # Hard cap on concurrent parallel_safe tool calls (sub_agent, generate_image) per step
 parallel_tool_timeout_seconds: 900 # Per-step wall-clock cap for one parallel_safe tool batch
-# provider_stale_seconds: 180 # Seconds without a new provider chunk before a stream is treated as stale.
+# provider_stale_seconds: 300 # Seconds without a new provider chunk before a stream is treated as stale.
 #                             # Raise for slow/deep-thinking models; env BOX_AGENT_PROVIDER_STALE_SECONDS overrides.
 # sub_agent_token_limit: 50000 # Per-call child context budget
 # sub_agent_batch_synthesis_timeout_seconds: 600 # files batch synthesis call; 0 disables this extra cap
@@ -107,6 +108,9 @@ max_truncation_continuations: 1 # Max continuations per turn (loop guard)
 #     deep_research_total_calls: 150 # 0..512; deep-research per-turn web-search budget
 #   search_files:
 #     consecutive_empty_limit: 8 # 1..50; stop repeated file searches after empty results
+#   completion:
+#     max_continuations: 5 # 0..20; bounded continuation attempts for deliverables
+#     deadline_seconds: 1800 # >0..14400; total completion window
 #   external_skill:
 #     max_tool_calls: 160 # 1..512; total tool-call budget
 #     max_delegated_tool_calls: 512 # 1..4096; separate aggregate child-tool budget
@@ -140,6 +144,8 @@ tools:
   # Basic tool switches
   enable_file_tools: true # File read/write/append/edit tools (ReadTool, WriteTool, AppendTool, EditTool)
   enable_bash: true # Bash command execution tool
+  # bash_default_timeout_seconds: 300 # Foreground command timeout when omitted
+  # bash_max_timeout_seconds: 1200 # Upper bound for one foreground command
   enable_todo: true # Task tracking tool (TodoWriteTool, TodoReadTool)
   enable_plan: true # Structured planning tool (PlanWriteTool, PlanReadTool)
 
@@ -157,8 +163,8 @@ tools:
     # Hide ordinary MCP schemas until tool_search activates them for a session.
     deferred_loading_enabled: true
     connect_timeout: 60.0 # Connection timeout in seconds (default: 60)
-    execute_timeout: 60.0 # Tool execution timeout in seconds (default: 60)
-    sse_read_timeout: 120.0 # SSE read timeout in seconds (default: 120)
+    execute_timeout: 120.0 # Tool execution timeout in seconds (default: 120)
+    sse_read_timeout: 180.0 # SSE read timeout in seconds (default: 180)
 
 # ===== Image Generation Service =====
 # The built-in generate_image tool reads this block the same way LLM requests

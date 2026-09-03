@@ -85,7 +85,7 @@ def test_minimal_spec_defaults_to_trusted_local_read_tools_only() -> None:
         "write_scope": None,
         "external_side_effect": False,
     }
-    assert parsed.budget.to_dict() == {"max_steps": 60, "max_tool_calls": 32}
+    assert parsed.budget.to_dict() == {"max_steps": 80, "max_tool_calls": 48}
 
 
 def test_files_infer_bounded_batch_strategy_and_read_file() -> None:

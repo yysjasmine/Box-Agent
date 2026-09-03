@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
 
 import pytest
 
@@ -755,6 +756,93 @@ async def test_kernel_service_load_session_rejects_unknown_and_restores_existing
 
 
 @pytest.mark.asyncio
+async def test_durable_session_rejects_workspace_change_without_mutation(
+    tmp_path: Path,
+) -> None:
+    db_path = tmp_path / "workspace-session.sqlite3"
+    workspace = tmp_path / "workspace"
+    other_workspace = tmp_path / "other"
+    first = KernelAgentService(
+        kernel_factory=FakeKernel,
+        session_store=SQLiteSessionStore(db_path),
+    )
+    created = await first.open_session(
+        SessionOpenRequest(
+            session_id="session-1",
+            metadata={"workspace_dir": str(workspace), "mode": "code"},
+        )
+    )
+
+    restarted = KernelAgentService(
+        kernel_factory=FakeKernel,
+        session_store=SQLiteSessionStore(db_path),
+    )
+    with pytest.raises(PersistenceConflictError, match="workspace"):
+        await restarted.open_session(
+            SessionOpenRequest(
+                session_id="session-1",
+                metadata={"workspace_dir": str(other_workspace)},
+            )
+        )
+
+    restored = await restarted.load_session(
+        SessionOpenRequest(session_id="session-1")
+    )
+    assert restored == created
+
+
+@pytest.mark.asyncio
+async def test_durable_session_accepts_equivalent_workspace_syntax(
+    tmp_path: Path,
+) -> None:
+    db_path = tmp_path / "equivalent-workspace.sqlite3"
+    workspace = tmp_path / "workspace"
+    service = KernelAgentService(
+        kernel_factory=FakeKernel,
+        session_store=SQLiteSessionStore(db_path),
+    )
+    created = await service.open_session(
+        SessionOpenRequest(
+            session_id="session-1",
+            metadata={"workspace_dir": str(workspace)},
+        )
+    )
+
+    reopened = await service.open_session(
+        SessionOpenRequest(
+            session_id="session-1",
+            metadata={"workspace_dir": str(workspace / ".")},
+        )
+    )
+
+    assert reopened == created
+
+
+@pytest.mark.asyncio
+async def test_run_rejects_workspace_different_from_durable_session(
+    tmp_path: Path,
+) -> None:
+    service = KernelAgentService(kernel_factory=FakeKernel)
+    await service.open_session(
+        SessionOpenRequest(
+            session_id="session-1",
+            metadata={"workspace_dir": str(tmp_path / "workspace")},
+        )
+    )
+
+    with pytest.raises(PersistenceConflictError, match="workspace"):
+        await service.start(
+            RunRequest(
+                request_id="request-1",
+                session_id="session-1",
+                turn_id="turn-1",
+                user_input=Message.user("hello"),
+                metadata={"workspace_dir": str(tmp_path / "other")},
+            )
+        )
+
+
+@pytest.mark.asyncio
 async def test_kernel_service_updates_durable_session_metadata(tmp_path) -> None:
     db_path = tmp_path / "session-update.sqlite3"
     service = KernelAgentService(
@@ -779,6 +867,28 @@ async def test_kernel_service_updates_durable_session_metadata(tmp_path) -> None
         SessionOpenRequest(session_id="session-1")
     )
     assert restored.metadata["goal"]["objective"] == "Ship"
+
+
+@pytest.mark.asyncio
+async def test_session_metadata_update_cannot_move_workspace(tmp_path: Path) -> None:
+    service = KernelAgentService(kernel_factory=FakeKernel)
+    workspace = tmp_path / "workspace"
+    created = await service.open_session(
+        SessionOpenRequest(
+            session_id="session-1",
+            metadata={"workspace_dir": str(workspace), "mode": "code"},
+        )
+    )
+
+    with pytest.raises(PersistenceConflictError, match="workspace"):
+        await service.update_session_metadata(
+            "session-1",
+            {"workspace_dir": str(tmp_path / "other"), "mode": "code"},
+        )
+
+    assert await service.load_session(
+        SessionOpenRequest(session_id="session-1")
+    ) == created
 
 
 @pytest.mark.asyncio

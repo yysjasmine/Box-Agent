@@ -662,6 +662,7 @@ def _run(llm, gate, **kw):
 
 def test_build_auto_completion_gate_detects_deliverable_ppt_request(tmp_path):
     gate = build_auto_completion_gate("生成一份 PPT", tmp_path)
+    presentation_limits = ToolLimitsConfig().presentation
 
     assert gate is not None
     assert gate.required_changed_artifact_globs == (
@@ -676,12 +677,20 @@ def test_build_auto_completion_gate_detects_deliverable_ppt_request(tmp_path):
         "output/**/qa/html_self_check.json",
         "output/**/qa/runtime_probe.json",
     )
-    assert gate.max_continuations == 3
-    assert gate.max_tool_calls == 128
-    assert gate.max_delegated_tool_calls == 512
+    completion_limits = ToolLimitsConfig().completion
+    assert gate.max_continuations == completion_limits.max_continuations
+    assert gate.deadline_seconds == completion_limits.deadline_seconds
+    assert gate.max_tool_calls == presentation_limits.max_tool_calls
+    assert (
+        gate.max_delegated_tool_calls
+        == presentation_limits.max_delegated_tool_calls
+    )
     assert gate.web_search_total_limit is None
     assert gate.workflow_options["research_mode"] == "auto"
-    assert gate.completion_reserve_tool_calls == 10
+    assert (
+        gate.completion_reserve_tool_calls
+        == presentation_limits.completion_reserve_calls
+    )
     assert gate.pause_tools == frozenset({"request_user_input", "request_user_decision"})
     assert {
         "plan_write",
@@ -918,8 +927,9 @@ def test_build_auto_completion_gate_requires_host_execution_receipt(tmp_path):
     assert gate is not None
     assert "report_execution_result" in gate.required_tools
     assert gate.execution_result_criteria_count == 2
-    assert gate.max_continuations == 3
-    assert gate.deadline_seconds == 900.0
+    completion_limits = ToolLimitsConfig().completion
+    assert gate.max_continuations == completion_limits.max_continuations
+    assert gate.deadline_seconds == completion_limits.deadline_seconds
 
 
 def test_host_execution_gate_uses_the_final_host_contract(tmp_path):
@@ -1023,8 +1033,14 @@ def test_short_factual_presentation_routes_through_research_synthesis(tmp_path):
 
     assert gate is not None
     assert gate.workflow_options["research_mode"] == "deep"
-    assert gate.max_tool_calls == 200
-    assert gate.web_search_total_limit == 100
+    assert (
+        gate.max_tool_calls
+        == ToolLimitsConfig().presentation.deep_research_max_tool_calls
+    )
+    assert (
+        gate.web_search_total_limit
+        == ToolLimitsConfig().web_search.deep_research_total_calls
+    )
 
     checkpoint = completion_gate_progress_text(gate, str(tmp_path))
     assert checkpoint is not None
@@ -1412,8 +1428,14 @@ def test_explicit_research_action_overrides_large_reference_content(tmp_path):
 
     assert gate is not None
     assert gate.workflow_options["research_mode"] == "deep"
-    assert gate.max_tool_calls == 200
-    assert gate.web_search_total_limit == 100
+    assert (
+        gate.max_tool_calls
+        == ToolLimitsConfig().presentation.deep_research_max_tool_calls
+    )
+    assert (
+        gate.web_search_total_limit
+        == ToolLimitsConfig().web_search.deep_research_total_calls
+    )
     assert document_preload_skill_names((), gate) == [
         "pptx",
         "research-synthesis",
@@ -1493,11 +1515,20 @@ def test_deep_research_checkpoint_falls_back_after_bounded_failed_searches(
     assert '"ready":false' in checkpoint
     assert '"fallback":true' in checkpoint
     assert '"fallback_reason":"research_sources_unavailable"' in checkpoint
+    attempt_summary = {
+        "rounds": RESEARCH_ROUND_LIMIT,
+        "calls": RESEARCH_ROUND_LIMIT,
+        "successful": 0,
+        "failed": RESEARCH_ROUND_LIMIT,
+        "empty": 0,
+        "direct_reads": 0,
+        "verified_pages": 0,
+        "consecutive_unproductive_reads": 0,
+    }
     assert (
-        '"attempt_summary":{"rounds":3,"calls":3,"successful":0,'
-        '"failed":3,"empty":0,"direct_reads":0,"verified_pages":0,'
-        '"consecutive_unproductive_reads":0}'
-    ) in checkpoint
+        f'"attempt_summary":{json.dumps(attempt_summary, separators=(",", ":"))}'
+        in checkpoint
+    )
     assert '"files":[]' in checkpoint
     assert "outline.json so HTML delivery can continue" in checkpoint
     status = json.loads(
@@ -4471,7 +4502,7 @@ def test_short_solution_design_brief_skips_research_synthesis(tmp_path):
 
     assert gate is not None
     assert gate.workflow_options["research_mode"] == "content_ready"
-    assert gate.max_tool_calls == 128
+    assert gate.max_tool_calls == ToolLimitsConfig().presentation.max_tool_calls
 
     checkpoint = completion_gate_progress_text(gate, str(tmp_path))
     assert checkpoint is not None
@@ -4510,7 +4541,7 @@ def test_source_first_presentation_does_not_force_public_research(tmp_path):
 
     assert gate is not None
     assert gate.workflow_options["research_mode"] == "source_first"
-    assert gate.max_tool_calls == 128
+    assert gate.max_tool_calls == ToolLimitsConfig().presentation.max_tool_calls
     checkpoint = completion_gate_progress_text(gate, str(tmp_path))
     assert checkpoint is not None
     assert f"{CONTROLLED_PRESENTATION_CHECKPOINT_MARKER}outline" in checkpoint
@@ -9206,6 +9237,82 @@ def test_build_auto_completion_gate_ignores_non_deliverable_prompt(tmp_path):
     gate = build_auto_completion_gate("解释一下这个函数", tmp_path)
 
     assert gate is None
+
+
+@pytest.mark.parametrize(
+    "prompt",
+    [
+        "请阅读官方文档，了解如何利用这个模型生成图片。",
+        "Read the documentation and saved Word document examples.",
+        "阅读报告，了解表格和文档是如何生成的。",
+        "关于生成图片的文档在哪里？",
+    ],
+)
+def test_informational_artifact_prompt_does_not_create_gate(tmp_path, prompt):
+    assert build_auto_completion_gate(prompt, tmp_path) is None
+
+
+@pytest.mark.parametrize(
+    "prompt",
+    [
+        "先阅读官方文档，然后生成一张 PNG 信息图。",
+        "Read the documentation and then create an image.",
+    ],
+)
+def test_research_then_explicit_image_delivery_still_creates_gate(
+    tmp_path,
+    prompt,
+):
+    gate = build_auto_completion_gate(prompt, tmp_path)
+
+    assert gate is not None
+    assert gate.required_tools == frozenset({"generate_image"})
+    assert gate.restrict_tools_until_required_succeed is True
+
+
+@pytest.mark.parametrize(
+    "prompt",
+    [
+        "生成文档。",
+        "Word 文档，请创建一份。",
+        "请帮我create一个Word文档。",
+    ],
+)
+def test_direct_document_delivery_preserves_document_context(tmp_path, prompt):
+    gate = build_auto_completion_gate(prompt, tmp_path)
+
+    assert gate is not None
+    assert gate.required_tools == frozenset()
+    assert gate.required_changed_artifact_globs == ("output/**/*.docx",)
+    assert gate.restrict_tools_until_required_succeed is False
+
+
+def test_format_after_comma_remains_in_delivery_clause(tmp_path):
+    gate = build_auto_completion_gate("生成一份报告，Word 格式。", tmp_path)
+
+    assert gate is not None
+    assert "output/**/*.docx" in gate.required_changed_artifact_globs
+
+
+@pytest.mark.parametrize(
+    "prompt",
+    [
+        "介绍如何生成 PPT，然后创建一个 Excel 表格。",
+        "创建一个 Excel 表格，并介绍如何生成 PPT。",
+    ],
+)
+def test_mixed_informational_presentation_routes_executable_spreadsheet(
+    tmp_path,
+    prompt,
+):
+    gate = build_auto_completion_gate(prompt, tmp_path)
+
+    assert gate is not None
+    assert gate.workflow_checkpoint_kind is None
+    assert gate.required_changed_artifact_globs == (
+        "output/**/*.xlsx",
+        "output/**/*.xls",
+    )
 
 
 def test_native_image_gate_requires_standard_tool_before_alternatives(tmp_path):

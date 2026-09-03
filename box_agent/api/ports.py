@@ -58,6 +58,10 @@ class ToolEngine(ToolExecutor, Protocol):
         """Release run-scoped resources after every terminal path."""
         ...
 
+    def restricted_passthrough_tool_names(self) -> Sequence[str]:
+        """Return dynamically activated tools that survive workflow filtering."""
+        ...
+
 
 class ToolPlugin(Protocol):
     """Optional per-tool contract used by the registry execution boundary.

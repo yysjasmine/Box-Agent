@@ -22,9 +22,13 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic import Field, model_validator
 
+from ..config import ToolsConfig
 from .base import Tool, ToolResult
 from .argument_limits import MAX_BASH_COMMAND_CHARS
-from .pptx_safety import detect_pptx_self_check_bypass
+from .pptx_safety import (
+    detect_pptx_image_status_command_bypass,
+    detect_pptx_self_check_bypass,
+)
 from .runtime import bundled_win_bash
 from .shell_inspection import inspect_shell_command
 from .safety import (
@@ -47,6 +51,7 @@ log = logging.getLogger(__name__)
 # context limit. The marker itself is intentionally additional to this payload
 # budget. This mirrors Hermes terminal's 50K, 40%-head/60%-tail policy.
 MAX_BASH_OUTPUT_CHARS = 50_000
+_DEFAULT_TOOLS_CONFIG = ToolsConfig()
 
 
 def _truncate_bash_output(text: str, label: str, limit: int = MAX_BASH_OUTPUT_CHARS) -> tuple[str, int]:
@@ -241,6 +246,9 @@ def _detect_lark_user_mode_violation(command: str) -> str | None:
             continue
         lowered = part.lower()
         cli_args = part[cli_match.end() :].lstrip()
+        # Quoted absolute executable paths leave the closing quote after the
+        # regex match. Normalize only that boundary before classifying args.
+        cli_args = cli_args.lstrip("'\"").lstrip()
 
         if _LARK_BOT_FLAG_RE.search(part):
             return "lark-cli bot identity is disabled in officev3 local-agent sessions; use `--as user`."
@@ -256,7 +264,7 @@ def _detect_lark_user_mode_violation(command: str) -> str | None:
         if (
             "--help" in lowered
             or re.search(r"\s(?:--version|-v)\b", lowered)
-            or re.search(r"\blark-cli(?:\.(?:cmd|exe))?\s+(?:auth|config|schema|doctor|update)\b", lowered)
+            or re.match(r"(?:auth|config|schema|doctor|update)\b", cli_args, re.IGNORECASE)
             or re.match(r"skills(?:\s+(?:list|read)\b|\s*$)", cli_args, re.IGNORECASE)
         ):
             continue
@@ -760,6 +768,10 @@ class BashTool(Tool):
         runtime_env: dict[str, str] | None = None,
         process_owner_id: str | None = None,
         bypass_dangerous_command_approval: bool = False,
+        default_timeout_seconds: int = (
+            _DEFAULT_TOOLS_CONFIG.bash_default_timeout_seconds
+        ),
+        max_timeout_seconds: int = _DEFAULT_TOOLS_CONFIG.bash_max_timeout_seconds,
     ):
         """Initialize BashTool with OS-specific shell detection.
 
@@ -778,7 +790,17 @@ class BashTool(Tool):
             runtime_env: Extra runtime environment variables exposed to commands.
             bypass_dangerous_command_approval: If True, skip approval for dangerous
                                                 commands in a trusted session.
+            default_timeout_seconds: Foreground timeout when the caller omits it.
+            max_timeout_seconds: Maximum accepted foreground timeout.
         """
+        if default_timeout_seconds < 1:
+            raise ValueError("default_timeout_seconds must be positive")
+        if max_timeout_seconds < default_timeout_seconds:
+            raise ValueError(
+                "max_timeout_seconds cannot be lower than default_timeout_seconds"
+            )
+        self.default_timeout_seconds = default_timeout_seconds
+        self.max_timeout_seconds = max_timeout_seconds
         self.is_windows = platform.system() == "Windows"
         self.shell_name = "PowerShell" if self.is_windows else "bash"
         # Win-only: prefer the PortableGit ``bash.exe`` shipped inside the
@@ -1219,7 +1241,7 @@ class BashTool(Tool):
     @property
     def description(self) -> str:
         shell_examples = {
-            "Windows": """Execute PowerShell commands in foreground or background.
+            "Windows": f"""Execute PowerShell commands in foreground or background.
 
 Do NOT use Get-Content/type to read files; use read_file instead.
 Do NOT use Select-String/Get-ChildItem/dir to search or list files; use search_files instead.
@@ -1227,7 +1249,7 @@ Reserve bash for git, builds, tests, package managers, processes, scripts, and s
 
 Parameters:
   - command (required): PowerShell command to execute
-  - timeout (optional): Timeout in seconds (default: 120, max: 600) for foreground commands
+  - timeout (optional): Timeout in seconds (default: {self.default_timeout_seconds}, max: {self.max_timeout_seconds}) for foreground commands
   - run_in_background (optional): Set true for long-running commands (servers, etc.)
 
 Tips:
@@ -1240,7 +1262,7 @@ Examples:
   - git status
   - npm test
   - python -u -m http.server 0 --bind 127.0.0.1 (with run_in_background=true; read the dynamic port with bash_output)""",
-            "Unix": """Execute bash commands in foreground or background.
+            "Unix": f"""Execute bash commands in foreground or background.
 
 Do NOT use cat/head/tail to read files; use read_file instead.
 Do NOT use grep/rg/find/ls to search or list files; use search_files instead.
@@ -1248,7 +1270,7 @@ Reserve bash for git, builds, tests, package managers, processes, scripts, and s
 
 Parameters:
   - command (required): Bash command to execute
-  - timeout (optional): Timeout in seconds (default: 120, max: 600) for foreground commands
+  - timeout (optional): Timeout in seconds (default: {self.default_timeout_seconds}, max: {self.max_timeout_seconds}) for foreground commands
   - run_in_background (optional): Set true for long-running commands (servers, etc.)
 
 Tips:
@@ -1260,7 +1282,7 @@ Tips:
 Examples:
   - git status
   - npm test
-  - ${BOX_AGENT_PYTHON:-python3} -u -m http.server 0 --bind 127.0.0.1 (with run_in_background=true; read the dynamic port with bash_output)""",
+  - ${{BOX_AGENT_PYTHON:-python3}} -u -m http.server 0 --bind 127.0.0.1 (with run_in_background=true; read the dynamic port with bash_output)""",
         }
         # When the bundled Git-for-Windows bash is active on Win, the shell is
         # POSIX bash with coreutils — use the Unix description so the LLM
@@ -1282,8 +1304,15 @@ Examples:
                 },
                 "timeout": {
                     "type": "integer",
-                    "description": "Optional: Timeout in seconds (default: 120, max: 600). Only applies to foreground commands.",
-                    "default": 120,
+                    "description": (
+                        "Optional: Timeout in seconds "
+                        f"(default: {self.default_timeout_seconds}, "
+                        f"max: {self.max_timeout_seconds}). "
+                        "Only applies to foreground commands."
+                    ),
+                    "minimum": 1,
+                    "maximum": self.max_timeout_seconds,
+                    "default": self.default_timeout_seconds,
                 },
                 "run_in_background": {
                     "type": "boolean",
@@ -1405,14 +1434,14 @@ Examples:
     async def execute(
         self,
         command: str,
-        timeout: int = 120,
+        timeout: int | None = None,
         run_in_background: bool = False,
     ) -> ToolResult:
         """Execute shell command with optional background execution.
 
         Args:
             command: The shell command to execute
-            timeout: Timeout in seconds (default: 120, max: 600)
+            timeout: Timeout in seconds. Uses the configured default when omitted.
             run_in_background: Set true to run command in background
 
         Returns:
@@ -1442,6 +1471,19 @@ Examples:
                     error=bypass_error,
                     stdout="",
                     stderr=bypass_error,
+                    exit_code=1,
+                )
+            image_status_error = detect_pptx_image_status_command_bypass(
+                command,
+                workspace_dir=self.workspace_dir,
+                runtime_env=self._subprocess_env,
+            )
+            if image_status_error:
+                return BashOutputResult(
+                    success=False,
+                    error=image_status_error,
+                    stdout="",
+                    stderr=image_status_error,
                     exit_code=1,
                 )
 
@@ -1597,11 +1639,11 @@ Examples:
                     for target in extract_rm_targets(command, self.workspace_dir):
                         backup_file(target)
 
-            # Validate timeout
-            if timeout > 600:
-                timeout = 600
-            elif timeout < 1:
-                timeout = 120
+            # Validate timeout against the configured foreground bounds.
+            if timeout is None or timeout < 1:
+                timeout = self.default_timeout_seconds
+            elif timeout > self.max_timeout_seconds:
+                timeout = self.max_timeout_seconds
 
             if run_in_background:
                 # Background execution: Create isolated process

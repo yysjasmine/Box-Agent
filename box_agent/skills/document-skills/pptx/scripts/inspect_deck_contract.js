@@ -40,7 +40,10 @@ const {
   outlineHasQuantitativeEvidence,
   outlineIntentRecord,
 } = require("./outline_layout_contract.js");
-const { inferTheme } = require("./theme_selection_core.js");
+const {
+  evaluateModelThemeChoice,
+  inferTheme,
+} = require("./theme_selection_core.js");
 const { inferDesignContract } = require("./design_contract_core.js");
 
 const AUTO_COVER_IMAGE_BRIEF_RE = /(?:融资|路演|投资人|\bvc\b|fundrais|investor|pitch\s*deck|发布会|产品发布|品牌提案|高端|premium)/i;
@@ -50,6 +53,8 @@ const AUTO_COVER_TECH_VISUAL_RE = /(?:代码窗口|代码片段|协作节点|节
 const AUTO_GENERATIVE_VISUAL_MEDIUM_RE = /(?:主视觉|缩略图|实景|照片|插画|卡通(?:形象|插画|插图)?|儿童插画|儿童插图|概念图|效果图|界面|截图|样机|地图|地理分布|空间分布|场景|实物|特写|肖像|包装视觉|hero\s+image|thumbnail|photo|illustration|cartoon(?:\s+illustration)?|concept\s+art|interface|screenshot|mockup|map|geographic\s+distribution|scene|product\s+shot|object\s+study|close[- ]?up|portrait|packaging\s+visual)/i;
 const AUTO_PRIMARY_BITMAP_VISUAL_RE = /(?:主视觉|缩略图|实景|照片|插画|卡通(?:形象|插画|插图)?|儿童插画|儿童插图|概念图|效果图|样机|地图|场景|实物|特写|肖像|包装视觉|hero\s+image|thumbnail|photo|illustration|cartoon(?:\s+illustration)?|concept\s+art|mockup|map|scene|product\s+shot|object\s+study|close[- ]?up|portrait|packaging\s+visual)/i;
 const AUTO_DATA_VISUAL_RE = /(?:图表|表格|数据看板|KPI|指标|chart|table|dashboard|metrics?)/i;
+const AUTO_EDITABLE_STRUCTURE_RE = /(?:可编辑|图表|表格|数据看板|KPI|指标|矩阵|流程|时间轴|路线图|架构|关系图|组织图|甘特|热力|chart|table|dashboard|metrics?|matrix|process|timeline|roadmap|architecture|diagram|gantt|heatmap)/i;
+const AUTO_TYPOGRAPHY_LED_RE = /(?:纯文字|仅文字|文字排版|排版主导|标签排版|编辑式封面|typography|text[- ]only|editorial\s+cover)/i;
 const AUTO_COVER_IMAGE_OPTOUT_RE = /(?:不要|无需|不需要|不得|禁止|不)(?:生成|使用|添加)?(?:图片|生图|视觉图)|(?:纯文字|仅文字)|\b(?:no\s+(?:generated\s+)?images?|without\s+images?|text[- ]only)\b/i;
 const AUTO_SLIDE_LOCAL_IMAGE_OPTOUT_RE = /(?:第?\s*\d{1,2}\s*页|(?:页面|slide)\s*[:：#-]?\s*\d{1,2}|封面|首页|cover)[^。；;!?！？\n]{0,48}(?:纯文字|仅文字|无图片|不要图片|不使用图片|text[- ]only|without\s+images?)|(?:纯文字|仅文字|无图片|不要图片|不使用图片|text[- ]only|without\s+images?)[^。；;!?！？\n]{0,48}(?:封面|首页|cover)/i;
 const STRUCTURED_NEXT_STEPS_MATRIX_RE = /(?:表格|矩阵|table|matrix)|(?:(?:执行)?角色|负责人|责任人|owners?|assignees?|responsibilit(?:y|ies))[^\n。；;]{0,48}(?:姓名|成员|人员|names?|members?)/i;
@@ -155,6 +160,59 @@ function resolveThemeInput(themeId) {
 function selectTheme(opts, context) {
   const inference = inferTheme(listThemes(), context, DEFAULT_THEME_ID);
   if (String(opts.themeId || "").trim().toLowerCase() === "auto") {
+    if (opts.themeModelChoice) {
+      const evaluation = evaluateModelThemeChoice(
+        inference,
+        opts.themeModelChoice
+      );
+      const deterministicRecommendation = {
+        theme_id: inference.theme_id,
+        source: inference.source,
+        confidence: inference.confidence,
+        score: inference.score,
+        margin: inference.margin,
+      };
+      if (evaluation.accepted) {
+        return {
+          theme: getTheme(evaluation.candidate.theme_id),
+          normalization: null,
+          selection: {
+            theme_id: evaluation.candidate.theme_id,
+            source: "model_reranked",
+            confidence: null,
+            score: evaluation.candidate.score,
+            margin: null,
+            matched_signals: evaluation.candidate.matched_signals,
+            ranking: inference.ranking,
+            shortlist: inference.shortlist,
+            requested_theme_id: "auto",
+            deterministic_recommendation: deterministicRecommendation,
+            model_choice: {
+              theme_id: evaluation.candidate.theme_id,
+              reason: opts.themeModelReason,
+              accepted: true,
+            },
+          },
+        };
+      }
+      return {
+        theme: getTheme(inference.theme_id),
+        normalization: null,
+        selection: {
+          ...inference,
+          source: "model_choice_rejected",
+          requested_theme_id: "auto",
+          deterministic_source: inference.source,
+          deterministic_recommendation: deterministicRecommendation,
+          model_choice: {
+            theme_id: opts.themeModelChoice,
+            reason: opts.themeModelReason,
+            accepted: false,
+            rejection_reason: evaluation.reason,
+          },
+        },
+      };
+    }
     return {
       theme: getTheme(inference.theme_id),
       normalization: null,
@@ -215,6 +273,43 @@ function selectTheme(opts, context) {
   };
 }
 
+function themeShortlistPayload(context) {
+  const inference = inferTheme(listThemes(), context, DEFAULT_THEME_ID);
+  return {
+    mode: "theme_shortlist",
+    default_theme_id: DEFAULT_THEME_ID,
+    deterministic_recommendation: {
+      theme_id: inference.theme_id,
+      source: inference.source,
+      confidence: inference.confidence,
+      score: inference.score,
+      margin: inference.margin,
+      matched_signals: inference.matched_signals,
+    },
+    candidate_count: inference.shortlist.length,
+    candidates: inference.shortlist.map(candidate => {
+      const theme = getTheme(candidate.theme_id);
+      const discovery = themeDiscoveryRecord(theme);
+      return {
+        ...discovery,
+        theme_id: candidate.theme_id,
+        deterministic_rank: candidate.rank,
+        deterministic_score: candidate.score,
+        matched_signals: candidate.matched_signals,
+        hard_conflicts: candidate.hard_conflicts,
+        protected_signals: candidate.protected_signals,
+        eligible_for_model_choice: candidate.eligible_for_model_choice,
+      };
+    }),
+    model_choice_contract: {
+      choose_from_candidates_only: true,
+      hard_conflicts_are_ineligible: true,
+      protected_deterministic_signals_limit_override: true,
+      submit_with: "--theme auto --theme-model-choice THEME_ID --theme-model-reason REASON",
+    },
+  };
+}
+
 function compactThemeSelection(selection) {
   return {
     requested_theme_id: selection.requested_theme_id,
@@ -224,6 +319,12 @@ function compactThemeSelection(selection) {
     ...(Array.isArray(selection.matched_signals) && selection.matched_signals.length
       ? {
         matched_signals: selection.matched_signals.map(item => item.signal),
+      }
+      : {}),
+    ...(selection.model_choice
+      ? {
+        model_choice: selection.model_choice,
+        deterministic_recommendation: selection.deterministic_recommendation,
       }
       : {}),
   };
@@ -321,6 +422,8 @@ function parseArgs(argv) {
     layoutIds: [],
     themeId: "auto",
     themeLocked: false,
+    themeModelChoice: null,
+    themeModelReason: null,
     designSeed: null,
     family: null,
     title: "Untitled deck",
@@ -337,6 +440,7 @@ function parseArgs(argv) {
     report: null,
     force: false,
     listThemes: false,
+    rankThemes: false,
   };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
@@ -346,6 +450,12 @@ function parseArgs(argv) {
       index += 1;
     } else if (arg === "--lock-theme") {
       opts.themeLocked = true;
+    } else if (arg === "--theme-model-choice" && value) {
+      opts.themeModelChoice = value;
+      index += 1;
+    } else if (arg === "--theme-model-reason" && value) {
+      opts.themeModelReason = value;
+      index += 1;
     } else if (arg === "--design-seed" && value) {
       opts.designSeed = value;
       index += 1;
@@ -405,15 +515,18 @@ function parseArgs(argv) {
       opts.force = true;
     } else if (arg === "--list-themes") {
       opts.listThemes = true;
+    } else if (arg === "--rank-themes") {
+      opts.rankThemes = true;
     } else if (arg === "--help" || arg === "-h") {
       console.log(
         "Usage: inspect_deck_contract.js [LAYOUT_ID ...] " +
-        "[--theme auto|THEME_ID] [--lock-theme] [--family FAMILY_ID] [--design-seed SEED] [--title TITLE] [--truth-mode MODE] " +
+        "[--theme auto|THEME_ID] [--lock-theme] [--theme-model-choice THEME_ID] " +
+        "[--theme-model-reason REASON] [--family FAMILY_ID] [--design-seed SEED] [--title TITLE] [--truth-mode MODE] " +
         "[--image-mode auto|creative_image_mode] [--no-images] " +
         "[--image-asset SLIDE:SLOT=PATH ...] " +
         "[--fact TEXT ...] [--research-fact TEXT ...] [--assumption TEXT ...] " +
         "[--require-field SLIDE:FIELD ...] [--outline outline.json] [--out deck.json] " +
-        "[--report qa/deck_contract.json] [--force] [--list-themes]"
+        "[--report qa/deck_contract.json] [--force] [--list-themes | --rank-themes]"
       );
       process.exit(0);
     } else if (arg.startsWith("-")) {
@@ -515,7 +628,16 @@ function alignScaffoldVisualCardinality(layoutId, props, outlineSlide) {
     || (Number.isInteger(contract.maxItems) && expected > contract.maxItems)
   ) return;
   if (collection.length > expected) collection.splice(expected);
-  const seed = collection.length ? collection[collection.length - 1] : null;
+  const collectionName = field.split(".").filter(Boolean).at(-1);
+  const editorCollection = layout
+    && layout.editor
+    && layout.editor.controls
+    && layout.editor.controls.collections
+    && layout.editor.controls.collections[collectionName];
+  const editorItemDefault = editorCollection && editorCollection.itemDefault;
+  const seed = collection.length
+    ? collection[collection.length - 1]
+    : editorItemDefault || null;
   while (collection.length < expected) {
     const item = seed === null ? "待填充" : JSON.parse(JSON.stringify(seed));
     const ordinal = collection.length + 1;
@@ -957,11 +1079,25 @@ function imagePrompt(context, slotRole) {
   const visualContext = String(
     context && (context.slideText || context.briefText) || ""
   );
+  const layoutContract = context && context.layoutContract;
+  const textRegionSummary = layoutContract && Array.isArray(layoutContract.text_regions)
+    ? layoutContract.text_regions.map(
+      region => `${region.name} x=${region.x},y=${region.y},w=${region.width},h=${region.height}`
+    ).join("; ")
+    : "";
+  const focusRegionSummary = layoutContract && Array.isArray(layoutContract.visual_focus_regions)
+    ? layoutContract.visual_focus_regions.map(
+      region => `${region.name} x=${region.x},y=${region.y},w=${region.width},h=${region.height}`
+    ).join("; ")
+    : "";
   const parts = [
     `Deck context: ${String(context && context.deckTitle || "presentation").trim()}.`,
     slide.title ? `Slide title: ${slide.title}.` : "",
     slide.message ? `Page intent: ${slide.message}.` : "",
     slide.visual ? `Visual direction: ${slide.visual}.` : "",
+    textRegionSummary
+      ? `Composition contract: keep text-safe region ${textRegionSummary} calm and low-detail.${focusRegionSummary ? ` Place the primary visual focus in ${focusRegionSummary}.` : " Use only atmospheric detail behind the copy."}`
+      : "",
     `Create one ${slotRole || "presentation"} visual with a clear focal subject and room for adjacent slide copy.`,
     AUTO_COVER_PRODUCT_VISUAL_RE.test(visualContext)
       ? "If showing software, make it an explicitly conceptual product-interface illustration rather than claiming to reproduce a real screenshot."
@@ -1012,6 +1148,14 @@ function buildImagePlanEntry(
     : background && Array.isArray(background.strategies)
       ? background.strategies
       : ["generate", "skip"];
+  const backgroundRequired = targetId === "background"
+    && background
+    && background.required === true;
+  const backgroundLayoutContract = targetId === "background"
+    && background
+    && background.layoutContract
+    ? JSON.parse(JSON.stringify(background.layoutContract))
+    : null;
   const briefText = String(context.briefText || "");
   const slideText = String(context.slideText || briefText);
   const slideVisualText = String(
@@ -1021,9 +1165,11 @@ function buildImagePlanEntry(
   );
   const generationForbidden = context.generationForbidden === true
     || AUTO_COVER_IMAGE_OPTOUT_RE.test(slideText);
+  const supportsPlannedBackground = Boolean(slot || backgroundLayoutContract);
   const creativeCover = !generationForbidden
     && imageMode === "creative_image_mode"
-    && index === 0;
+    && index === 0
+    && supportsPlannedBackground;
   const investorCoverBrief = AUTO_COVER_IMAGE_BRIEF_RE.test(briefText);
   // Cover-specific visual intent lives on the bound outline page. Looking only
   // at the deck-level goal misses concrete subjects such as a named athlete
@@ -1037,21 +1183,27 @@ function buildImagePlanEntry(
       || AUTO_PRIMARY_BITMAP_VISUAL_RE.test(slideVisualText)
     );
   const explicitOptionalVisual = Boolean(slot) && explicitGenerativeVisual;
+  const defaultVisualMedia = !AUTO_EDITABLE_STRUCTURE_RE.test(slideVisualText)
+    && !AUTO_TYPOGRAPHY_LED_RE.test(slideVisualText);
+  const defaultOptionalVisual = Boolean(slot)
+    && (defaultVisualMedia || layout.id === "project-case-study-v1");
   const autoCover = imageMode === "auto"
     && index === 0
     && !generationForbidden
+    && supportsPlannedBackground
     && (
       investorCoverBrief
       || visualStoryBrief
       || productVisualBrief
       || technicalVisualBrief
       || explicitGenerativeVisual
+      || defaultVisualMedia
     )
     && strategies.includes("generate");
   const autoOptional = imageMode === "auto"
     && index > 0
     && !generationForbidden
-    && explicitOptionalVisual
+    && (explicitOptionalVisual || defaultOptionalVisual)
     && strategies.includes("generate");
   const creativeOptional = imageMode === "creative_image_mode"
     && index > 0
@@ -1062,6 +1214,7 @@ function buildImagePlanEntry(
     && !creativeCover
     && strategies.includes("use_existing");
   const plannedGeneration = (slot && slot.required)
+    || backgroundRequired
     || creativeCover
     || creativeOptional
     || autoCover
@@ -1083,6 +1236,8 @@ function buildImagePlanEntry(
     decisionReason = "creative_image_mode requires a generated cover visual";
   } else if (slot && slot.required) {
     decisionReason = "the selected layout requires this media slot";
+  } else if (backgroundRequired) {
+    decisionReason = "the selected full-bleed layout requires one generated or source-backed slide background";
   } else if (autoCover) {
     if (productVisualBrief) {
       decisionReason = "the brief or outline explicitly calls for a product or interface cover visual";
@@ -1092,11 +1247,17 @@ function buildImagePlanEntry(
       decisionReason = "investor/pitch/launch brief benefits from a generated cover visual";
     } else if (explicitGenerativeVisual) {
       decisionReason = "the outline explicitly requests a generative visual medium such as a map, scene, photograph, or object study";
+    } else if (visualStoryBrief) {
+      decisionReason = "visual story brief benefits from a generated cover visual";
+    } else if (defaultVisualMedia) {
+      decisionReason = "auto mode defaults an eligible standard cover to a generated visual anchor";
     } else {
       decisionReason = "visual story brief benefits from a generated cover visual";
     }
   } else if (creativeOptional || autoOptional) {
-    decisionReason = "the page visual intent explicitly requests a generative visual medium";
+    decisionReason = explicitOptionalVisual
+      ? "the page visual intent explicitly requests a generative visual medium"
+      : "auto mode uses the layout's eligible media slot to add a meaningful visual anchor";
   } else if (index === 0) {
     decisionReason = "the outline supports a typography-led cover and does not request a concrete bitmap visual";
   }
@@ -1110,7 +1271,12 @@ function buildImagePlanEntry(
     decision,
     status,
     decision_reason: decisionReason,
-    prompt: generate ? imagePrompt(context, slot ? slot.role : "background") : "",
+    prompt: generate
+      ? imagePrompt(
+        { ...context, layoutContract: backgroundLayoutContract },
+        slot ? slot.role : "background"
+      )
+      : "",
     output_path: useExisting
       ? existingAsset.outputPath
       : generate
@@ -1123,6 +1289,23 @@ function buildImagePlanEntry(
       }
       : {}),
     allowed_strategies: generationForbidden ? ["skip"] : strategies,
+    ...(targetId === "background"
+      ? {
+        kind: "background",
+        placement: "full-slide",
+        purpose: "full-bleed slide background",
+        treatment: background && background.defaultTreatment
+          ? background.defaultTreatment
+          : "wash-light",
+      }
+      : {
+        kind: "image",
+        placement: "fixed-frame",
+        purpose: slot ? slot.role : "presentation visual",
+      }),
+    ...(backgroundLayoutContract
+      ? { layout_contract: backgroundLayoutContract }
+      : {}),
   };
 }
 
@@ -1252,6 +1435,9 @@ function findDownstreamArtifacts(deckFile) {
 
 function main() {
   const opts = parseArgs(process.argv.slice(2));
+  if (opts.listThemes && opts.rankThemes) {
+    throw new Error("Use either --list-themes or --rank-themes, not both");
+  }
   if (opts.listThemes) {
     if (opts.layoutIds.length || opts.out || opts.report) {
       throw new Error("--list-themes cannot be combined with layout ids, --out, or --report");
@@ -1265,6 +1451,41 @@ function main() {
       themes: listThemes().map(themeDiscoveryRecord),
     }));
     return;
+  }
+  if (opts.themeModelChoice && String(opts.themeId).toLowerCase() !== "auto") {
+    throw new Error("--theme-model-choice requires --theme auto");
+  }
+  if (opts.themeModelChoice && opts.themeLocked) {
+    throw new Error("--theme-model-choice cannot be combined with --lock-theme");
+  }
+  if (opts.themeModelChoice && !String(opts.themeModelReason || "").trim()) {
+    throw new Error("--theme-model-choice requires --theme-model-reason");
+  }
+  if (!opts.themeModelChoice && opts.themeModelReason) {
+    throw new Error("--theme-model-reason requires --theme-model-choice");
+  }
+  if (String(opts.themeModelReason || "").length > 240) {
+    throw new Error("--theme-model-reason must be 240 characters or fewer");
+  }
+  if (
+    opts.rankThemes
+    && (
+      opts.layoutIds.length
+      || opts.out
+      || opts.report
+      || opts.themeLocked
+      || opts.themeModelChoice
+      || opts.family
+      || opts.designSeed
+      || opts.noImages
+      || opts.imageAssets.length
+      || opts.requiredFields.length
+      || String(opts.themeId).toLowerCase() !== "auto"
+    )
+  ) {
+    throw new Error(
+      "--rank-themes accepts brief inputs only and cannot be combined with layouts, output, explicit themes, or model choice"
+    );
   }
   if (opts.report && !opts.out) {
     throw new Error("--report requires --out deck.json");
@@ -1303,6 +1524,17 @@ function main() {
   const outlineBinding = opts.outline
     ? readOutlineBinding(opts.outline, opts.layoutIds.length || null)
     : null;
+  const runtimeBinding = runtimeSourceBinding();
+  const designContext = {
+    title: opts.title,
+    source_facts: opts.sourceFacts,
+    source_text: runtimeBinding.source_text,
+    outline: outlineBinding ? outlineBinding.content : null,
+  };
+  if (opts.rankThemes) {
+    console.log(JSON.stringify(themeShortlistPayload(designContext), null, 2));
+    return;
+  }
   const assumptions = [...new Set(
     opts.assumptions.map(value => value.trim()).filter(Boolean)
   )];
@@ -1342,7 +1574,13 @@ function main() {
     const requiredSlots = layout && layout.mediaSlots && Array.isArray(layout.mediaSlots.slots)
       ? layout.mediaSlots.slots.filter(slot => slot && slot.required === true)
       : [];
-    if (!requiredSlots.length) return layoutId;
+    const requiredBackground = Boolean(
+      layout
+      && layout.mediaSlots
+      && layout.mediaSlots.background
+      && layout.mediaSlots.background.required === true
+    );
+    if (!requiredSlots.length && !requiredBackground) return layoutId;
     if (!layout.noImageFallbackLayoutId || !getLayout(layout.noImageFallbackLayoutId)) {
       throw new Error(`Layout ${layoutId} requires media and has no registered no-image fallback.`);
     }
@@ -1355,13 +1593,6 @@ function main() {
     outlineBinding ? { ...outlineBinding, slides: authoringSlides } : null,
     layoutPolicy
   );
-  const runtimeBinding = runtimeSourceBinding();
-  const designContext = {
-    title: opts.title,
-    source_facts: opts.sourceFacts,
-    source_text: runtimeBinding.source_text,
-    outline: outlineBinding ? outlineBinding.content : null,
-  };
   const themeResolution = selectTheme(opts, designContext);
   const designContract = inferDesignContract(
     designContext,

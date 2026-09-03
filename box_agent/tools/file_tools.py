@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import logging
 import math
 import os
 import re
@@ -25,6 +26,9 @@ from .safety import backup_file, validate_path_in_workspace
 
 if TYPE_CHECKING:
     from .permissions import PermissionEngine
+
+
+_log = logging.getLogger(__name__)
 
 
 MAX_FILE_TOOL_CONTENT_CHARS = MAX_GENERATED_BODY_CHARS
@@ -815,7 +819,19 @@ class WriteTool(Tool):
     @staticmethod
     def _write_bytes(path: Path, data: bytes, *, append: bool) -> None:
         with path.open("ab" if append else "wb") as stream:
-            stream.write(data)
+            written = stream.write(data)
+            if written != len(data):
+                raise OSError(
+                    f"short write: expected {len(data)} bytes, wrote {written}"
+                )
+            stream.flush()
+            os.fsync(stream.fileno())
+
+    @staticmethod
+    def _restore_temporary_size(path: Path, size: int) -> None:
+        """Roll a failed append back to the last accepted byte boundary."""
+        with path.open("r+b") as stream:
+            stream.truncate(size)
             stream.flush()
             os.fsync(stream.fileno())
 
@@ -830,22 +846,121 @@ class WriteTool(Tool):
     def _start(self, target: Path) -> _PendingTextWrite:
         target.parent.mkdir(parents=True, exist_ok=True)
         temporary = target.parent / f".{target.name}.box-agent-{uuid.uuid4().hex}.part"
-        self._write_bytes(temporary, b"", append=False)
+        try:
+            self._write_bytes(temporary, b"", append=False)
+        except OSError:
+            temporary.unlink(missing_ok=True)
+            raise
         state = _PendingTextWrite(target=target, temporary=temporary)
         self._committed.pop(target, None)
         self._pending[target] = state
         return state
 
-    def _discard(self, state: _PendingTextWrite) -> None:
-        state.temporary.unlink(missing_ok=True)
-        self._pending.pop(state.target, None)
+    def _discard(self, state: _PendingTextWrite) -> str | None:
+        """End a transaction even when its internal temp file cannot be removed."""
+        cleanup_error: str | None = None
+        try:
+            state.temporary.unlink(missing_ok=True)
+        except OSError as exc:
+            cleanup_error = str(exc)
+            _log.warning(
+                "write_file/transaction_temp_cleanup_failed path=%s error=%s",
+                state.temporary,
+                exc,
+            )
+        finally:
+            self._pending.pop(state.target, None)
+        return cleanup_error
+
+    @staticmethod
+    def _active_transaction_output(
+        state: _PendingTextWrite,
+        *,
+        output_type: str = "write_file_transaction_active",
+    ) -> dict[str, Any]:
+        return {
+            "type": output_type,
+            "path": str(state.target),
+            "transaction_state": "active",
+            "next_chunk_index": state.next_index,
+            "size_bytes": state.size_bytes,
+            "chunks": state.next_index,
+            "final": False,
+        }
+
+    def _active_result(
+        self,
+        state: _PendingTextWrite,
+        result: ToolResult,
+    ) -> ToolResult:
+        """Attach the authoritative retained-transaction state to a result."""
+        raw_output = dict(result.raw_output) if isinstance(result.raw_output, dict) else {}
+        transaction_output = self._active_transaction_output(state)
+        transaction_output.update(raw_output)
+        transaction_output.update(
+            {
+                "transaction_state": "active",
+                "path": str(state.target),
+                "next_chunk_index": state.next_index,
+                "size_bytes": state.size_bytes,
+                "chunks": state.next_index,
+                "final": False,
+            }
+        )
+        return result.model_copy(update={"raw_output": transaction_output})
+
+    def _discarded_result(
+        self,
+        state: _PendingTextWrite,
+        error: str,
+        *,
+        reason: str,
+        final: bool = True,
+    ) -> ToolResult:
+        """Discard a terminally invalid write and expose the transaction outcome."""
+        raw_output = {
+            "type": "write_file_transaction_discarded",
+            "path": str(state.target),
+            "transaction_state": "discarded",
+            "transaction_discarded": True,
+            "reason": reason,
+            "next_chunk_index": state.next_index,
+            "size_bytes": state.size_bytes,
+            "chunks": state.next_index,
+            "final": final,
+        }
+        cleanup_error = self._discard(state)
+        if cleanup_error is not None:
+            raw_output["cleanup_error"] = cleanup_error
+        return ToolResult(success=False, error=error, raw_output=raw_output)
 
     def _append_chunk(
         self,
         state: _PendingTextWrite,
         chunk_index: int,
         data: bytes,
+        *,
+        final: bool,
     ) -> ToolResult | None:
+        try:
+            temporary_size = state.temporary.stat().st_size
+        except OSError as exc:
+            return self._discarded_result(
+                state,
+                f"WRITE_FILE_TRANSACTION_TEMPORARY_UNAVAILABLE: {exc}",
+                reason="transaction_temporary_unavailable",
+                final=final,
+            )
+        if temporary_size != state.size_bytes:
+            return self._discarded_result(
+                state,
+                (
+                    "WRITE_FILE_TRANSACTION_SIZE_MISMATCH: expected "
+                    f"{state.size_bytes} bytes, found {temporary_size}."
+                ),
+                reason="transaction_size_mismatch",
+                final=final,
+            )
         digest = hashlib.sha256(data).hexdigest()
         if chunk_index < state.next_index:
             if state.chunk_hashes.get(chunk_index) == digest:
@@ -858,6 +973,7 @@ class WriteTool(Tool):
                     raw_output={
                         "type": "write_file_chunk",
                         "path": str(state.target),
+                        "transaction_state": "active",
                         "chunk_index": chunk_index,
                         "next_chunk_index": state.next_index,
                         "size_bytes": state.size_bytes,
@@ -865,38 +981,67 @@ class WriteTool(Tool):
                         "final": False,
                     },
                 )
-            return ToolResult(
-                success=False,
-                error=(
-                    "WRITE_FILE_CHUNK_CONFLICT: chunk_index="
-                    f"{chunk_index} was already accepted with different content."
+            return self._active_result(
+                state,
+                ToolResult(
+                    success=False,
+                    error=(
+                        "WRITE_FILE_CHUNK_CONFLICT: chunk_index="
+                        f"{chunk_index} was already accepted with different content."
+                    ),
                 ),
             )
         if chunk_index > state.next_index:
-            return ToolResult(
-                success=False,
-                error=(
-                    f"WRITE_FILE_CHUNK_OUT_OF_ORDER: expected {state.next_index}, "
-                    f"got {chunk_index}."
+            return self._active_result(
+                state,
+                ToolResult(
+                    success=False,
+                    error=(
+                        f"WRITE_FILE_CHUNK_OUT_OF_ORDER: expected {state.next_index}, "
+                        f"got {chunk_index}."
+                    ),
                 ),
             )
         if state.next_index >= MAX_WRITE_FILE_CHUNKS:
-            return ToolResult(
-                success=False,
-                error=(
+            return self._discarded_result(
+                state,
+                (
                     "WRITE_FILE_TOO_MANY_CHUNKS: limit is "
                     f"{MAX_WRITE_FILE_CHUNKS:,} chunks."
                 ),
+                reason="chunk_limit_reached",
+                final=final,
             )
         if state.size_bytes + len(data) > MAX_WRITE_FILE_BYTES:
-            return ToolResult(
-                success=False,
-                error=(
-                    "WRITE_FILE_TOTAL_SIZE_EXCEEDED: limit is "
-                    f"{MAX_WRITE_FILE_BYTES:,} UTF-8 bytes."
+            return self._active_result(
+                state,
+                ToolResult(
+                    success=False,
+                    error=(
+                        "WRITE_FILE_TOTAL_SIZE_EXCEEDED: limit is "
+                        f"{MAX_WRITE_FILE_BYTES:,} UTF-8 bytes."
+                    ),
                 ),
             )
-        self._write_bytes(state.temporary, data, append=True)
+        try:
+            self._write_bytes(state.temporary, data, append=True)
+        except OSError as exc:
+            try:
+                self._restore_temporary_size(state.temporary, state.size_bytes)
+            except OSError as rollback_exc:
+                return self._discarded_result(
+                    state,
+                    (
+                        f"WRITE_FILE_FAILED: {exc}; transaction rollback failed: "
+                        f"{rollback_exc}"
+                    ),
+                    reason="chunk_write_rollback_failed",
+                    final=final,
+                )
+            return self._active_result(
+                state,
+                ToolResult(success=False, error=f"WRITE_FILE_FAILED: {exc}"),
+            )
         state.chunk_hashes[chunk_index] = digest
         state.next_index += 1
         state.size_bytes += len(data)
@@ -904,18 +1049,31 @@ class WriteTool(Tool):
 
     def _commit(self, state: _PendingTextWrite) -> ToolResult:
         if error := self._permission_error(state.target):
-            return error
-        assembled_content = state.temporary.read_text(encoding="utf-8")
+            return self._active_result(state, error)
+        try:
+            assembled_content = state.temporary.read_text(encoding="utf-8")
+        except UnicodeError as exc:
+            return self._discarded_result(
+                state,
+                f"WRITE_FILE_TRANSACTION_INVALID_UTF8: {exc}",
+                reason="transaction_content_invalid_utf8",
+            )
         placeholder_error = _model_history_placeholder_error(assembled_content)
         if placeholder_error:
-            self._discard(state)
-            return ToolResult(success=False, error=placeholder_error)
+            return self._discarded_result(
+                state,
+                placeholder_error,
+                reason="model_history_placeholder",
+            )
         bypass_error = detect_pptx_self_check_bypass(
             str(state.target), assembled_content
         )
         if bypass_error:
-            self._discard(state)
-            return ToolResult(success=False, error=bypass_error)
+            return self._discarded_result(
+                state,
+                bypass_error,
+                reason="pptx_self_check_bypass",
+            )
         digest = self._sha256_file(state.temporary)
         backup_path = backup_file(state.target)
         os.replace(state.temporary, state.target)
@@ -929,6 +1087,7 @@ class WriteTool(Tool):
             raw_output={
                 "type": "artifact",
                 "path": str(state.target),
+                "transaction_state": "committed",
                 "size_bytes": state.size_bytes,
                 "sha256": digest,
                 "chunks": state.next_index,
@@ -993,12 +1152,13 @@ class WriteTool(Tool):
         final: bool = True,
     ) -> ToolResult:
         """Write one complete file or advance a path-keyed chunk transaction."""
+        state: _PendingTextWrite | None = None
         try:
             target = self._target(path)
-            if error := self._permission_error(target):
-                return error
-            data = content.encode("utf-8")
             state = self._pending.get(target)
+            if error := self._permission_error(target):
+                return self._active_result(state, error) if state is not None else error
+            data = content.encode("utf-8")
             if state is None:
                 replay = self._committed_replay(
                     target,
@@ -1015,6 +1175,12 @@ class WriteTool(Tool):
                             "WRITE_FILE_TRANSACTION_NOT_FOUND: no active write for "
                             f"{target}; start with chunk_index=0."
                         ),
+                        raw_output={
+                            "type": "write_file_transaction_missing",
+                            "path": str(target),
+                            "transaction_state": "none",
+                            "final": final,
+                        },
                     )
                 state = self._start(target)
                 started = True
@@ -1025,10 +1191,20 @@ class WriteTool(Tool):
                 state,
                 chunk_index,
                 data,
+                final=final,
             )
             if append_result is not None:
-                if started and state.next_index == 0:
-                    self._discard(state)
+                if (
+                    started
+                    and state.next_index == 0
+                    and self._pending.get(state.target) is state
+                ):
+                    return self._discarded_result(
+                        state,
+                        append_result.error or "The initial write chunk was rejected.",
+                        reason="initial_chunk_rejected",
+                        final=final,
+                    )
                 return append_result
             if final:
                 return self._commit(state)
@@ -1041,6 +1217,7 @@ class WriteTool(Tool):
                 raw_output={
                     "type": "write_file_chunk",
                     "path": str(target),
+                    "transaction_state": "active",
                     "chunk_index": chunk_index,
                     "next_chunk_index": state.next_index,
                     "size_bytes": state.size_bytes,
@@ -1049,15 +1226,38 @@ class WriteTool(Tool):
                 },
             )
         except (OSError, UnicodeError) as exc:
-            return ToolResult(success=False, error=f"WRITE_FILE_FAILED: {exc}")
+            result = ToolResult(success=False, error=f"WRITE_FILE_FAILED: {exc}")
+            if state is not None and self._pending.get(state.target) is state:
+                return self._active_result(state, result)
+            return result
+
+    def discard_pending_writes(self, *, reason: str) -> list[dict[str, Any]]:
+        """Discard live transactions and return structured lifecycle records."""
+        discarded: list[dict[str, Any]] = []
+        for state in list(self._pending.values()):
+            raw_output = {
+                "type": "write_file_transaction_discarded",
+                "path": str(state.target),
+                "transaction_state": "discarded",
+                "transaction_discarded": True,
+                "reason": reason,
+                "next_chunk_index": state.next_index,
+                "size_bytes": state.size_bytes,
+                "chunks": state.next_index,
+                "final": False,
+            }
+            cleanup_error = self._discard(state)
+            if cleanup_error is not None:
+                raw_output["cleanup_error"] = cleanup_error
+            discarded.append(raw_output)
+        return discarded
 
     def cleanup_pending_writes(self) -> list[str]:
         """Discard incomplete chunk transactions at the end of a session turn."""
-
-        cleaned: list[str] = []
-        for target, state in list(self._pending.items()):
-            self._discard(state)
-            cleaned.append(str(target))
+        cleaned = [
+            str(record["path"])
+            for record in self.discard_pending_writes(reason="turn_cleanup")
+        ]
         self._committed.clear()
         return cleaned
 
