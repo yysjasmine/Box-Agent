@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "e4167a98734ec2abf466510ad94f414dc2b17113",
-  "generatedAt": "2026-09-03T04:39:17.992Z",
+  "gitCommitHash": "2fab16ac07c07e91779730f09694608379d71d2b",
+  "generatedAt": "2026-09-03T09:00:12.378Z",
   "files": {
     ".dockerignore": {
       "filePath": ".dockerignore",
@@ -95,7 +95,7 @@
     },
     "AGENTS.md": {
       "filePath": "AGENTS.md",
-      "contentHash": "094b72cec4acc8394053b8eea402a87815db0b5aa6b3fa14dbaa9a8110947825",
+      "contentHash": "c7ef19251fa2aaf67a0de5d5073fdb25716bc04c484d03a929d46b07d40904f9",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -105,7 +105,7 @@
     },
     "CLAUDE.md": {
       "filePath": "CLAUDE.md",
-      "contentHash": "7b64beba1427057004ac738c796c37780649eb1e260bf48ec02e58a39545bb8b",
+      "contentHash": "5d472833a25ceb34ef4573bf4423c13186ce7271b50f58e588fd238c3293a667",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -135,22 +135,22 @@
     },
     "CONTRIBUTING.md": {
       "filePath": "CONTRIBUTING.md",
-      "contentHash": "1a07072c0e78c47cdcf08545fd01ce178f60061a20d8234249ad72c1deac3166",
+      "contentHash": "5ff9c76c8b47275035a06949fafad18ec251ded51386aa9d8a423b5d1b4ce7f9",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 341,
+      "totalLines": 342,
       "hasStructuralAnalysis": true
     },
     "CONTRIBUTING_CN.md": {
       "filePath": "CONTRIBUTING_CN.md",
-      "contentHash": "905f4e11b58a62f83c6fd5e2a58a9b07d3278b5f62b0f47574d5c04729e2a91b",
+      "contentHash": "3a5a26246e7b36d565f6dcd5a6d67bdb24a794258bb0945ab165783156c45963",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 321,
+      "totalLines": 322,
       "hasStructuralAnalysis": true
     },
     "MANIFEST.in": {
@@ -165,27 +165,27 @@
     },
     "README.md": {
       "filePath": "README.md",
-      "contentHash": "064d81feea574ac7d02c297cf4ab1a42f7149d694a19b8ac1d283c1bc4df8133",
+      "contentHash": "d19da418ebe834a26982ff129241e4a2c47cd5b350bd353d6a01833013919867",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 447,
+      "totalLines": 651,
       "hasStructuralAnalysis": true
     },
     "README_CN.md": {
       "filePath": "README_CN.md",
-      "contentHash": "ab7200e65b1e76ab22d0ea38d8ff6938f8a7d8b6385f2b0b5b1d5be320d570e3",
+      "contentHash": "77924987b349ae62a7acf43b6a98780ed5aa60a20f2a8555d92cf99a82589c29",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 397,
+      "totalLines": 593,
       "hasStructuralAnalysis": true
     },
     "box_agent/__init__.py": {
       "filePath": "box_agent/__init__.py",
-      "contentHash": "b10d2362b7f177b23cef499cc70e5686b88a42820b4f3a49d92d1907cfcf6076",
+      "contentHash": "a50f51e0dd071e0c1e48f6789cd7076c2b993942a9255fa8b0711e179e494634",
       "functions": [
         {
           "name": "_frozen_runtime_version",
@@ -243,7 +243,7 @@
     },
     "box_agent/acp/__init__.py": {
       "filePath": "box_agent/acp/__init__.py",
-      "contentHash": "1ab7e720266dd543771b41d7c05380d81fa13e5f296b8e1183e644f33f3eba18",
+      "contentHash": "408adce7755077dbae4137ec6298ac0e56bd5b1721e5e5179055a36a6a0b3fe1",
       "functions": [
         {
           "name": "run_acp_server",
@@ -308,7 +308,7 @@
     },
     "box_agent/acp/action_hints.py": {
       "filePath": "box_agent/acp/action_hints.py",
-      "contentHash": "da5fafab51bce95384215027e08d6a83ca52e06eeb2fe5dd70011c98f06daed5",
+      "contentHash": "c4c798613d4155a55737c4113a5d7f13a1b1737c1de2fd210892c36891a9337c",
       "functions": [],
       "classes": [],
       "imports": [
@@ -331,7 +331,7 @@
     },
     "box_agent/acp/bootstrap.py": {
       "filePath": "box_agent/acp/bootstrap.py",
-      "contentHash": "c74d00bb96627706ba0202291f3734301433ae62a6c48f2b175af40a9a95fd18",
+      "contentHash": "216c6fdc78b9f9a39094e3fad39a90e553c0a86d307c42acf8bc75f0f7629893",
       "functions": [
         {
           "name": "_configure_protocol_streams",
@@ -541,7 +541,7 @@
     },
     "box_agent/acp/env_context.py": {
       "filePath": "box_agent/acp/env_context.py",
-      "contentHash": "44042297b1ec9a33a848e19b76edf85ffaf9c5d0e5cc251cb26834096d9e1502",
+      "contentHash": "a7013ba17518058e9a658c514a028394698b0663b08ed0b4371b5c52763eedbd",
       "functions": [],
       "classes": [],
       "imports": [
@@ -564,7 +564,7 @@
     },
     "box_agent/acp/kernel_runtime.py": {
       "filePath": "box_agent/acp/kernel_runtime.py",
-      "contentHash": "6b5dfff9841eb42fe20538affd41da78ce664b3e879fa73741342a69f4053739",
+      "contentHash": "02c7b8e6634e4fd30f71d28f60dac9f37cf48ca91e489e0a37d997107682a17e",
       "functions": [
         {
           "name": "_build_system_prompt",
@@ -584,7 +584,7 @@
           ],
           "returnType": "KernelACPRuntime",
           "exported": true,
-          "lineCount": 283
+          "lineCount": 295
         }
       ],
       "classes": [
@@ -765,7 +765,8 @@
             "build_image_generation_prompt",
             "build_sandbox_info_prompt",
             "initialize_base_tools",
-            "merge_mcp_tools"
+            "merge_mcp_tools",
+            "render_system_prompt_template"
           ]
         },
         {
@@ -781,6 +782,13 @@
           ]
         },
         {
+          "source": "box_agent.tools.skillhub_contributor",
+          "specifiers": [
+            "SkillHubDiscoveryState",
+            "SkillHubHostBridge"
+          ]
+        },
+        {
           "source": "box_agent.workflows",
           "specifiers": [
             "WorkflowEventHook",
@@ -793,12 +801,12 @@
         "KernelACPRuntime",
         "build_kernel_acp_runtime"
       ],
-      "totalLines": 403,
+      "totalLines": 420,
       "hasStructuralAnalysis": true
     },
     "box_agent/acp/project_context.py": {
       "filePath": "box_agent/acp/project_context.py",
-      "contentHash": "c01b8c5ebe6e976784f7cf1cc844a085d059fb3031311c6bdab1fda8ce63cfb9",
+      "contentHash": "9977b336d21a7ccd76113225cfacf1fff5cca25e805c9267fb0d4930d4dad3d4",
       "functions": [],
       "classes": [],
       "imports": [
@@ -821,7 +829,7 @@
     },
     "box_agent/acp/protocol.py": {
       "filePath": "box_agent/acp/protocol.py",
-      "contentHash": "c954b1f132adfb0eec6cfd7dd79998b44ca37468284d35dc2e9ff4b1b27962ba",
+      "contentHash": "496ed1fcf97a823b41d6770c83376a3ce4937aa2c313347eb3b88c2bd21962e1",
       "functions": [
         {
           "name": "initialize_response",
@@ -848,7 +856,7 @@
     },
     "box_agent/acp/runtime_entry.py": {
       "filePath": "box_agent/acp/runtime_entry.py",
-      "contentHash": "42430e722b1e36f4f888c6ec600b46f3868a23540d0b9cd4e1b566aefd2fee46",
+      "contentHash": "0d4163af3e3b34a8cbf8df0f0438e4aebe677022687ff4ca536a250cd4f87f8b",
       "functions": [
         {
           "name": "main",
@@ -1046,7 +1054,7 @@
     },
     "box_agent/adapters/README.md": {
       "filePath": "box_agent/adapters/README.md",
-      "contentHash": "45dc223836a24b95b27146c2e715425ef7801a8c23568998833ae7ab344a4608",
+      "contentHash": "84dbbcbc7241cda47ead0a77b46d51220fed287fc04d238c36f4a60fcbb2228d",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -1056,7 +1064,7 @@
     },
     "box_agent/adapters/__init__.py": {
       "filePath": "box_agent/adapters/__init__.py",
-      "contentHash": "e62862127d928970689aa3ff02b21b9172ec6914d3eb4b44ed7c5e05ee0cdacc",
+      "contentHash": "666dd00a4a4c36ac7a78b37cf81e1d122b660ed59921737b63467d45c434e180",
       "functions": [],
       "classes": [],
       "imports": [
@@ -1118,7 +1126,7 @@
     },
     "box_agent/adapters/acp/__init__.py": {
       "filePath": "box_agent/adapters/acp/__init__.py",
-      "contentHash": "785f5aa0e77aafb1e388a07cee5cf0ff3713467474ddca18e03f378544e79e16",
+      "contentHash": "b01ed41df59cfafee5d80c665019f3991434ec4bb3b1d9308e2c269c26e2e131",
       "functions": [],
       "classes": [],
       "imports": [
@@ -1143,7 +1151,7 @@
     },
     "box_agent/adapters/acp/kernel.py": {
       "filePath": "box_agent/adapters/acp/kernel.py",
-      "contentHash": "5afdaad4ef15c9fcff7893e972c02cb749dbaf550d2a8f1d2b4023bddae539fb",
+      "contentHash": "a39f7ab88a00a5042bdbf35acc932936428c26367ea939457adb0f4caafb0c4d",
       "functions": [],
       "classes": [],
       "imports": [
@@ -1161,7 +1169,7 @@
     },
     "box_agent/adapters/acp_kernel.py": {
       "filePath": "box_agent/adapters/acp_kernel.py",
-      "contentHash": "936c115531e8d7a91cd9e243141cf07332f6c88fff89c3098e77c88a88b5dba2",
+      "contentHash": "dcc67593537d34c72df7790b4369b03fb7f276bb06a3c8cc69b245f488463300",
       "functions": [
         {
           "name": "_canonical_workspace",
@@ -1309,7 +1317,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 903
+          "lineCount": 911
         }
       ],
       "imports": [
@@ -1436,6 +1444,24 @@
           ]
         },
         {
+          "source": "box_agent.tools.skillhub_contributor",
+          "specifiers": [
+            "skillhub_capabilities"
+          ]
+        },
+        {
+          "source": "box_agent.tools.skillhub_install_tool",
+          "specifiers": [
+            "SKILLHUB_INSTALL_CAPABILITY_VERSION"
+          ]
+        },
+        {
+          "source": "box_agent.tools.skillhub_search_tool",
+          "specifiers": [
+            "SKILLHUB_SEARCH_CAPABILITY_VERSION"
+          ]
+        },
+        {
           "source": "box_agent.workflows.routing",
           "specifiers": [
             "text_requests_native_plan"
@@ -1468,12 +1494,12 @@
         "ACPPermissionGateway",
         "KernelACPAgent"
       ],
-      "totalLines": 1365,
+      "totalLines": 1376,
       "hasStructuralAnalysis": true
     },
     "box_agent/adapters/acp_metadata.py": {
       "filePath": "box_agent/adapters/acp_metadata.py",
-      "contentHash": "a39401582c02a8df4941555b38af70938abfc377bbd5829ac2329c5f8275917d",
+      "contentHash": "b47d6a5a205da312165c6f698e3a635b622a5233452b7008c8f12ba5f19a2eac",
       "functions": [
         {
           "name": "thinking_enabled_hint",
@@ -1528,7 +1554,7 @@
     },
     "box_agent/adapters/acp_projection.py": {
       "filePath": "box_agent/adapters/acp_projection.py",
-      "contentHash": "4ba79cf05605f4666d5e93e98fc32766d41dd1b618d6fdda87200429edcc369b",
+      "contentHash": "d70e50d3db6fc41363b7faab646715845124ddc640e9c48251b2ed0a3db1ceea",
       "functions": [
         {
           "name": "_token_count",
@@ -1587,7 +1613,7 @@
     },
     "box_agent/adapters/builtin_extensions.py": {
       "filePath": "box_agent/adapters/builtin_extensions.py",
-      "contentHash": "0473b90d8c06ef85d0912463f71ce3df0defb82eeed7eff9d73119830e694d8c",
+      "contentHash": "65fa48aa8b6e280f280a9d11d025d2b8b63ca0f806e5eb7ff83abc443582f3a2",
       "functions": [
         {
           "name": "_session_is_known",
@@ -1780,7 +1806,7 @@
     },
     "box_agent/adapters/capabilities.py": {
       "filePath": "box_agent/adapters/capabilities.py",
-      "contentHash": "cc76c02576902c13b693828f553e222226b61ca2af2870d5fc45cf1299bac9e8",
+      "contentHash": "b6298bc88ec5d10bc64c2f7cb4117584fabad7f511b88655d516a0be338c421b",
       "functions": [
         {
           "name": "_tool_call_from_legacy",
@@ -1833,7 +1859,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 186
+          "lineCount": 194
         },
         {
           "name": "MemoryManagerEngine",
@@ -1894,12 +1920,12 @@
         "_usage_from_legacy",
         "_call_capability"
       ],
-      "totalLines": 321,
+      "totalLines": 329,
       "hasStructuralAnalysis": true
     },
     "box_agent/adapters/cli/__init__.py": {
       "filePath": "box_agent/adapters/cli/__init__.py",
-      "contentHash": "0cf0820207b68c5f2383100da3a46f17069a009f16150bbaecaf7437fad2fb8f",
+      "contentHash": "f2680cf99479e804f9f835ff49749e77c5b295bba4cc466c6b44e82319c521aa",
       "functions": [],
       "classes": [],
       "imports": [
@@ -1928,7 +1954,7 @@
     },
     "box_agent/adapters/cli/app.py": {
       "filePath": "box_agent/adapters/cli/app.py",
-      "contentHash": "27fe0bc1e00153e1cebe34379b262394b8d95fa4426685e00099e444b4a9e66a",
+      "contentHash": "bd27813110fe08cc099c4f94d9d504a8339f26a837475cb1d0db165a6b5184df",
       "functions": [
         {
           "name": "run_setup_wizard",
@@ -2023,7 +2049,7 @@
           ],
           "returnType": "dict[str, Any]",
           "exported": true,
-          "lineCount": 91
+          "lineCount": 93
         },
         {
           "name": "_print_config_summary",
@@ -2464,7 +2490,7 @@
           ],
           "returnType": "int",
           "exported": true,
-          "lineCount": 850
+          "lineCount": 852
         },
         {
           "name": "main",
@@ -2671,7 +2697,8 @@
             "build_file_delivery_prompt",
             "build_image_generation_prompt",
             "build_sandbox_info_prompt",
-            "initialize_base_tools"
+            "initialize_base_tools",
+            "render_system_prompt_template"
           ]
         },
         {
@@ -2800,12 +2827,12 @@
         "run_agent",
         "main"
       ],
-      "totalLines": 2884,
+      "totalLines": 2889,
       "hasStructuralAnalysis": true
     },
     "box_agent/adapters/cli/kernel_runtime.py": {
       "filePath": "box_agent/adapters/cli/kernel_runtime.py",
-      "contentHash": "1589547c6ae21ee30b724d463d79b4f3c75e07f40d391099c130744c4844aa85",
+      "contentHash": "c0def8cdcf3f9ab9bbc2490d1abba5e43827d13174331478d7d75a588cc8692a",
       "functions": [
         {
           "name": "_requests_plan",
@@ -2949,7 +2976,7 @@
     },
     "box_agent/adapters/cli/memory_proposal.py": {
       "filePath": "box_agent/adapters/cli/memory_proposal.py",
-      "contentHash": "60b70d6cfe68a429f60ca25eb4948cd1bde35df32328bce32607a5cd8ead44c0",
+      "contentHash": "459e256b84c01605166a4e87c4c1264424792208cc714eecb15d516f63957bb5",
       "functions": [],
       "classes": [],
       "imports": [
@@ -2966,7 +2993,7 @@
     },
     "box_agent/adapters/cli/memory_proposal_impl.py": {
       "filePath": "box_agent/adapters/cli/memory_proposal_impl.py",
-      "contentHash": "aac26e876321ad51367d95f92c90a11be394c812dc2769c32bff1607d35c5b12",
+      "contentHash": "da059d1054fa137800b88142757571eeda6afceba2e9845d3dfa564064f08f45",
       "functions": [
         {
           "name": "_read_with_echo",
@@ -3063,7 +3090,7 @@
     },
     "box_agent/adapters/cli/permission_broker.py": {
       "filePath": "box_agent/adapters/cli/permission_broker.py",
-      "contentHash": "6e52e8d4d1d23c409f186160f51286cb98a56e48a60ea2aa3bd6e1e264fabb75",
+      "contentHash": "93136a1e2a41dfd4df518e36bfa6955da7045de5af83c409ff59007f7da9b1de",
       "functions": [],
       "classes": [],
       "imports": [
@@ -3080,7 +3107,7 @@
     },
     "box_agent/adapters/cli/permission_broker_impl.py": {
       "filePath": "box_agent/adapters/cli/permission_broker_impl.py",
-      "contentHash": "43d3943686ce488020d2d8b36903a6a0478acc2f29f0328d00ae043025239749",
+      "contentHash": "0ff3136495e078de5ce399088d5981d5da81812889e73b23b861ba4ec1d55ade",
       "functions": [
         {
           "name": "_derive_grant_dir",
@@ -3155,7 +3182,7 @@
     },
     "box_agent/adapters/extensions.py": {
       "filePath": "box_agent/adapters/extensions.py",
-      "contentHash": "471f0e5805cdecd2fc8d888f529caeed48aa605697582cf465689261481d6a32",
+      "contentHash": "c225fa1252e90d10f62be5fe511bfb4d064f5d2d253a31e8cbb04e5b417f3c4a",
       "functions": [],
       "classes": [
         {
@@ -3218,7 +3245,7 @@
     },
     "box_agent/adapters/hosts.py": {
       "filePath": "box_agent/adapters/hosts.py",
-      "contentHash": "86e01e03b32df2ee699cda1d09feb3b93931aa679cf4ad2fa2d5190d6db3f3fd",
+      "contentHash": "dfeca00f4ef5f166a21db8e094b659904f154ae67b1632ef49166356eab33f41",
       "functions": [],
       "classes": [
         {
@@ -3287,7 +3314,7 @@
     },
     "box_agent/adapters/plugin_host.py": {
       "filePath": "box_agent/adapters/plugin_host.py",
-      "contentHash": "196ef471022b2194dad55f8f95d6138785edfd4c1f714a37964446ae05b1333e",
+      "contentHash": "86ad13f191f936d7e01abaa3d10053cba4f52718c2c5edabb41868c690375dac",
       "functions": [
         {
           "name": "build_plugin_host",
@@ -3403,7 +3430,7 @@
     },
     "box_agent/adapters/projections.py": {
       "filePath": "box_agent/adapters/projections.py",
-      "contentHash": "380ce65b0b288f409edd318a9fe5e6e8261aefc92a26519f99cb0839e14a12f6",
+      "contentHash": "3c3c9a7d4a77ba5ef4e229a85dd59d91daf348d1e93786839d90961bd4965eeb",
       "functions": [],
       "classes": [
         {
@@ -3495,7 +3522,7 @@
     },
     "box_agent/adapters/service.py": {
       "filePath": "box_agent/adapters/service.py",
-      "contentHash": "ada74e455d5c4c968cffffc1b0ac5f10e2fa5503b77c6a5ee1854d13fd2a83c8",
+      "contentHash": "f466f716dfbdc61aab7978ab1800d12c69be36d838b535c118f24c11cbe4a78f",
       "functions": [
         {
           "name": "request_from_payload",
@@ -3574,7 +3601,7 @@
     },
     "box_agent/agent.py": {
       "filePath": "box_agent/agent.py",
-      "contentHash": "efacf6f810926d3c3be8352afabc104be1d5177c8b958e75d7bbf2d7939617a8",
+      "contentHash": "036551af97d7fe7c4988402b330a5c9039594d57dd4807b0dc8a13017f8572f5",
       "functions": [],
       "classes": [],
       "imports": [
@@ -3599,7 +3626,7 @@
     },
     "box_agent/api/__init__.py": {
       "filePath": "box_agent/api/__init__.py",
-      "contentHash": "26b147acf195b56d76dcf4c8312b953bc74bcb9755e784329d409b0beb7798b0",
+      "contentHash": "cacfd57559367c1f478675f78bd12a8326aa92d1418327ed4398f8159957a5b7",
       "functions": [],
       "classes": [],
       "imports": [
@@ -3739,7 +3766,7 @@
     },
     "box_agent/api/artifact_context.py": {
       "filePath": "box_agent/api/artifact_context.py",
-      "contentHash": "aa67eae0fe72d5265f0a8e31f9196cc8689022a6f916bb8c564b3f9a9360d975",
+      "contentHash": "a752c4c2fe80b78affbc4e91460d356fbe6c5b66e105fbfbbaa400e4bd8eb595",
       "functions": [],
       "classes": [
         {
@@ -3801,7 +3828,7 @@
     },
     "box_agent/api/contracts.py": {
       "filePath": "box_agent/api/contracts.py",
-      "contentHash": "43227cb462aac95e5e44c4aee7025131527d9bb177d44eef6df538877242c077",
+      "contentHash": "b4fb612a77f351712c100af3572f3dfbc6ae71e904ca3f873dc7563662125a15",
       "functions": [
         {
           "name": "_require_text",
@@ -4131,7 +4158,7 @@
     },
     "box_agent/api/controls.py": {
       "filePath": "box_agent/api/controls.py",
-      "contentHash": "f9cfc4da565d8f34d2804b356d1609de9b546cf459070a3358425e368093b5bf",
+      "contentHash": "fb094c2b2c75f172cb892a0038304c191e16df5384eeae83ee0d2e4e0d55217d",
       "functions": [],
       "classes": [
         {
@@ -4199,7 +4226,7 @@
     },
     "box_agent/api/errors.py": {
       "filePath": "box_agent/api/errors.py",
-      "contentHash": "d69ef846f092bd5ccf9cd6e5c4869ea0c39e3f86e24ba3e854d16cbbd3233197",
+      "contentHash": "8a16d4596a3b5d6b0bda21ec0f054fb02b871ee6a4834167383ebc843d1ef1e1",
       "functions": [],
       "classes": [
         {
@@ -4257,7 +4284,7 @@
     },
     "box_agent/api/events.py": {
       "filePath": "box_agent/api/events.py",
-      "contentHash": "dafb29c7c3e117c7b916421f5339e194976ed39be5fa5878168a168a45318cc1",
+      "contentHash": "210e38e8f482b4ce3e12b5620e1247826365ac99c5d1bfd4f5c9ce622de03f53",
       "functions": [],
       "classes": [
         {
@@ -4307,7 +4334,7 @@
     },
     "box_agent/api/handles.py": {
       "filePath": "box_agent/api/handles.py",
-      "contentHash": "88eb2164241eab41096073ded6f4c87155083eb351a44e2a7d2d30c8309e9a1d",
+      "contentHash": "85cb64c886a2ec5949f8ad92102e5d8140abd811a42a14900dee9b4f583385cc",
       "functions": [],
       "classes": [
         {
@@ -4402,7 +4429,7 @@
     },
     "box_agent/api/permissions.py": {
       "filePath": "box_agent/api/permissions.py",
-      "contentHash": "17f6e02d1fae9c54d989ddbebd52020767ec7005f395e384e6e6b4a80bb49561",
+      "contentHash": "2a7aaca3ae131fbb32d9a801fc5c6112a6a816a2a14c2ee67a7c4d9b590e9f59",
       "functions": [],
       "classes": [
         {
@@ -4461,7 +4488,7 @@
     },
     "box_agent/api/plan.py": {
       "filePath": "box_agent/api/plan.py",
-      "contentHash": "02f587f916973002198e5e966863b3325522040e6ebedf06145823298277f4ab",
+      "contentHash": "78d921a2cbb272977a41d75e2b648b4a979df0133cbce9b22adaa5bf71a3d5f5",
       "functions": [
         {
           "name": "plan_approval_is_approved",
@@ -4534,7 +4561,7 @@
     },
     "box_agent/api/ports.py": {
       "filePath": "box_agent/api/ports.py",
-      "contentHash": "222affde12af61493aa13cc161892f94778659c88389432f31522e8bf1cd330d",
+      "contentHash": "2f19794679c3defd93edd41ceed40d56e52317f724f59487134e1675ef470392",
       "functions": [],
       "classes": [
         {
@@ -4551,11 +4578,12 @@
           "methods": [
             "schemas",
             "prepare_call",
-            "end_run"
+            "end_run",
+            "restricted_passthrough_tool_names"
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 29
+          "lineCount": 33
         },
         {
           "name": "ToolPlugin",
@@ -4778,12 +4806,12 @@
         "Hook",
         "WorkflowPolicy"
       ],
-      "totalLines": 374,
+      "totalLines": 378,
       "hasStructuralAnalysis": true
     },
     "box_agent/api/tool_context.py": {
       "filePath": "box_agent/api/tool_context.py",
-      "contentHash": "f74ca0dfacab8a49ccc77f7a83b07cbb6f841bbc691bf0a522ccd3b5aaa0a4e6",
+      "contentHash": "3ce48c36c29ca4b982482288b9429ee5e7c4af0fef11f8db4ebf2131f1ed86a0",
       "functions": [],
       "classes": [
         {
@@ -4854,7 +4882,7 @@
     },
     "box_agent/api/workflows.py": {
       "filePath": "box_agent/api/workflows.py",
-      "contentHash": "0db881a6a60ad2ad1d5e3592e989a98e2a7dbadaf13b33e4cbe66c8c842afd53",
+      "contentHash": "2fcbb125a80df6ddbcffd9d16eadac256001c7dc4c0d267af4126e292d947dcd",
       "functions": [],
       "classes": [
         {
@@ -4904,7 +4932,7 @@
     },
     "box_agent/artifacts.py": {
       "filePath": "box_agent/artifacts.py",
-      "contentHash": "6a8c94fe511497fe111e9547080381f2626e9846f9662c6f5698998b2be5d7fb",
+      "contentHash": "98bab381eda9b2045b8e221cf1d592e6d9dc861f860aee18742a284a6ebf6ed0",
       "functions": [],
       "classes": [],
       "imports": [
@@ -4927,7 +4955,7 @@
     },
     "box_agent/auth.py": {
       "filePath": "box_agent/auth.py",
-      "contentHash": "fc086ab343890dc84ce94954e056dfe7a2859a1ef21652e2311461a8ef7bae15",
+      "contentHash": "62281861ec5d50c212c66693074f97d243e4e8ea2318a544d2b53f1554d47d2c",
       "functions": [
         {
           "name": "_coerce_token",
@@ -4939,13 +4967,80 @@
           "lineCount": 4
         },
         {
+          "name": "_read_auth_state",
+          "params": [
+            "auth_file"
+          ],
+          "returnType": "tuple[Path | None, dict[str, Any]]",
+          "exported": true,
+          "lineCount": 15
+        },
+        {
+          "name": "_auth_token_from_state",
+          "params": [
+            "data"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "_jwt_expiry",
+          "params": [
+            "token"
+          ],
+          "returnType": "int | None",
+          "exported": true,
+          "lineCount": 11
+        },
+        {
+          "name": "_xiaohuanxiong_refresh_url",
+          "params": [
+            "api_base"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "_refresh_lock",
+          "params": [
+            "auth_file"
+          ],
+          "returnType": "asyncio.Lock",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "_write_auth_state",
+          "params": [
+            "path",
+            "data"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 15
+        },
+        {
           "name": "read_auth_token_file",
           "params": [
             "auth_file"
           ],
           "returnType": "str",
           "exported": true,
-          "lineCount": 28
+          "lineCount": 5
+        },
+        {
+          "name": "refresh_hosted_auth_token_if_needed",
+          "params": [
+            "api_base",
+            "auth_file",
+            "now",
+            "http_client"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 94
         },
         {
           "name": "resolve_auth_token",
@@ -4966,7 +5061,7 @@
           ],
           "returnType": "dict[str, str | bytes]",
           "exported": true,
-          "lineCount": 23
+          "lineCount": 19
         },
         {
           "name": "should_attach_auth_header",
@@ -4987,11 +5082,37 @@
           ],
           "returnType": "dict[str, str | bytes]",
           "exported": true,
-          "lineCount": 8
+          "lineCount": 10
         }
       ],
-      "classes": [],
+      "classes": [
+        {
+          "name": "HostedAuthRefreshError",
+          "methods": [],
+          "properties": [],
+          "exported": true,
+          "lineCount": 2
+        }
+      ],
       "imports": [
+        {
+          "source": "asyncio",
+          "specifiers": [
+            "asyncio"
+          ]
+        },
+        {
+          "source": "base64",
+          "specifiers": [
+            "base64"
+          ]
+        },
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
         {
           "source": "os",
           "specifiers": [
@@ -4999,9 +5120,15 @@
           ]
         },
         {
-          "source": "json",
+          "source": "time",
           "specifiers": [
-            "json"
+            "time"
+          ]
+        },
+        {
+          "source": "weakref",
+          "specifiers": [
+            "weakref"
           ]
         },
         {
@@ -5027,17 +5154,37 @@
           "specifiers": [
             "urlparse"
           ]
+        },
+        {
+          "source": "uuid",
+          "specifiers": [
+            "uuid4"
+          ]
+        },
+        {
+          "source": "httpx",
+          "specifiers": [
+            "httpx"
+          ]
         }
       ],
       "exports": [
+        "HostedAuthRefreshError",
         "_coerce_token",
+        "_read_auth_state",
+        "_auth_token_from_state",
+        "_jwt_expiry",
+        "_xiaohuanxiong_refresh_url",
+        "_refresh_lock",
+        "_write_auth_state",
         "read_auth_token_file",
+        "refresh_hosted_auth_token_if_needed",
         "resolve_auth_token",
         "bearer_auth_headers",
         "should_attach_auth_header",
         "request_auth_headers"
       ],
-      "totalLines": 125,
+      "totalLines": 291,
       "hasStructuralAnalysis": true
     },
     "box_agent/build_runtime_cli.py": {
@@ -5081,7 +5228,7 @@
     },
     "box_agent/cache_fingerprint.py": {
       "filePath": "box_agent/cache_fingerprint.py",
-      "contentHash": "e0fcc22b868ed119900db8cd0ef74473a02e828ddc48d072cf4bbee5e2a89799",
+      "contentHash": "229869b8e37e7285f39889fba98eeb4bc53729bc4bfd55a3f11ead87006c9bc6",
       "functions": [],
       "classes": [],
       "imports": [
@@ -5104,7 +5251,7 @@
     },
     "box_agent/cli.py": {
       "filePath": "box_agent/cli.py",
-      "contentHash": "cb20f058a86415182b7d1f0cccadab9f17398621b1294247c353ef168a9e0b19",
+      "contentHash": "6e5c0cf48ad92e7780f44a53218aeafb8ba58c9868e79d12ff594c5a6b9b0cdf",
       "functions": [],
       "classes": [],
       "imports": [
@@ -5127,7 +5274,7 @@
     },
     "box_agent/cli_memory_proposal.py": {
       "filePath": "box_agent/cli_memory_proposal.py",
-      "contentHash": "778435d1a1033803edcfc9bc4b8b57d73a5143489d6858cb75b2d0f51bbac7ec",
+      "contentHash": "008d61d7bce421acbe4097640c12f1e6215bbf887063b52385da5f37649315d1",
       "functions": [],
       "classes": [],
       "imports": [
@@ -5150,7 +5297,7 @@
     },
     "box_agent/cli_permissions.py": {
       "filePath": "box_agent/cli_permissions.py",
-      "contentHash": "c4824ff59fadbf6830dff1b8de31b1f1f08adbff72e48c29d0c4584f55dae29d",
+      "contentHash": "860149771baf25ef342965606c600a6f402db1dfbcc483a635749400e4381a40",
       "functions": [],
       "classes": [],
       "imports": [
@@ -5282,7 +5429,7 @@
     },
     "box_agent/compat/__init__.py": {
       "filePath": "box_agent/compat/__init__.py",
-      "contentHash": "0765d66eadff1119306fec0c0f066b87d9a82bbad4c15a6d6825bf5a9be566d3",
+      "contentHash": "b3e508fc022746d3af3d02f3892d2a2e9d0b5a097387475e74f00afeeaba6630",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -5292,7 +5439,7 @@
     },
     "box_agent/compat/_forward.py": {
       "filePath": "box_agent/compat/_forward.py",
-      "contentHash": "7d588cf4589e738b788edb78137b6cbb3b30a200ff9501f1694a14cca04a68ed",
+      "contentHash": "8c4fd97cbe8b7e526a50049d703b5b55d8be8f7eb31fb61243db00e5bfb3feb7",
       "functions": [
         {
           "name": "forward_attribute",
@@ -5335,7 +5482,7 @@
     },
     "box_agent/compat/acp.py": {
       "filePath": "box_agent/compat/acp.py",
-      "contentHash": "53cbfbf6ea2cbbc55fc39cae7f51286284309bcc2484cdb27387cc8e78639f99",
+      "contentHash": "89011da9d25c58ddc71355387971c9d54518f8b4eda24a62dc4b971d78b3b1b1",
       "functions": [
         {
           "name": "__getattr__",
@@ -5378,7 +5525,7 @@
     },
     "box_agent/compat/agent.py": {
       "filePath": "box_agent/compat/agent.py",
-      "contentHash": "0d98691c3862f41b1930bb81521d7a764747c912dd0593d4072e153026ed4a35",
+      "contentHash": "dd45dbed9d413c49052b64be6aed9d250db95d79d79b4bd869d2738bab2d7da4",
       "functions": [
         {
           "name": "should_continue_goal_autopilot",
@@ -5645,7 +5792,7 @@
     },
     "box_agent/compat/cli.py": {
       "filePath": "box_agent/compat/cli.py",
-      "contentHash": "319a1c4062ac4f5443ba41e3dea95f76906f98d0f43918d32213a0cd44ed1a04",
+      "contentHash": "e73547f14dcf5e2077f8137e8fb3f1248a95029d163c383e0f798fab4ffc8a88",
       "functions": [
         {
           "name": "__getattr__",
@@ -5680,7 +5827,7 @@
     },
     "box_agent/compat/core.py": {
       "filePath": "box_agent/compat/core.py",
-      "contentHash": "e42f6e8658eac8dd907b4f150e97004e244d4fa06b1a634616f92f1b9f6ce87d",
+      "contentHash": "e5aeb2d52e5dfca88c86cbbe4194f7c37b4ec8ac96a2cdeb6b79f489186729ee",
       "functions": [],
       "classes": [],
       "imports": [
@@ -5726,7 +5873,7 @@
     },
     "box_agent/compat/events.py": {
       "filePath": "box_agent/compat/events.py",
-      "contentHash": "0da501354973cde4de30e2a624b88c40aa9464998396d5b596a6757e10ab91fb",
+      "contentHash": "5cc0ce3f4cc132a2eba82daf11d223672c9c8b2a90f396637c56a075e19a5af9",
       "functions": [],
       "classes": [
         {
@@ -6124,7 +6271,7 @@
     },
     "box_agent/compat/goal.py": {
       "filePath": "box_agent/compat/goal.py",
-      "contentHash": "4efe3f5467e0cadac8d0cd2a3743906b6c152f9276c62014561754f7ae084883",
+      "contentHash": "56ef2b693c87cbb4ad69ecc619eb40de7bfbbee1cf6f1a5e568814e21f712b48",
       "functions": [],
       "classes": [
         {
@@ -6254,7 +6401,7 @@
     },
     "box_agent/compat/runtime.py": {
       "filePath": "box_agent/compat/runtime.py",
-      "contentHash": "f948d8635461650c5a4f3117e0b254d080c8159ceda5c68f9cccae85f3ad9e4e",
+      "contentHash": "e3e6ba048cda989c4f304c4ff2c81eb0946b31cb9e3a4ebfc374862a8af2bff8",
       "functions": [
         {
           "name": "_message_text",
@@ -6558,7 +6705,7 @@
     },
     "box_agent/compat/workflow_policy.py": {
       "filePath": "box_agent/compat/workflow_policy.py",
-      "contentHash": "6e3fb84b78c588f4f093b7e4908caa9148102afddc9284a7456e5175eca0481f",
+      "contentHash": "cb74fc74b70b2c1a444ba6341e7fb7d9ca3d0ff1f8f99b777c58c76a423e58e3",
       "functions": [
         {
           "name": "__getattr__",
@@ -6593,7 +6740,7 @@
     },
     "box_agent/completion.py": {
       "filePath": "box_agent/completion.py",
-      "contentHash": "d85a35f2035b84cfc685ae117654396b1fb1f8389119eacc6225bd6718679f7a",
+      "contentHash": "d80c3e5594eb2951e4814a03f466562c313ef891df88e18d8cb3a1e08bcb9a25",
       "functions": [],
       "classes": [],
       "imports": [
@@ -6616,7 +6763,7 @@
     },
     "box_agent/config.py": {
       "filePath": "box_agent/config.py",
-      "contentHash": "34d9215f24164f27e5f945b3c862aa96445c6e601320a5ce476e23e4d702c649",
+      "contentHash": "bfc4ccf277a648f0c00850786ca37d5b6a0b742cbca6b13d621c26f837687831",
       "functions": [
         {
           "name": "_load_yaml_config",
@@ -6704,7 +6851,7 @@
             "retry"
           ],
           "exported": true,
-          "lineCount": 23
+          "lineCount": 24
         },
         {
           "name": "ImageGenerationConfig",
@@ -6761,6 +6908,16 @@
           "lineCount": 4
         },
         {
+          "name": "CompletionGateLimitsConfig",
+          "methods": [],
+          "properties": [
+            "max_continuations",
+            "deadline_seconds"
+          ],
+          "exported": true,
+          "lineCount": 5
+        },
+        {
           "name": "WorkflowToolLimitsConfig",
           "methods": [
             "validate_completion_reserve"
@@ -6802,6 +6959,7 @@
           "methods": [],
           "properties": [
             "general",
+            "completion",
             "web_search",
             "search_files",
             "external_skill",
@@ -6809,7 +6967,7 @@
             "sub_agent"
           ],
           "exported": true,
-          "lineCount": 11
+          "lineCount": 14
         },
         {
           "name": "AgentConfig",
@@ -6871,13 +7029,17 @@
         },
         {
           "name": "ToolsConfig",
-          "methods": [],
+          "methods": [
+            "validate_bash_timeouts"
+          ],
           "properties": [
             "enable_file_tools",
             "enable_bash",
             "enable_todo",
             "enable_plan",
             "enable_sub_agent",
+            "bash_default_timeout_seconds",
+            "bash_max_timeout_seconds",
             "allow_full_access",
             "enable_skills",
             "skills_dir",
@@ -6886,7 +7048,7 @@
             "mcp"
           ],
           "exported": true,
-          "lineCount": 21
+          "lineCount": 31
         },
         {
           "name": "FilesystemPermissions",
@@ -6967,7 +7129,7 @@
             "hooks"
           ],
           "exported": true,
-          "lineCount": 347
+          "lineCount": 343
         }
       ],
       "imports": [
@@ -7031,6 +7193,7 @@
         "GeneralToolLimitsConfig",
         "WebSearchLimitsConfig",
         "SearchFilesLimitsConfig",
+        "CompletionGateLimitsConfig",
         "WorkflowToolLimitsConfig",
         "PresentationToolLimitsConfig",
         "SubAgentToolLimitsConfig",
@@ -7046,7 +7209,7 @@
         "HooksConfig",
         "Config"
       ],
-      "totalLines": 764,
+      "totalLines": 781,
       "hasStructuralAnalysis": true
     },
     "box_agent/config/analysis_prompt.md": {
@@ -7071,12 +7234,12 @@
     },
     "box_agent/config/config-example.yaml": {
       "filePath": "box_agent/config/config-example.yaml",
-      "contentHash": "3ed941187c35d158bcb7ff9901fa89b058adcb9a705d92a8ef24b156d2647026",
+      "contentHash": "599456929ef80328940bc346fc37d9a29cd658a980591222e74d9f530f5d82e0",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 213,
+      "totalLines": 219,
       "hasStructuralAnalysis": true
     },
     "box_agent/config/mcp-example.json": {
@@ -7091,17 +7254,17 @@
     },
     "box_agent/config/system_prompt.md": {
       "filePath": "box_agent/config/system_prompt.md",
-      "contentHash": "cbebc759e17cc6db122f798faa29535d48809409db1f15e05c392acee96ec866",
+      "contentHash": "1e8d18c0d9111b8853be5beaff0f3105c8d063b0c397d914cf8fe52813813b95",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 95,
+      "totalLines": 82,
       "hasStructuralAnalysis": true
     },
     "box_agent/context/__init__.py": {
       "filePath": "box_agent/context/__init__.py",
-      "contentHash": "aacdac5096af51414c90ab111217cef296c715d4fe0c104f448ff12a917cc7bf",
+      "contentHash": "fa580a75f0ebc8b0409fbced9df0624af107e32db29b93698fc4d45150cbacd0",
       "functions": [
         {
           "name": "__getattr__",
@@ -7166,7 +7329,7 @@
     },
     "box_agent/context/action_hints.py": {
       "filePath": "box_agent/context/action_hints.py",
-      "contentHash": "dffa0612f6f6c7fbf37e8cfce744d992625d1ae0222148294dfe0f1b88d009c4",
+      "contentHash": "fd5b30441dd6f921c61c037a4dae00e2e3038a54c0b7023b0d37dca43147d93d",
       "functions": [
         {
           "name": "is_memory_scarce",
@@ -7354,7 +7517,7 @@
     },
     "box_agent/context/api.py": {
       "filePath": "box_agent/context/api.py",
-      "contentHash": "4066597f407ca4cced8a32bfe92d06d7b7cad0f9c0769025f5d0c0b5bafc8e36",
+      "contentHash": "742a0be271c0747bde0188e62a361c1414a11c85bb416fc1877cc0cff4b07106",
       "functions": [
         {
           "name": "_require_text",
@@ -7529,7 +7692,7 @@
     },
     "box_agent/context/composite.py": {
       "filePath": "box_agent/context/composite.py",
-      "contentHash": "7f93bee8d96823c61869097eb20288beaaea2ad483b93fac97535cc763cd9daa",
+      "contentHash": "4a4bbee941eadc057f5545eeefbae49eda4c3bc7ed3843a39ca4150dc7d18e31",
       "functions": [],
       "classes": [
         {
@@ -7581,7 +7744,7 @@
     },
     "box_agent/context/environment.py": {
       "filePath": "box_agent/context/environment.py",
-      "contentHash": "5c27ffcaaac6c24323dc840b1835c577e4bd14e5247882eeba880ccdfc26d71e",
+      "contentHash": "8c88f3ef74d319d11e1b421285d8b6de4d3d44cf88208d8c25f11616f121ff14",
       "functions": [
         {
           "name": "_has_unsafe_chars",
@@ -7682,7 +7845,7 @@
           ],
           "returnType": "list[str]",
           "exported": true,
-          "lineCount": 29
+          "lineCount": 32
         },
         {
           "name": "_format_browser_tools",
@@ -7888,7 +8051,7 @@
         "_format_obsidian",
         "build_env_context_prompt"
       ],
-      "totalLines": 605,
+      "totalLines": 608,
       "hasStructuralAnalysis": true
     },
     "box_agent/context/evidence.py": {
@@ -7985,7 +8148,7 @@
     },
     "box_agent/context/experts.py": {
       "filePath": "box_agent/context/experts.py",
-      "contentHash": "0e12d0b80abe0197dd54b891a82a3dfb787c8b56dab09da8b7109d983e78f868",
+      "contentHash": "07b4d36a18e0871fb8a592ea48b1be53f0841e69162279e7545139ae40c2bea9",
       "functions": [
         {
           "name": "_clean_text",
@@ -8260,7 +8423,7 @@
     },
     "box_agent/context/in_memory.py": {
       "filePath": "box_agent/context/in_memory.py",
-      "contentHash": "818e150bec61b3ffb14e698fea78d00fa7d8e9f8a40567ad07368da50727cb20",
+      "contentHash": "3d59710ad76c97bb6b546f4f54f30cd3fbe9ac027cd0b76df6606dee216c8ecd",
       "functions": [],
       "classes": [
         {
@@ -8318,7 +8481,7 @@
     },
     "box_agent/context/model_history.py": {
       "filePath": "box_agent/context/model_history.py",
-      "contentHash": "fd36ce90568ebbec9c7c5c3a4ccfe698893e0047efba87835b847ee96a1b8c5a",
+      "contentHash": "d03154abc6324afe2c09eb29939f3beed79d0aafb787a9acb86e58784114bffe",
       "functions": [
         {
           "name": "is_model_history_placeholder",
@@ -8363,7 +8526,7 @@
     },
     "box_agent/context/project.py": {
       "filePath": "box_agent/context/project.py",
-      "contentHash": "d0c75bf0d2cc224807542f22a1a1da8b6f343af303e844bb1fe188719aaff72a",
+      "contentHash": "59616bbab317f029610b14e81700dfed25d09859a476152c4523f92e12e059b5",
       "functions": [
         {
           "name": "_run_git",
@@ -8419,7 +8582,7 @@
     },
     "box_agent/context/resource_ledger.py": {
       "filePath": "box_agent/context/resource_ledger.py",
-      "contentHash": "ada18067f62c60012cfb3ba84d099c77c3c8fa98c46421f67a42b52ef84c441b",
+      "contentHash": "bff5842161121458633ab47411962df2e40b44a986d8739f36591965d15f79c8",
       "functions": [
         {
           "name": "classify_read_resource",
@@ -8596,7 +8759,7 @@
     },
     "box_agent/context/session_environment.py": {
       "filePath": "box_agent/context/session_environment.py",
-      "contentHash": "6fd8bef9d856f2a797f970c044fc2e1fa9a0bdad8b75acefd4343abb7421de16",
+      "contentHash": "382797f45cd16a1422d1109dbf673824d820545debfb7b365c995c43c1d818f8",
       "functions": [],
       "classes": [
         {
@@ -8666,7 +8829,7 @@
     },
     "box_agent/context/session_mode.py": {
       "filePath": "box_agent/context/session_mode.py",
-      "contentHash": "d2c4e872a1a3a722bf1fb8f72ce3df9595e793909edaf62059f51820499a4f2d",
+      "contentHash": "e66fd6fa2aa5b6ce5d2f695055a96ee5727785b9ffa8a2419b2baaffa862a44b",
       "functions": [],
       "classes": [
         {
@@ -8723,7 +8886,7 @@
     },
     "box_agent/context/skills.py": {
       "filePath": "box_agent/context/skills.py",
-      "contentHash": "46def4561168d8884c18e6c9aa8fb67c22244cc5eef548199846d1267eebf377",
+      "contentHash": "d82b08a00a4dfec4f4814bf9cb37a56746c1cd704cdd643dcc603453dd8a58e9",
       "functions": [],
       "classes": [
         {
@@ -8766,7 +8929,7 @@
     },
     "box_agent/context/task.py": {
       "filePath": "box_agent/context/task.py",
-      "contentHash": "09b87e6ecbff0e8a214451627ab5acadcab320091755cfa8adb87c3b11e38233",
+      "contentHash": "35f59df520f292b57bf0955d7f135ab501f4149608250eea7040c7ce0ab4c7a0",
       "functions": [
         {
           "name": "normalize_task_id",
@@ -8814,7 +8977,7 @@
     },
     "box_agent/context_resources.py": {
       "filePath": "box_agent/context_resources.py",
-      "contentHash": "f5b310243d2b8c24cb28568890c5bf0c0370d824460687d4518139d276c0a62d",
+      "contentHash": "8cb373cf8b412d940162b37563f681e9dc7452ed31aa991fd50cd7c01308b531",
       "functions": [],
       "classes": [],
       "imports": [
@@ -8837,7 +9000,7 @@
     },
     "box_agent/core.py": {
       "filePath": "box_agent/core.py",
-      "contentHash": "434b2e160dfee2c134b8d884d0d106d26478df92979f3c49f45390a5126b9968",
+      "contentHash": "346c16d65466f78b6310f6a2930df36108d93db86714d88a9bc8e28a07d8d15d",
       "functions": [],
       "classes": [],
       "imports": [
@@ -8863,7 +9026,7 @@
     },
     "box_agent/delivery.py": {
       "filePath": "box_agent/delivery.py",
-      "contentHash": "1c38518ddebeec32509df36f95c41935127a18263a122acf8510819451fcd244",
+      "contentHash": "3eaa5fdb45ceaebab8a7cc6d1130a526eb67a94150738f5a87aced86f824e290",
       "functions": [],
       "classes": [],
       "imports": [
@@ -8886,7 +9049,7 @@
     },
     "box_agent/events.py": {
       "filePath": "box_agent/events.py",
-      "contentHash": "216397b2dcaf12e3571467fde65ebadadecd23b83fd358c0e58165b7d647751d",
+      "contentHash": "69543a7d98e8e3872eb31c1ab2d78857ad5e61bf36d784d5023fc9da292c57d7",
       "functions": [],
       "classes": [],
       "imports": [
@@ -8909,7 +9072,7 @@
     },
     "box_agent/evidence.py": {
       "filePath": "box_agent/evidence.py",
-      "contentHash": "8648dd4a48ae5cd26b46a75dfb66fa8cd7954afcb232e22f2d6efcb57f09a8f7",
+      "contentHash": "85af09c893b7f2abcd39af45bda4dc4ae4303a6477f78ae045264088a994c063",
       "functions": [],
       "classes": [],
       "imports": [
@@ -8932,7 +9095,7 @@
     },
     "box_agent/execution_profile.py": {
       "filePath": "box_agent/execution_profile.py",
-      "contentHash": "a65d48eee2f91c6c7836ba32b6c2cde26ad953e0aa6a662201bd63e83adaf5bc",
+      "contentHash": "04a5073dea23676996803c47c425278dbc73c09dc48de303dd8a2158e06cf7a3",
       "functions": [],
       "classes": [],
       "imports": [
@@ -8955,7 +9118,7 @@
     },
     "box_agent/experts.py": {
       "filePath": "box_agent/experts.py",
-      "contentHash": "0e4a1daf89430918797f200795e93a5dbdb6b401ab56871ae19fdeb2db418142",
+      "contentHash": "121012eac41ee95f7dc796c8cc0244702f000d4b98b15bfccb8fc666f5cf7be1",
       "functions": [],
       "classes": [],
       "imports": [
@@ -8978,7 +9141,7 @@
     },
     "box_agent/hooks.py": {
       "filePath": "box_agent/hooks.py",
-      "contentHash": "fb366bdab4d09f2a21d2c93f0349c9859c7357601f5507753c51faf4d6791670",
+      "contentHash": "6d886dcc224bb4881fb5ec6f3f01e9526909f7b5926ea337eb14976380f515eb",
       "functions": [],
       "classes": [],
       "imports": [
@@ -9001,7 +9164,7 @@
     },
     "box_agent/kernel/__init__.py": {
       "filePath": "box_agent/kernel/__init__.py",
-      "contentHash": "d49b508f585d1d9457a81444f65cceb998aac0c0d3be1ec7fbf3e97b471f3260",
+      "contentHash": "23ddb442ed50cc1d46fad8d71e172b1fbb1ebe19628e27406f0d6e5daf0424f0",
       "functions": [],
       "classes": [],
       "imports": [
@@ -9031,7 +9194,7 @@
     },
     "box_agent/kernel/composer.py": {
       "filePath": "box_agent/kernel/composer.py",
-      "contentHash": "c3370e2e25f6d960fec9e1668faf3b6fead858054a4f104b4500595b5c24cb2a",
+      "contentHash": "d1c3463f57a080e366b67ab4c9a9ae686ee470bcb818f7f59bebb379565410d4",
       "functions": [
         {
           "name": "_require_capability",
@@ -9194,7 +9357,7 @@
     },
     "box_agent/kernel/loop.py": {
       "filePath": "box_agent/kernel/loop.py",
-      "contentHash": "f1a4213432807a2c60849982d06e1a4e2c57f5ead71ac84ee2f9bfd9e0ea7f82",
+      "contentHash": "c617cae0b003e3593061824a7754606dfee522f7efd7204f5f682d9922f6a781",
       "functions": [
         {
           "name": "_schema_tool_name",
@@ -9372,7 +9535,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 2713
+          "lineCount": 2730
         }
       ],
       "imports": [
@@ -9490,12 +9653,12 @@
         "_artifact_payloads",
         "_artifact_from_payload"
       ],
-      "totalLines": 3350,
+      "totalLines": 3367,
       "hasStructuralAnalysis": true
     },
     "box_agent/kernel/model_recovery.py": {
       "filePath": "box_agent/kernel/model_recovery.py",
-      "contentHash": "84abbbf05d6ecdaf1ab1f862b4c64ab99342a387aaa53f43da90483954e13bb7",
+      "contentHash": "0412a1aede20af53ae64fc7138fe26bfe4ed354928610a9aa59951ab66034fc1",
       "functions": [
         {
           "name": "decide_model_recovery",
@@ -9563,7 +9726,7 @@
     },
     "box_agent/kernel/model_stream.py": {
       "filePath": "box_agent/kernel/model_stream.py",
-      "contentHash": "02dfc5e8247bbc2a1a561e7025f38732d7e56584c011f496fe67b644ba89a625",
+      "contentHash": "d1dc2588ce7c4d47d0c3da1a7d523730be936137f3dac6de222b40fd351ace7d",
       "functions": [
         {
           "name": "resolve_provider_stale_seconds",
@@ -9633,7 +9796,7 @@
     },
     "box_agent/kernel/workflow_composite.py": {
       "filePath": "box_agent/kernel/workflow_composite.py",
-      "contentHash": "e0f5683bc6d73c3d85ccd2efb33aaa9c5d0a860403cfc55957a1586c8beba158",
+      "contentHash": "f411ebbd20eb15032c3199c35ac8300a6b5ac28a5c54861703eb0927962fe619",
       "functions": [
         {
           "name": "_policy_result",
@@ -9751,7 +9914,7 @@
     },
     "box_agent/kernel_service.py": {
       "filePath": "box_agent/kernel_service.py",
-      "contentHash": "82c53696f399d03d3067d14ac9dc954672287a0eb5535ca64fe140bc22b210e6",
+      "contentHash": "1564b3406796eea48e1ef44dfd2f1068161a5e30a0a1066958989b9582b9beac",
       "functions": [],
       "classes": [],
       "imports": [
@@ -9774,7 +9937,7 @@
     },
     "box_agent/llm/__init__.py": {
       "filePath": "box_agent/llm/__init__.py",
-      "contentHash": "e7e4d3d52334737f33b6a165ce5f7b9e94603532887b3d2d06d47f77e26b2dcc",
+      "contentHash": "1c54feee3c07abd85b76b2d0e07109488ef8e992bb0d396115e5db526e9ae4f7",
       "functions": [
         {
           "name": "__getattr__",
@@ -9805,12 +9968,12 @@
         "__getattr__",
         "__dir__"
       ],
-      "totalLines": 49,
+      "totalLines": 63,
       "hasStructuralAnalysis": true
     },
     "box_agent/llm/anthropic_client.py": {
       "filePath": "box_agent/llm/anthropic_client.py",
-      "contentHash": "ae126452ac5a176f13cd83767f6b38691849330f7b240d3a817df9c039d44c3d",
+      "contentHash": "bdd542b8e6cbd77fd122bc877fada8cc2dff48e40624339f92741daf2889d734",
       "functions": [],
       "classes": [
         {
@@ -9926,7 +10089,7 @@
     },
     "box_agent/llm/async_utils.py": {
       "filePath": "box_agent/llm/async_utils.py",
-      "contentHash": "467530d94cad62ef606011a3d6186c8beb4d7c8e34d95c02ebdd6fc074106d17",
+      "contentHash": "8571bf30ede805961deb28843e49189320f94285e41ff07eba8ab17fdd9af31c",
       "functions": [
         {
           "name": "await_if_needed",
@@ -9961,7 +10124,7 @@
     },
     "box_agent/llm/base.py": {
       "filePath": "box_agent/llm/base.py",
-      "contentHash": "4123e8494143dca991785dcd81a34036616429ccc92c7398c1a3a1deb7399713",
+      "contentHash": "53950014f128430704789228783344df534c428c6bea0031967e6d093637dd74",
       "functions": [],
       "classes": [
         {
@@ -9979,7 +10142,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 184
+          "lineCount": 187
         }
       ],
       "imports": [
@@ -10005,6 +10168,7 @@
         {
           "source": "..auth",
           "specifiers": [
+            "refresh_hosted_auth_token_if_needed",
             "request_auth_headers"
           ]
         },
@@ -10032,12 +10196,12 @@
       "exports": [
         "LLMClientBase"
       ],
-      "totalLines": 204,
+      "totalLines": 207,
       "hasStructuralAnalysis": true
     },
     "box_agent/llm/binding.py": {
       "filePath": "box_agent/llm/binding.py",
-      "contentHash": "60ccbd5df61f815f2eb80ebbea79ddbee09c2d681f7832c24e00f4e66136e982",
+      "contentHash": "6c38e0b44cda106e99bf9518a9fc440e3e847897ede6ce416a2960e8617903a4",
       "functions": [
         {
           "name": "normalize_llm_binding",
@@ -10046,7 +10210,7 @@
           ],
           "returnType": "dict[str, Any] | None",
           "exported": true,
-          "lineCount": 53
+          "lineCount": 80
         },
         {
           "name": "bind_session_llm",
@@ -10060,7 +10224,7 @@
           ],
           "returnType": "Any",
           "exported": true,
-          "lineCount": 49
+          "lineCount": 59
         }
       ],
       "classes": [],
@@ -10088,7 +10252,7 @@
         "normalize_llm_binding",
         "bind_session_llm"
       ],
-      "totalLines": 118,
+      "totalLines": 155,
       "hasStructuralAnalysis": true
     },
     "box_agent/llm/capabilities.py": {
@@ -10139,7 +10303,7 @@
     },
     "box_agent/llm/debug_logging.py": {
       "filePath": "box_agent/llm/debug_logging.py",
-      "contentHash": "fea7742de7c7a6679fa9e989246915bb3793eb9a401e6c52df0af53502413623",
+      "contentHash": "8be28395d03fc298a14ce1c0d630997488cca5bf369edbbddf9b514fcdee9cdc",
       "functions": [
         {
           "name": "set_llm_debug_sink",
@@ -10439,7 +10603,7 @@
     },
     "box_agent/llm/error_messages.py": {
       "filePath": "box_agent/llm/error_messages.py",
-      "contentHash": "0ee3319888314c3ab1005774670dea3231f0c08b7a196932f9b297b37aad4a17",
+      "contentHash": "7871e20264f5fff9ceb93b0254a01e834681dece832eb894516f2377dcb899e7",
       "functions": [
         {
           "name": "classify_llm_error",
@@ -10657,7 +10821,7 @@
         "_unwrap",
         "_build_haystack"
       ],
-      "totalLines": 524,
+      "totalLines": 525,
       "hasStructuralAnalysis": true
     },
     "box_agent/llm/lightweight.py": {
@@ -10773,7 +10937,7 @@
     },
     "box_agent/llm/llm_wrapper.py": {
       "filePath": "box_agent/llm/llm_wrapper.py",
-      "contentHash": "27bbfbe9ff93cf5f73acdebc0522b6256ac2d931c22ecca0652f965aa42869fc",
+      "contentHash": "f8f7fc4550983f92d3f3bc61c1815afd7a5bdbfa019984d6179207a4de8fb8c2",
       "functions": [
         {
           "name": "_trace_int",
@@ -10984,6 +11148,118 @@
       "totalLines": 624,
       "hasStructuralAnalysis": true
     },
+    "box_agent/llm/model_profiles.py": {
+      "filePath": "box_agent/llm/model_profiles.py",
+      "contentHash": "b29f1424ee76a578d1df7cb9353488e95eb61748ecbdc7909c156519bfbc7469",
+      "functions": [
+        {
+          "name": "default_model_profile_registry_path",
+          "params": [],
+          "returnType": "Path",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "_positive_int",
+          "params": [
+            "value",
+            "field",
+            "default"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "_required_text",
+          "params": [
+            "value",
+            "field"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "load_model_profile_revision",
+          "params": [
+            "profile_revision",
+            "registry_path"
+          ],
+          "returnType": "dict[str, Any]",
+          "exported": true,
+          "lineCount": 60
+        },
+        {
+          "name": "client_for_model_profile",
+          "params": [
+            "binding",
+            "fallback_client"
+          ],
+          "returnType": "LLMClient",
+          "exported": true,
+          "lineCount": 32
+        }
+      ],
+      "classes": [
+        {
+          "name": "ModelProfileUnavailable",
+          "methods": [],
+          "properties": [],
+          "exported": true,
+          "lineCount": 2
+        }
+      ],
+      "imports": [
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        },
+        {
+          "source": "typing",
+          "specifiers": [
+            "Any",
+            "Mapping"
+          ]
+        },
+        {
+          "source": "box_agent.schema",
+          "specifiers": [
+            "LLMProvider"
+          ]
+        },
+        {
+          "source": ".llm_wrapper",
+          "specifiers": [
+            "LLMClient"
+          ]
+        }
+      ],
+      "exports": [
+        "ModelProfileUnavailable",
+        "default_model_profile_registry_path",
+        "_positive_int",
+        "_required_text",
+        "load_model_profile_revision",
+        "client_for_model_profile"
+      ],
+      "totalLines": 145,
+      "hasStructuralAnalysis": true
+    },
     "box_agent/llm/model_routing.py": {
       "filePath": "box_agent/llm/model_routing.py",
       "contentHash": "7b0a52542dffa7e7528b69c5cf89543c21acaa1ee261d0f3924dd8d74b885789",
@@ -11109,7 +11385,7 @@
     },
     "box_agent/llm/openai_client.py": {
       "filePath": "box_agent/llm/openai_client.py",
-      "contentHash": "f5b6a4ae9e094f137678d1bad971e2b3e149693e4a5fe4a733fd27db99126396",
+      "contentHash": "054c07886983bd73ee94cd286b51e558d4fa78e6a48aebffa37bb42b5fd1129e",
       "functions": [
         {
           "name": "_litellm_extra_body",
@@ -11145,7 +11421,7 @@
           ],
           "returnType": "None",
           "exported": true,
-          "lineCount": 27
+          "lineCount": 30
         },
         {
           "name": "_tool_parameter_types",
@@ -11391,7 +11667,7 @@
         "_reasoning_text_from_aliases",
         "OpenAIClient"
       ],
-      "totalLines": 1311,
+      "totalLines": 1315,
       "hasStructuralAnalysis": true
     },
     "box_agent/llm/retry.py": {
@@ -11665,7 +11941,7 @@
     },
     "box_agent/logger.py": {
       "filePath": "box_agent/logger.py",
-      "contentHash": "19372a23db620df7d978de036be6115b1925aad96234d1053232211bb4ecae33",
+      "contentHash": "4772f8de3628cf13d48247e0138ca3f50199dff02aac4a58c95a05eb64d3c09c",
       "functions": [],
       "classes": [],
       "imports": [
@@ -11688,7 +11964,7 @@
     },
     "box_agent/loop_guards.py": {
       "filePath": "box_agent/loop_guards.py",
-      "contentHash": "1c6e2548de01b46875dfcb49579231293d434585a600019a5f50047f857486db",
+      "contentHash": "0a15e5ab31e3fea68edda294341349429a4a98318305d9f6d02d054e784db413",
       "functions": [],
       "classes": [],
       "imports": [
@@ -11966,7 +12242,7 @@
     },
     "box_agent/mcp_servers/web_extract_server.py": {
       "filePath": "box_agent/mcp_servers/web_extract_server.py",
-      "contentHash": "be9d8bb34f68262f18ff66bc603bd6513475a1e37b5beb530c4567c0cf7cbc68",
+      "contentHash": "3571c5b33619c4077e04f3e53239a4d7319d221c20d9cad757ac90e0d8a88b12",
       "functions": [
         {
           "name": "_create_configured_llm",
@@ -12057,7 +12333,7 @@
     },
     "box_agent/memory.py": {
       "filePath": "box_agent/memory.py",
-      "contentHash": "f23ce136ed2ca67a4d86e84503b10c3c0368658ab39c51b70ddf4fff9e75636a",
+      "contentHash": "b066df7d3d1d461e43692f33bcac3e901b71e3110092be08356e7a21c6d57a79",
       "functions": [],
       "classes": [],
       "imports": [
@@ -12080,7 +12356,7 @@
     },
     "box_agent/memory_engine/__init__.py": {
       "filePath": "box_agent/memory_engine/__init__.py",
-      "contentHash": "70395c67eb065de5af6377d58b8d048369dc644fe53a630cd15ebf9c63b6fc43",
+      "contentHash": "810a06258741bd86776dad35b92eee0f53f66d72bb4adf5519a057083177681c",
       "functions": [
         {
           "name": "__getattr__",
@@ -12126,7 +12402,7 @@
     },
     "box_agent/memory_engine/api.py": {
       "filePath": "box_agent/memory_engine/api.py",
-      "contentHash": "d403f09f493eb3bebd0c917183c827b7da0e1e16528b0f756ebca875176b70cf",
+      "contentHash": "efcde5afdcc6ea1adda02b37b9f1a94024d983d4089125444994f5cac096bf12",
       "functions": [],
       "classes": [
         {
@@ -12226,7 +12502,7 @@
     },
     "box_agent/memory_engine/composite.py": {
       "filePath": "box_agent/memory_engine/composite.py",
-      "contentHash": "5b862c38807263ec663653ede2d7fd92b6547dbdddb5675afb0ecde64cb281b4",
+      "contentHash": "1ae109da07022dc5dd23e6dbed72804b9a261a7d7c595e46b21dc7092e3bfbc9",
       "functions": [],
       "classes": [
         {
@@ -12272,7 +12548,7 @@
     },
     "box_agent/memory_engine/extraction.py": {
       "filePath": "box_agent/memory_engine/extraction.py",
-      "contentHash": "267fff4127bf3beacc277240436aca424cf1190a1806550a60d509583918fecf",
+      "contentHash": "48bc5d918b49ab8d93659cd818c16ccde8db9cc8d5bd70d994bf042ceb9e783f",
       "functions": [
         {
           "name": "_message_from_mapping",
@@ -12344,7 +12620,7 @@
     },
     "box_agent/memory_engine/in_memory.py": {
       "filePath": "box_agent/memory_engine/in_memory.py",
-      "contentHash": "3e163a700167ddf6984288557c3807807d28c61809789a38cf7f6cedddbf1aed",
+      "contentHash": "b49278d67c4c5612fae3422668a7ecb8d5e6dd612713c528f4140df905ef2f41",
       "functions": [],
       "classes": [
         {
@@ -12398,7 +12674,7 @@
     },
     "box_agent/memory_engine/maintenance.py": {
       "filePath": "box_agent/memory_engine/maintenance.py",
-      "contentHash": "22f26723912e4abd06a639dd9f74493a5d4adccc18638fe7ea57255076e9c74f",
+      "contentHash": "393c99669254957bbc22df8ac4ba567fbf9ab4c8373085da7805f4d63137d60a",
       "functions": [
         {
           "name": "_parse_iso_utc",
@@ -12566,7 +12842,7 @@
     },
     "box_agent/memory_engine/proposals.py": {
       "filePath": "box_agent/memory_engine/proposals.py",
-      "contentHash": "bb10b3484a93df312757708f6bd78b10f5ea7c40d5c8020ff04a28d41fc11685",
+      "contentHash": "923e16095d3c13fa73583b3fa095e233d7eb05f76e241a4d705caa46e50c1988",
       "functions": [],
       "classes": [
         {
@@ -12623,7 +12899,7 @@
     },
     "box_agent/memory_engine/store.py": {
       "filePath": "box_agent/memory_engine/store.py",
-      "contentHash": "6e6ce2553f385ac9b9acfa996f996588cf74528a44329a0edeb860e9054ec0dd",
+      "contentHash": "9b0f5efec7a692ce2d64dec536bcf30eb0191f651badf748ccb1a76710b4ad4f",
       "functions": [
         {
           "name": "tokens",
@@ -13195,7 +13471,7 @@
     },
     "box_agent/memory_maintainer.py": {
       "filePath": "box_agent/memory_maintainer.py",
-      "contentHash": "c53279b13e0cebea65f6be9a92ac2d775b0f39af43f5b3df6f209415405434d6",
+      "contentHash": "acabe983e8545bc042d7e68b32ce3fab50a5c6d412d0557a13c615225166890d",
       "functions": [],
       "classes": [],
       "imports": [
@@ -13218,7 +13494,7 @@
     },
     "box_agent/model_history.py": {
       "filePath": "box_agent/model_history.py",
-      "contentHash": "c6272217bba20f9cfd59c6854ab438d51aaaccba84970fba2d93ec365ee5b1d1",
+      "contentHash": "eb03e521318bd50db9f7e0935d51f98e89c5118f084e875125ed8c2f6815dbff",
       "functions": [],
       "classes": [],
       "imports": [
@@ -13241,7 +13517,7 @@
     },
     "box_agent/observability/__init__.py": {
       "filePath": "box_agent/observability/__init__.py",
-      "contentHash": "ef290442befc3cc8aded6c65e05cebe2343c36546bd2a52cc4d45da349ca4699",
+      "contentHash": "65bdbc6e623b09084f8ab4d8302758b37d92860c0f35441846259c7c9d94db22",
       "functions": [
         {
           "name": "__getattr__",
@@ -13269,7 +13545,7 @@
     },
     "box_agent/observability/agent_logger_hook.py": {
       "filePath": "box_agent/observability/agent_logger_hook.py",
-      "contentHash": "d55d1e97f5d0263c309d79f93344e910184d0a438c03869ff1d3b2ef42d49d64",
+      "contentHash": "616b3c6e08230c6db8b1dc3332b80ab51c884930541efb1eb11ace6cfb4bacaa",
       "functions": [],
       "classes": [
         {
@@ -13345,7 +13621,7 @@
     },
     "box_agent/observability/cache_fingerprint.py": {
       "filePath": "box_agent/observability/cache_fingerprint.py",
-      "contentHash": "395e8620a2e5e2e778567ae73ea06371ad303a9063feb6702c277461d836c8c1",
+      "contentHash": "baa0414c442d5de86903b8d577b642dd92e3ea25377f946f0b301ece41e6f0b2",
       "functions": [
         {
           "name": "_json_safe",
@@ -13467,7 +13743,7 @@
     },
     "box_agent/observability/logger.py": {
       "filePath": "box_agent/observability/logger.py",
-      "contentHash": "62ef810cc1ee01cfcf673aecef6d56fc946e11f1a7a23e5e8b42532eb4d49ac3",
+      "contentHash": "88fd55e593050288db2e58e6023413e4ac93556e3facd8a730b83d5c7856457b",
       "functions": [],
       "classes": [
         {
@@ -13542,7 +13818,7 @@
     },
     "box_agent/observability/redaction.py": {
       "filePath": "box_agent/observability/redaction.py",
-      "contentHash": "623c7d9dab59cba3dcfb9926684ae57263dad551ded1338ad5e2dcfe93e9a270",
+      "contentHash": "0981e5a0460b4a2db6795b2504f323061a5e2c4e576d65a04e4207347c18faa8",
       "functions": [
         {
           "name": "sanitize_for_logging",
@@ -13587,7 +13863,7 @@
     },
     "box_agent/observability/session_trace.py": {
       "filePath": "box_agent/observability/session_trace.py",
-      "contentHash": "b5f1ea86ab18a51b92fa938ac74bd2222ec193007011f2126dbeb6f71d077589",
+      "contentHash": "1cf049da6d2794b530b748b517d4ba32f733e4bd2deaa12ca8b616eb35361351",
       "functions": [
         {
           "name": "session_trace_enabled",
@@ -13864,7 +14140,7 @@
     },
     "box_agent/observability/session_trace_hook.py": {
       "filePath": "box_agent/observability/session_trace_hook.py",
-      "contentHash": "3b39c0268c31f1ca98b4d00b892c1a734bec7b2319470713682a90a385b5b226",
+      "contentHash": "d13870686f55a67236a381d977bdd7414a93b54b0b6d3ef9780c822eed3ff7ae",
       "functions": [],
       "classes": [
         {
@@ -13914,7 +14190,7 @@
     },
     "box_agent/permissions/__init__.py": {
       "filePath": "box_agent/permissions/__init__.py",
-      "contentHash": "8623a80748d3d0a07ee73084b6cbb59fb26ccdbf4a8f28c95a379f9bf5114cf0",
+      "contentHash": "e3734dc47b89acd6d40a9c1cb4156770aee885ce9e1628f131b08bd8512e4d1c",
       "functions": [],
       "classes": [],
       "imports": [
@@ -13939,7 +14215,7 @@
     },
     "box_agent/permissions/gateway.py": {
       "filePath": "box_agent/permissions/gateway.py",
-      "contentHash": "3917106bc7dc87f426fc7fca88f9f892093c16f9305d27e0f0393821974b0c37",
+      "contentHash": "37375b1512eadb7e28e823153f3166d998049fe5e9c751508b883cf6672eeb51",
       "functions": [],
       "classes": [
         {
@@ -13981,7 +14257,7 @@
     },
     "box_agent/permissions/session.py": {
       "filePath": "box_agent/permissions/session.py",
-      "contentHash": "7843e23cc73d40e108eb33495efded3ce2fe4bc75d6604833942ca3ff165c9c1",
+      "contentHash": "e1243c29b23b6f5f588664b2112ae550bab1d5190bb36b5572c0af77ee311b5a",
       "functions": [
         {
           "name": "build_file_access_prompt",
@@ -14077,7 +14353,7 @@
     },
     "box_agent/persistence/__init__.py": {
       "filePath": "box_agent/persistence/__init__.py",
-      "contentHash": "0752a7a75447df68e0ea006eadb93ab84f9ded553b9c58bfcacd0bb455f107b4",
+      "contentHash": "d5fc3c75ebcfcbf9239e4c8e1d6c4e227d0e7c1f5d3f7c6f7a7ac2450637a080",
       "functions": [],
       "classes": [],
       "imports": [
@@ -14194,7 +14470,7 @@
     },
     "box_agent/persistence/api.py": {
       "filePath": "box_agent/persistence/api.py",
-      "contentHash": "2028999bbbcbbd82e34f5ce0a51a2e4447615dd61c978bdf99f896b587892e73",
+      "contentHash": "c81e30e4af29093c22456d921830a72a6ad7cb7fbebcb2b4ecec08d1308c04cd",
       "functions": [],
       "classes": [
         {
@@ -14408,7 +14684,7 @@
     },
     "box_agent/persistence/artifact_processor.py": {
       "filePath": "box_agent/persistence/artifact_processor.py",
-      "contentHash": "6b72bf343d4afb61f9953c24f4da22e253d408ac20cb56c5521e14067af65e60",
+      "contentHash": "e1e3a627edcec72cb37943ce783d2ac58401c49c3a0334c68db60a1c37580d1a",
       "functions": [
         {
           "name": "_artifact_root",
@@ -14532,7 +14808,7 @@
     },
     "box_agent/persistence/artifacts.py": {
       "filePath": "box_agent/persistence/artifacts.py",
-      "contentHash": "2050dfdf529480d880f980dc0347ea8b0a5ab9589d3e1c1841259b3d02d1b747",
+      "contentHash": "22e000e7c837e89d69b1886658c036c7764876d19b50d324e67d89f002c2a764",
       "functions": [
         {
           "name": "artifact_envelope",
@@ -14676,7 +14952,7 @@
     },
     "box_agent/persistence/checkpoints.py": {
       "filePath": "box_agent/persistence/checkpoints.py",
-      "contentHash": "1de5540462854bd70d7437a480dc810e9075e5d0916200aaeece48b8ed6bf120",
+      "contentHash": "72f5b58ea00431720304abef54a4e68a733234a02ba92bd0e7fb445b0b2de7d9",
       "functions": [],
       "classes": [
         {
@@ -14710,7 +14986,7 @@
     },
     "box_agent/persistence/effects.py": {
       "filePath": "box_agent/persistence/effects.py",
-      "contentHash": "aa1e63e9cc8d7de82542fc0c80611ae88a01102a5154088fc62bcec60e4ea40b",
+      "contentHash": "e743bb98976d96dd09fa0b0ae962813e5836565b60f6bc8b9483aa442f96d493",
       "functions": [
         {
           "name": "_record_from_row",
@@ -14775,7 +15051,7 @@
     },
     "box_agent/persistence/event_log.py": {
       "filePath": "box_agent/persistence/event_log.py",
-      "contentHash": "9065f3a387cebfacea0eab9efde7d75ab63fef3eb295d3e5295300a378160ee8",
+      "contentHash": "781c0cdacc2f169b1498d7922e066b62a52e5613be4d6aabf36a50d10fb47932",
       "functions": [
         {
           "name": "_event_from_dict",
@@ -14893,7 +15169,7 @@
     },
     "box_agent/persistence/leases.py": {
       "filePath": "box_agent/persistence/leases.py",
-      "contentHash": "a97b5aabb5bc329fda7fa81ec961d620f69dee092e232057043785d631687288",
+      "contentHash": "070ee6a945a6a3f7c28adbe3dfe3ce6f331e2b817f7bc07b69d3bdcd24f048d7",
       "functions": [],
       "classes": [
         {
@@ -14944,7 +15220,7 @@
     },
     "box_agent/persistence/roadmap_artifacts.py": {
       "filePath": "box_agent/persistence/roadmap_artifacts.py",
-      "contentHash": "0db3248de79b189b46dc593231e31ac87212c36561bcd8355c9316bfe70450df",
+      "contentHash": "9d8ed125d4cbef2117547614b58fde387f2aca4c0732543e17485825572b34f6",
       "functions": [
         {
           "name": "_roadmap_spec_validator",
@@ -15128,7 +15404,7 @@
     },
     "box_agent/persistence/sessions.py": {
       "filePath": "box_agent/persistence/sessions.py",
-      "contentHash": "2daf30f1fbe022a69a77aed7fb5f63a5c895669a2fa0d2ff8ba2d8e527143958",
+      "contentHash": "d1ce69a7bcfd51b542fe1bac0e2d9820273960f16e71e0b840938f1f7a6d4bd9",
       "functions": [],
       "classes": [
         {
@@ -15168,7 +15444,7 @@
     },
     "box_agent/persistence/sqlite.py": {
       "filePath": "box_agent/persistence/sqlite.py",
-      "contentHash": "5b67a3b1dd2c56c43bab3fa4ef9f1801b21e78b06cd46a83277bf0f3b53614f6",
+      "contentHash": "5b9b13380429dabc9c9897ce46e24d813e27d7163e06507019e69ef883e58866",
       "functions": [
         {
           "name": "canonical_json",
@@ -15240,7 +15516,7 @@
     },
     "box_agent/persistence/task_registry.py": {
       "filePath": "box_agent/persistence/task_registry.py",
-      "contentHash": "9ef7e792a991c2d118e68108385502ec96a537833992443efa0fd7e67434e57f",
+      "contentHash": "79e0aebc9527a9645e5e4446e1e7b54bb215a12d84fdbca873869e0a10aa4892",
       "functions": [
         {
           "name": "_now",
@@ -15429,7 +15705,7 @@
     },
     "box_agent/persistence/workflow_checkpoint_store.py": {
       "filePath": "box_agent/persistence/workflow_checkpoint_store.py",
-      "contentHash": "ff96d75a91def849e5a46e7c7777f7bd1035305534a0878d3dd32a5efab76328",
+      "contentHash": "4bb5fc97f205e13c70ba0ae7fca401859bc3b9d2fdd86c2a5926de301f170dff",
       "functions": [
         {
           "name": "_sha256_file",
@@ -15828,7 +16104,7 @@
     },
     "box_agent/persistence/workspace_registry.py": {
       "filePath": "box_agent/persistence/workspace_registry.py",
-      "contentHash": "3755cee0635e655691906f4b81b8ba4db46536360b4dad6adf6188b03767d4dd",
+      "contentHash": "b796be69bf002db8beaf416f10a18fd8231657ca68ff18b54cf107f8bbd897f0",
       "functions": [
         {
           "name": "default_workspace_registry_path",
@@ -15981,7 +16257,7 @@
     },
     "box_agent/plugins/__init__.py": {
       "filePath": "box_agent/plugins/__init__.py",
-      "contentHash": "66ad4117ad16955fcdff696a68980fba7d1e3740618cabeb3749e65e0405860c",
+      "contentHash": "f3b768f36bf16d94646a5807f3bd8b1121a49bc199f6aaa64c588929ca43458e",
       "functions": [],
       "classes": [],
       "imports": [
@@ -16020,7 +16296,7 @@
     },
     "box_agent/plugins/api.py": {
       "filePath": "box_agent/plugins/api.py",
-      "contentHash": "465e68fc70c6b945a3fca5c72958993e78e80c9135c160589c2e042a433fbeea",
+      "contentHash": "560248b9a93773e247ddf7bf605ccb26bab1470f742acf885ef21ca6a9454b6c",
       "functions": [],
       "classes": [
         {
@@ -16119,7 +16395,7 @@
     },
     "box_agent/plugins/builtins.py": {
       "filePath": "box_agent/plugins/builtins.py",
-      "contentHash": "cc30a9a244d002b091aeea9ab8d6a1ba99701e04e7cc91f9dce8872c9e8a7c6e",
+      "contentHash": "7cc9cdcaee9a187ac8df58eb0c8dbd6b9d4c4ee2d7c8864e791ff3b0124d17f8",
       "functions": [
         {
           "name": "build_builtin_workflow_bundle",
@@ -16187,17 +16463,19 @@
           ],
           "returnType": "None",
           "exported": true,
-          "lineCount": 64
+          "lineCount": 72
         },
         {
           "name": "register_builtin_session_tool_contributors",
           "params": [
             "host",
-            "skill_loader"
+            "skill_loader",
+            "skillhub_connection",
+            "skillhub_discovery_state"
           ],
           "returnType": "None",
           "exported": true,
-          "lineCount": 17
+          "lineCount": 40
         },
         {
           "name": "register_builtin_memory_extraction_hook",
@@ -16385,6 +16663,14 @@
           ]
         },
         {
+          "source": "box_agent.tools.skillhub_contributor",
+          "specifiers": [
+            "SkillHubContextContributor",
+            "SkillHubDiscoveryState",
+            "SkillHubToolContributor"
+          ]
+        },
+        {
           "source": "box_agent.workflows",
           "specifiers": [
             "AttachmentInspectionPolicy",
@@ -16421,12 +16707,12 @@
         "register_builtin_host_projections",
         "register_native_state_workflow_aliases"
       ],
-      "totalLines": 509,
+      "totalLines": 545,
       "hasStructuralAnalysis": true
     },
     "box_agent/plugins/hooks.py": {
       "filePath": "box_agent/plugins/hooks.py",
-      "contentHash": "a17157b96103fa20c93b50da8598307e2e5f996840eda0837910b75ca436af08",
+      "contentHash": "deb550497bd95454703509bc5b7936442a1c26c482f5ac4c11365c8459a7f27c",
       "functions": [
         {
           "name": "_maybe_await",
@@ -16505,7 +16791,7 @@
     },
     "box_agent/plugins/host.py": {
       "filePath": "box_agent/plugins/host.py",
-      "contentHash": "ffb98bb5ea3a457b172992abdd8a43e267d51435ff4517a38051d2ab27e0ddc7",
+      "contentHash": "a22d8eccbcd9d1705084c9bb2f90a09e2836da87d2e2fa9728d2e88f5b52c71f",
       "functions": [
         {
           "name": "_version_satisfies",
@@ -16618,7 +16904,7 @@
     },
     "box_agent/plugins/registry.py": {
       "filePath": "box_agent/plugins/registry.py",
-      "contentHash": "e03d9cf86f9a1f00d00fef8c8a3cf9fd5b510c4c6824c99685dabcca2ba6d6f8",
+      "contentHash": "3664cbffe0bcc65cfdeca53dc00269a82fce92f87fca3ed2824cf0e5dba29541",
       "functions": [],
       "classes": [
         {
@@ -16722,7 +17008,7 @@
     },
     "box_agent/retry.py": {
       "filePath": "box_agent/retry.py",
-      "contentHash": "7f4f8c37bb58f7908f039f10b1d6f90b8a045dda0c3574033f688d2668487f1d",
+      "contentHash": "493e7f3de6062bc91ec1941c4b2a92c43a6c9047f7c019817b22b48fec88091f",
       "functions": [],
       "classes": [],
       "imports": [
@@ -16745,7 +17031,7 @@
     },
     "box_agent/roadmap_artifacts.py": {
       "filePath": "box_agent/roadmap_artifacts.py",
-      "contentHash": "4e0279e86c921890090c964c8fe802b4c049da7d8bea9c7942e73a8bf39bc483",
+      "contentHash": "e68d5c4ee0144c2b66f96fcda24919623c272a6ee3bf470a22956076be5bba26",
       "functions": [],
       "classes": [],
       "imports": [
@@ -16768,7 +17054,7 @@
     },
     "box_agent/runtime.py": {
       "filePath": "box_agent/runtime.py",
-      "contentHash": "a15fd9c7abbbd50fc51a60c3cc286cb10a14f81d6978ba814060a63a0da29088",
+      "contentHash": "a3a7f90ce362268f4dc8258012c9a4686437065dd5fdba38e12cedb6f0cd586d",
       "functions": [],
       "classes": [],
       "imports": [
@@ -16973,7 +17259,7 @@
     },
     "box_agent/services/__init__.py": {
       "filePath": "box_agent/services/__init__.py",
-      "contentHash": "e8d938b75141c7713fe27231a98745290c36be8f967d1de864e822c3f6d13e2d",
+      "contentHash": "4739e32f1805e7a028a658b2aa8cef3c0d07e87099711ccb23d8d4b9e93234cf",
       "functions": [
         {
           "name": "__getattr__",
@@ -17009,7 +17295,7 @@
     },
     "box_agent/services/delegation.py": {
       "filePath": "box_agent/services/delegation.py",
-      "contentHash": "59671c49027cabdb39722373361a562dc1ea4683e94028a3f3b0a274d59b466b",
+      "contentHash": "a120c246c9b0927d5f17fc9d375fbde0de4c95b5e0f70d09a1bc288ae98d8f47",
       "functions": [],
       "classes": [
         {
@@ -17081,7 +17367,7 @@
     },
     "box_agent/services/follow_up_suggestions.py": {
       "filePath": "box_agent/services/follow_up_suggestions.py",
-      "contentHash": "8e670ec0b5c0c200b4d6a3acdbf5275dfb7e92626c50abcc6355465693b163a3",
+      "contentHash": "4022fb20b483f1e55b6fa18cb0aab055bb64b7cf1eb88f3cdb1376d0c840eae1",
       "functions": [
         {
           "name": "build_follow_up_suggestions_system_prompt",
@@ -17189,8 +17475,27 @@
     },
     "box_agent/services/kernel.py": {
       "filePath": "box_agent/services/kernel.py",
-      "contentHash": "a4128199021e9f72cc5b25304c08598abcf96433686f3383687b3bfe66371aba",
+      "contentHash": "3945d35c0c9cea4c4080ee4ef938eb1e80a8952676cf970917e5282b7b71063d",
       "functions": [
+        {
+          "name": "_workspace_identity",
+          "params": [
+            "metadata"
+          ],
+          "returnType": "str | None",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "_validate_session_workspace",
+          "params": [
+            "session",
+            "requested_metadata"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 11
+        },
         {
           "name": "_error",
           "params": [
@@ -17384,7 +17689,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 1040
+          "lineCount": 1049
         },
         {
           "name": "_KernelAgentRunHandle",
@@ -17445,6 +17750,12 @@
           ]
         },
         {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
           "source": "collections.abc",
           "specifiers": [
             "AsyncIterator",
@@ -17465,6 +17776,12 @@
           "specifiers": [
             "datetime",
             "timezone"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
           ]
         },
         {
@@ -17513,6 +17830,8 @@
         }
       ],
       "exports": [
+        "_workspace_identity",
+        "_validate_session_workspace",
         "_error",
         "_request_from_dict",
         "_usage_from_events",
@@ -17531,12 +17850,12 @@
         "_KernelAgentRunHandle",
         "_AttachedKernelRunHandle"
       ],
-      "totalLines": 1929,
+      "totalLines": 1963,
       "hasStructuralAnalysis": true
     },
     "box_agent/services/utility_prompt.py": {
       "filePath": "box_agent/services/utility_prompt.py",
-      "contentHash": "0dee1b5477511db4e58d856f453f32af95065abff59d421c3327f003276f6a5a",
+      "contentHash": "de00a9b11d161fe153a2fc65cf3f4782cc1f09d8d9b1637ea4ee75d728364569",
       "functions": [
         {
           "name": "default_utility_llm_resolver",
@@ -17635,7 +17954,7 @@
     },
     "box_agent/services/workspace_profiles.py": {
       "filePath": "box_agent/services/workspace_profiles.py",
-      "contentHash": "ac625cb161a4c32b794e1be85c43aba0c3c07c83042fc4a19e6cccbf2ecbe6a2",
+      "contentHash": "2ab3866f174f637f82b047391df103de9832a79eadee122ac0e812dde4cee5a2",
       "functions": [],
       "classes": [
         {
@@ -17684,7 +18003,7 @@
     },
     "box_agent/session_continuation.py": {
       "filePath": "box_agent/session_continuation.py",
-      "contentHash": "917e2c4d951d91e4b7df5af1633bb7d9c96d8920720dcd309dc1b0cb42f86512",
+      "contentHash": "4444ee36b91fbd7aa24b95107932feaef7e9fd88b38cbf9fff651d3b1c72ab78",
       "functions": [],
       "classes": [],
       "imports": [
@@ -17707,7 +18026,7 @@
     },
     "box_agent/session_trace.py": {
       "filePath": "box_agent/session_trace.py",
-      "contentHash": "98f1a0dfb2f729b350b2f6f2802f2dc61cd0784ad7e791f44fee5e56a05106a0",
+      "contentHash": "309fc0d01fb2c4891ae550ee4102f8cf3469552948ddb5baa793cceb79177a5f",
       "functions": [],
       "classes": [],
       "imports": [
@@ -17730,17 +18049,17 @@
     },
     "box_agent/skills/document-skills/pptx/SKILL.md": {
       "filePath": "box_agent/skills/document-skills/pptx/SKILL.md",
-      "contentHash": "1f7f4d1ff7d10863e1b7d35e19c4f5247d9de9bb781c4c2de8b3ce236e5a7e67",
+      "contentHash": "77a77dd6b13bda299c64d5a9a1b17ae240f0010f64be14be92821ee944b74fd0",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 895,
+      "totalLines": 989,
       "hasStructuralAnalysis": true
     },
     "box_agent/skills/document-skills/pptx/agents/openai.yaml": {
       "filePath": "box_agent/skills/document-skills/pptx/agents/openai.yaml",
-      "contentHash": "e358d8a719c53310cf6d584b3717630927eabd17815bb74950b9a8aa918fcf7f",
+      "contentHash": "450b6a157bd962d1314bcc2b9fb41e79c5751c2d72bd0bf710bf7d514fe1f6ec",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -17770,22 +18089,22 @@
     },
     "box_agent/skills/document-skills/pptx/layouts/manifest.json": {
       "filePath": "box_agent/skills/document-skills/pptx/layouts/manifest.json",
-      "contentHash": "b38d9c224d6ac0327efcd4d6006cb2806aa99d8db8cc634a65b0498c394194d1",
+      "contentHash": "d5694bdd67a254500779f891f55c8cbc6318d154c9c46c0bcbeecb4c0d184154",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 15483,
+      "totalLines": 15644,
       "hasStructuralAnalysis": true
     },
     "box_agent/skills/document-skills/pptx/layouts/registry.js": {
       "filePath": "box_agent/skills/document-skills/pptx/layouts/registry.js",
-      "contentHash": "a214b0bc878049da16e063c30bc9730dfd199258468b59ebaaf44f4b66033994",
+      "contentHash": "f9fdd44e506f1195082a654c192637f305b63cb54c7ad77c1f147acc644881a4",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 4329,
+      "totalLines": 4487,
       "hasStructuralAnalysis": true
     },
     "box_agent/skills/document-skills/pptx/references/api-integration.md": {
@@ -17800,12 +18119,12 @@
     },
     "box_agent/skills/document-skills/pptx/references/controlled-layouts.md": {
       "filePath": "box_agent/skills/document-skills/pptx/references/controlled-layouts.md",
-      "contentHash": "3becb025819f1bf735951ea9578b888723687652ae5bfec3d8a6baa7abe5e195",
+      "contentHash": "b7a607b429a83fcf9b4aee6d3c773a64708c66cbccc0f63790bfb485bc5ba73f",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 494,
+      "totalLines": 503,
       "hasStructuralAnalysis": true
     },
     "box_agent/skills/document-skills/pptx/references/deck-spec.schema.json": {
@@ -17850,12 +18169,12 @@
     },
     "box_agent/skills/document-skills/pptx/references/image-assets.md": {
       "filePath": "box_agent/skills/document-skills/pptx/references/image-assets.md",
-      "contentHash": "4f145d51a74f9eedf4d58521bf97523590bb56da5311b9b2520914cd15e374b7",
+      "contentHash": "4ac9f9ee9060ede7a7226845da7333128047b8e6c02fb6cb9421fe1ff2b80428",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 128,
+      "totalLines": 136,
       "hasStructuralAnalysis": true
     },
     "box_agent/skills/document-skills/pptx/references/ooxml-editing.md": {
@@ -17880,12 +18199,12 @@
     },
     "box_agent/skills/document-skills/pptx/references/outline.md": {
       "filePath": "box_agent/skills/document-skills/pptx/references/outline.md",
-      "contentHash": "eed476e295e4405bb1955fbda5e525b2e1e148a4f8a1043ec1e71bc74720260a",
+      "contentHash": "de9ed7e6fee3b0b4fc373e78eed020d60158670617e49399144cbbdaa282664b",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 317,
+      "totalLines": 331,
       "hasStructuralAnalysis": true
     },
     "box_agent/skills/document-skills/pptx/references/pptxgenjs.md": {
@@ -17910,12 +18229,12 @@
     },
     "box_agent/skills/document-skills/pptx/references/qa.md": {
       "filePath": "box_agent/skills/document-skills/pptx/references/qa.md",
-      "contentHash": "4410ee4cae139eb44a272e42bcd85b434452673153107c10d782926467b24b46",
+      "contentHash": "ffd80b3bdadb57bf22af79c2a0284e1ac5cd12185cd8c1c86a21cdc211ffb40e",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 158,
+      "totalLines": 173,
       "hasStructuralAnalysis": true
     },
     "box_agent/skills/document-skills/pptx/references/runtime-office-raccoon.md": {
@@ -17960,12 +18279,12 @@
     },
     "box_agent/skills/document-skills/pptx/runtime/composition.css": {
       "filePath": "box_agent/skills/document-skills/pptx/runtime/composition.css",
-      "contentHash": "23070bcd24119d28c2f3574eb37062881b850a5e66d49557b9641674422fe451",
+      "contentHash": "53dfa8320df82c63e12eaa812fe0f98ee47b62979e072726bc7f4101643b745f",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 4169,
+      "totalLines": 4206,
       "hasStructuralAnalysis": false
     },
     "box_agent/skills/document-skills/pptx/runtime/deck-editor.js": {
@@ -17980,12 +18299,12 @@
     },
     "box_agent/skills/document-skills/pptx/runtime/deck.css": {
       "filePath": "box_agent/skills/document-skills/pptx/runtime/deck.css",
-      "contentHash": "4c9ff1f880345229b6564fe300b34a7e4a5c9c6366e7f399ca585ce359ec2610",
+      "contentHash": "b6dd8f610f7619f4ba85eabd0d007640e3d2af1a58f73a8dc833d4ef2a7d47d1",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 8147,
+      "totalLines": 8882,
       "hasStructuralAnalysis": false
     },
     "box_agent/skills/document-skills/pptx/runtime/diagram-runtime.js": {
@@ -18000,7 +18319,7 @@
     },
     "box_agent/skills/document-skills/pptx/scripts/apply_deck_patch.js": {
       "filePath": "box_agent/skills/document-skills/pptx/scripts/apply_deck_patch.js",
-      "contentHash": "033e7514104efe621266bf270cc868be87f3a6fc8ba1d1b3db8e68c025143a97",
+      "contentHash": "57968ff25ac10faab269fa9c9d1920815e523b43bd38c59456ce479eac4af1c4",
       "functions": [
         {
           "name": "usage",
@@ -18096,7 +18415,7 @@
             "changes"
           ],
           "exported": false,
-          "lineCount": 94
+          "lineCount": 97
         },
         {
           "name": "applyAlias",
@@ -18175,7 +18494,7 @@
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 802,
+      "totalLines": 805,
       "hasStructuralAnalysis": true
     },
     "box_agent/skills/document-skills/pptx/scripts/apply_deck_redesign.js": {
@@ -18479,7 +18798,7 @@
     },
     "box_agent/skills/document-skills/pptx/scripts/composition_core.js": {
       "filePath": "box_agent/skills/document-skills/pptx/scripts/composition_core.js",
-      "contentHash": "85ad48a9b87dd71dd2e2d31ce00cb09dd1a5525c461de79949b7172df86f6553",
+      "contentHash": "e73b66232e844d40ec2d1bae21b840857004cf9e174d389acf08976d3d4d2217",
       "functions": [
         {
           "name": "isPlainObject",
@@ -18624,12 +18943,12 @@
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 735,
+      "totalLines": 734,
       "hasStructuralAnalysis": true
     },
     "box_agent/skills/document-skills/pptx/scripts/deck_spec_core.js": {
       "filePath": "box_agent/skills/document-skills/pptx/scripts/deck_spec_core.js",
-      "contentHash": "f64b084018207fac4345cf91511d8c0a3d4999e75320295cf321f8ade68ac783",
+      "contentHash": "982afeaa7e0c7006cc7a2582f2cdb3b5d2e2d7feeaade9d2c9fd94e198bf4e0a",
       "functions": [
         {
           "name": "normalizeLayoutId",
@@ -18939,7 +19258,7 @@
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 1015,
+      "totalLines": 1021,
       "hasStructuralAnalysis": true
     },
     "box_agent/skills/document-skills/pptx/scripts/design_contract_core.js": {
@@ -19356,7 +19675,7 @@
     },
     "box_agent/skills/document-skills/pptx/scripts/html_self_check.js": {
       "filePath": "box_agent/skills/document-skills/pptx/scripts/html_self_check.js",
-      "contentHash": "4e0e59b736797e2eb2c68d1cd69fb8c36903a6978b9a2904af026e02da4c77bd",
+      "contentHash": "2efc2b8ab8586cdd30d9b41d76079b20c3547837274c55efac65de65806bdf45",
       "functions": [
         {
           "name": "officeRaccoonPrefix",
@@ -19417,7 +19736,7 @@
             "expectedHeight"
           ],
           "exported": false,
-          "lineCount": 504
+          "lineCount": 520
         },
         {
           "name": "listJsonFiles",
@@ -19464,7 +19783,7 @@
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 836,
+      "totalLines": 852,
       "hasStructuralAnalysis": true
     },
     "box_agent/skills/document-skills/pptx/scripts/html_to_editable_pptx.js": {
@@ -19595,7 +19914,7 @@
     },
     "box_agent/skills/document-skills/pptx/scripts/inspect_deck_contract.js": {
       "filePath": "box_agent/skills/document-skills/pptx/scripts/inspect_deck_contract.js",
-      "contentHash": "af1f668484797bbcabeba6946b6b037ca88c4a85c7d14aa6998925d10d14401f",
+      "contentHash": "8f583c7c2668c6a1483206ac072aeb707f672c3abaf8453434b63d051bb827ee",
       "functions": [
         {
           "name": "normalizeSourceText",
@@ -19645,7 +19964,15 @@
             "context"
           ],
           "exported": false,
-          "lineCount": 62
+          "lineCount": 115
+        },
+        {
+          "name": "themeShortlistPayload",
+          "params": [
+            "context"
+          ],
+          "exported": false,
+          "lineCount": 36
         },
         {
           "name": "compactThemeSelection",
@@ -19653,7 +19980,7 @@
             "selection"
           ],
           "exported": false,
-          "lineCount": 13
+          "lineCount": 19
         },
         {
           "name": "normalizeRequiredField",
@@ -19704,7 +20031,7 @@
             "argv"
           ],
           "exported": false,
-          "lineCount": 108
+          "lineCount": 120
         },
         {
           "name": "buildSlide",
@@ -19748,7 +20075,7 @@
             "outlineSlide"
           ],
           "exported": false,
-          "lineCount": 76
+          "lineCount": 85
         },
         {
           "name": "nonEmptyText",
@@ -19818,7 +20145,7 @@
             "slotRole"
           ],
           "exported": false,
-          "lineCount": 18
+          "lineCount": 32
         },
         {
           "name": "hasDeckWideImageOptOut",
@@ -19836,7 +20163,7 @@
             "imageMode"
           ],
           "exported": false,
-          "lineCount": 143
+          "lineCount": 190
         },
         {
           "name": "prepareExistingImageAssets",
@@ -19868,13 +20195,13 @@
           "name": "main",
           "params": [],
           "exported": false,
-          "lineCount": 579
+          "lineCount": 627
         }
       ],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 1839,
+      "totalLines": 2070,
       "hasStructuralAnalysis": true
     },
     "box_agent/skills/document-skills/pptx/scripts/inspect_layout.js": {
@@ -20125,7 +20452,7 @@
     },
     "box_agent/skills/document-skills/pptx/scripts/outline_layout_contract.js": {
       "filePath": "box_agent/skills/document-skills/pptx/scripts/outline_layout_contract.js",
-      "contentHash": "fa2cf01bb3e143900b2011e7e932d36d2c92bd075abb22322746f100ba226d70",
+      "contentHash": "c403a1f1e6c1e9e272127e62f7cd955bef9e09037686c2c5a3808ae829e38d11",
       "functions": [
         {
           "name": "text",
@@ -20200,7 +20527,7 @@
             "slide"
           ],
           "exported": false,
-          "lineCount": 310
+          "lineCount": 384
         },
         {
           "name": "expectedVisualItemCount",
@@ -20249,7 +20576,7 @@
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 492,
+      "totalLines": 571,
       "hasStructuralAnalysis": true
     },
     "box_agent/skills/document-skills/pptx/scripts/pdfjs_render.js": {
@@ -20747,7 +21074,7 @@
     },
     "box_agent/skills/document-skills/pptx/scripts/render_deck_html.js": {
       "filePath": "box_agent/skills/document-skills/pptx/scripts/render_deck_html.js",
-      "contentHash": "6e7f55d304b3ac728aab117c01f808a8391df74e78db713a9edbc5b1103cfb12",
+      "contentHash": "7c6849081941e8348c25cebcda44bbccf5510bfaa68317d5042157916eaaecba",
       "functions": [
         {
           "name": "parseArgs",
@@ -20835,7 +21162,7 @@
           "name": "renderToolbar",
           "params": [],
           "exported": false,
-          "lineCount": 41
+          "lineCount": 39
         },
         {
           "name": "renderDocument",
@@ -20856,7 +21183,7 @@
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 369,
+      "totalLines": 367,
       "hasStructuralAnalysis": true
     },
     "box_agent/skills/document-skills/pptx/scripts/render_pptx.py": {
@@ -21356,7 +21683,7 @@
     },
     "box_agent/skills/document-skills/pptx/scripts/theme_selection_core.js": {
       "filePath": "box_agent/skills/document-skills/pptx/scripts/theme_selection_core.js",
-      "contentHash": "e815156d197f6f47234ecaf56979acb2c1a4ffbe87cfaa8f86a0502e3e016bd5",
+      "contentHash": "297ea699ea35184f8a6967b9948a337bb80258a38268370b03cd8797751914fa",
       "functions": [
         {
           "name": "isPlainObject",
@@ -21438,19 +21765,39 @@
           "lineCount": 7
         },
         {
+          "name": "buildThemeShortlist",
+          "params": [
+            "ranked",
+            "themes",
+            "matchesByTheme",
+            "selectedThemeId"
+          ],
+          "exported": false,
+          "lineCount": 50
+        },
+        {
+          "name": "evaluateModelThemeChoice",
+          "params": [
+            "inference",
+            "requestedThemeId"
+          ],
+          "exported": false,
+          "lineCount": 33
+        },
+        {
           "name": "inferTheme",
           "params": [
             "themes",
             "content"
           ],
           "exported": false,
-          "lineCount": 282
+          "lineCount": 279
         }
       ],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 739,
+      "totalLines": 851,
       "hasStructuralAnalysis": true
     },
     "box_agent/skills/document-skills/pptx/scripts/validate_deck_spec.js": {
@@ -22274,7 +22621,7 @@
     },
     "box_agent/skills/document-skills/pptx/scripts/validate_outline.js": {
       "filePath": "box_agent/skills/document-skills/pptx/scripts/validate_outline.js",
-      "contentHash": "573a06a150de5c0f27d80ebb1c414173283697b0df21a403c8b7c82d03241c1f",
+      "contentHash": "aab7e6380a5d79cfdfec3959b92baee927eaca4cf99911ae324ea2e40d1cc6e2",
       "functions": [
         {
           "name": "parsePageToken",
@@ -22427,7 +22774,7 @@
             "opts"
           ],
           "exported": false,
-          "lineCount": 384
+          "lineCount": 393
         },
         {
           "name": "main",
@@ -22439,7 +22786,7 @@
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 738,
+      "totalLines": 747,
       "hasStructuralAnalysis": true
     },
     "box_agent/skills/document-skills/pptx/scripts/validate_pptx_package.py": {
@@ -22562,7 +22909,7 @@
     },
     "box_agent/skills/document-skills/pptx/themes/catalog-dark.json": {
       "filePath": "box_agent/skills/document-skills/pptx/themes/catalog-dark.json",
-      "contentHash": "c6cf92f3eccff6043e3abea45dca581d2dc838fd51fc0bac170715ee70881ede",
+      "contentHash": "cfef2883a9ed6da80b4f29fa97d2ca5735365660468989b61eb1f6985bcca403",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -22582,17 +22929,17 @@
     },
     "box_agent/skills/document-skills/pptx/themes/catalog-light-b.json": {
       "filePath": "box_agent/skills/document-skills/pptx/themes/catalog-light-b.json",
-      "contentHash": "c4bc1efc84a1492757d06f970795cdf77ce6076e69d46fc564a047d4b2400ae1",
+      "contentHash": "2c4a1e0abf70dfc659a0fca3f3a0a1fe5bf87a9afd32d1bf667f24a7aeff1c8a",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 490,
+      "totalLines": 443,
       "hasStructuralAnalysis": true
     },
     "box_agent/skills/document-skills/pptx/themes/catalog-mixed.json": {
       "filePath": "box_agent/skills/document-skills/pptx/themes/catalog-mixed.json",
-      "contentHash": "90df20c3c6f3f1f05498d727eb1e5a5d55bab33b8179c3239476493e84831169",
+      "contentHash": "4b359f9ffbf7578cb5c7339e19cecd915e4def2cfe11af6ad8d6ba9a3eff70c9",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -22662,12 +23009,12 @@
     },
     "box_agent/skills/document-skills/pptx/themes/factory-floor.json": {
       "filePath": "box_agent/skills/document-skills/pptx/themes/factory-floor.json",
-      "contentHash": "8cc8da2b0edd6339caeae5c8920e26136bfc1729baad7d8d70bc954f178ca120",
+      "contentHash": "3ba596349abdc1ef56ef5b33fe9052e6213e7d1179124fb6e836a79c49e966b6",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 39,
+      "totalLines": 46,
       "hasStructuralAnalysis": true
     },
     "box_agent/skills/document-skills/pptx/themes/legal-docket.json": {
@@ -22742,7 +23089,7 @@
     },
     "box_agent/task_context.py": {
       "filePath": "box_agent/task_context.py",
-      "contentHash": "96457754f95d107a7874d801a0c958906c0871d031d4649cee5b472a31ff22d4",
+      "contentHash": "86472f9f31f9a09b3ff165ebfb3d819e202b271a3252afe5075614cd343d5f9f",
       "functions": [],
       "classes": [],
       "imports": [
@@ -22765,7 +23112,7 @@
     },
     "box_agent/task_registry.py": {
       "filePath": "box_agent/task_registry.py",
-      "contentHash": "1c3df7d519592cc3dabb7b9f68d5434e10786e327c6db9842fdebc68f49c09a9",
+      "contentHash": "5e5f695e86b0f69bd521d782b1b6458a640c96bbade47acb5f99e151b0394dac",
       "functions": [],
       "classes": [],
       "imports": [
@@ -22788,7 +23135,7 @@
     },
     "box_agent/tool_result_storage.py": {
       "filePath": "box_agent/tool_result_storage.py",
-      "contentHash": "abf99f9fcc9fdd52c732c5cdd1d0842e37a83d20a64e4b80ba8d0dcdcf776be7",
+      "contentHash": "2f4ff478967a455677eb7d0ee52f7099b2147e8f205d8e3ee9ef1deb3da70944",
       "functions": [],
       "classes": [],
       "imports": [
@@ -22811,7 +23158,7 @@
     },
     "box_agent/tools/__init__.py": {
       "filePath": "box_agent/tools/__init__.py",
-      "contentHash": "db770709d4d75a66f2b89133cd8c26280f4433304ad8d8d03b39a9e569ea5260",
+      "contentHash": "a6276faf0ca8ddb509b0007199f197d9ce0fd8ee9d790b9f7bf81a9e182fd572",
       "functions": [
         {
           "name": "__getattr__",
@@ -22870,7 +23217,7 @@
         "__getattr__",
         "__dir__"
       ],
-      "totalLines": 100,
+      "totalLines": 104,
       "hasStructuralAnalysis": true
     },
     "box_agent/tools/_win_job.py": {
@@ -22914,7 +23261,7 @@
     },
     "box_agent/tools/base.py": {
       "filePath": "box_agent/tools/base.py",
-      "contentHash": "17dbefd596f3d5fd59fc3c6f24f06e9bc27a11c6d4a442af9ac71120539d1371",
+      "contentHash": "9f9aff2205d938d3bf565c9f3492ce7d9663c76aed53e8ed4a87d339fc9bb7b7",
       "functions": [
         {
           "name": "tool_call_name_variants",
@@ -23056,7 +23403,7 @@
     },
     "box_agent/tools/bash_tool.py": {
       "filePath": "box_agent/tools/bash_tool.py",
-      "contentHash": "64483adbbd189948f44e46f806ab2b938f348e1946473944794778447954ddc9",
+      "contentHash": "102e628404803cb384a64258eac643e4752fa3e6a17571798778a7ea8cd41655",
       "functions": [
         {
           "name": "_truncate_bash_output",
@@ -23136,7 +23483,7 @@
           ],
           "returnType": "str | None",
           "exported": true,
-          "lineCount": 39
+          "lineCount": 42
         },
         {
           "name": "_detect_dingtalk_workspace_violation",
@@ -23249,7 +23596,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 992
+          "lineCount": 1026
         },
         {
           "name": "BashOutputTool",
@@ -23372,6 +23719,12 @@
           ]
         },
         {
+          "source": "..config",
+          "specifiers": [
+            "ToolsConfig"
+          ]
+        },
+        {
           "source": ".base",
           "specifiers": [
             "Tool",
@@ -23387,6 +23740,7 @@
         {
           "source": ".pptx_safety",
           "specifiers": [
+            "detect_pptx_image_status_command_bypass",
             "detect_pptx_self_check_bypass"
           ]
         },
@@ -23433,7 +23787,7 @@
         "BashOutputTool",
         "BashKillTool"
       ],
-      "totalLines": 1938,
+      "totalLines": 1980,
       "hasStructuralAnalysis": true
     },
     "box_agent/tools/browser_intent.py": {
@@ -23727,7 +24081,7 @@
     },
     "box_agent/tools/engine.py": {
       "filePath": "box_agent/tools/engine.py",
-      "contentHash": "04687f176d9dc3d4116ecccdf06df981baa46e09a5720fca740a97487f8ff28c",
+      "contentHash": "7527bd590f94aab2f4dcb48d4659df5e87209e30c883aede95c36c1625e9d0cc",
       "functions": [
         {
           "name": "_publish_permission_requested",
@@ -23946,7 +24300,7 @@
     },
     "box_agent/tools/experts.py": {
       "filePath": "box_agent/tools/experts.py",
-      "contentHash": "826b0392c9e0dcff64bdd5f707acbc438e1ac962eaec4c39a432f99adf38fa1d",
+      "contentHash": "eca07ee95b44520f3f7ed14f3d99b3d7bd4f5ed58efb96a36e307c3102e4b3df",
       "functions": [],
       "classes": [
         {
@@ -23988,7 +24342,7 @@
     },
     "box_agent/tools/file/__init__.py": {
       "filePath": "box_agent/tools/file/__init__.py",
-      "contentHash": "b3c3f18176aedec4a43b74cd41ddb9969b088dc84ec0c38c4fc1c359e4f209a8",
+      "contentHash": "e5af39a1f1776ac89d6abaa9380cda17f3b04b95cdd5105f185def7851e19da8",
       "functions": [
         {
           "name": "__getattr__",
@@ -24243,7 +24597,7 @@
     },
     "box_agent/tools/file/read_tool.py": {
       "filePath": "box_agent/tools/file/read_tool.py",
-      "contentHash": "3dc68bb0462d7f92f793b299bc2c45f1531b7e797f33dc862a4052d6bdd9a9eb",
+      "contentHash": "2db324017b47ddc4562f00ebac2e368c587d1a9ac38543ca23e7cdabae797595",
       "functions": [
         {
           "name": "_normalize_read_pagination",
@@ -24360,7 +24714,7 @@
     },
     "box_agent/tools/file_tools.py": {
       "filePath": "box_agent/tools/file_tools.py",
-      "contentHash": "b67ed441177431d8dbca4f602a2c99ed1e33a55351febfeb3869fdaf3378ec5a",
+      "contentHash": "82c524f581cc55b34dbafb4e923cb57074559217dc76555e817d89458df3f27f",
       "functions": [
         {
           "name": "_normalize_search_pagination",
@@ -24479,19 +24833,24 @@
             "_permission_error",
             "preflight",
             "_write_bytes",
+            "_restore_temporary_size",
             "_sha256_file",
             "_start",
             "_discard",
+            "_active_transaction_output",
+            "_active_result",
+            "_discarded_result",
             "_append_chunk",
             "_commit",
             "_committed_replay",
             "execute",
+            "discard_pending_writes",
             "cleanup_pending_writes",
             "end_run"
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 367
+          "lineCount": 563
         },
         {
           "name": "AppendTool",
@@ -24537,6 +24896,12 @@
           "source": "hashlib",
           "specifiers": [
             "hashlib"
+          ]
+        },
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
           ]
         },
         {
@@ -24662,12 +25027,12 @@
         "AppendTool",
         "EditTool"
       ],
-      "totalLines": 1339,
+      "totalLines": 1539,
       "hasStructuralAnalysis": true
     },
     "box_agent/tools/image_generation_tool.py": {
       "filePath": "box_agent/tools/image_generation_tool.py",
-      "contentHash": "485bfff89d39a1cce3a8256c2c35c05f61e3e494e09a06289526b9061c9e8d5b",
+      "contentHash": "096866473e9f3db3c110eba8b4003bd98565619ab531a573c07919eb9180d018",
       "functions": [
         {
           "name": "_is_large_image_service",
@@ -25014,7 +25379,7 @@
     },
     "box_agent/tools/image_inspection_tool.py": {
       "filePath": "box_agent/tools/image_inspection_tool.py",
-      "contentHash": "86e1121b21b2ddefe170ca1115e1166c2bfbcd97773a83fc0226e96f7cf7aa70",
+      "contentHash": "80393aee6189aaee8ad63db05ad69f34239041e480c5f59a51fb5f0d42041314",
       "functions": [],
       "classes": [
         {
@@ -25146,7 +25511,7 @@
     },
     "box_agent/tools/jupyter_tool.py": {
       "filePath": "box_agent/tools/jupyter_tool.py",
-      "contentHash": "6c6e03722b0ced2ec54db63fdbb2ad709a283baf0f9af046ab59e3c08d8d6662",
+      "contentHash": "a734b256ce5cfd78f33349aa98af3e8d016d33eb0c73769627cc2831c912426f",
       "functions": [
         {
           "name": "_select_runtime_dir",
@@ -25417,7 +25782,7 @@
     },
     "box_agent/tools/mcp_bootstrap.py": {
       "filePath": "box_agent/tools/mcp_bootstrap.py",
-      "contentHash": "9dcc0a23101dacc687cce12b2140167b8ce7d74920d5fa06eea36f75082b50ee",
+      "contentHash": "60131c40964a803766fa042549cc5d4e33998c4d297c1dd0e98d1ce449054f01",
       "functions": [
         {
           "name": "_runtime_root",
@@ -25706,7 +26071,7 @@
     },
     "box_agent/tools/mcp_exposure_engine.py": {
       "filePath": "box_agent/tools/mcp_exposure_engine.py",
-      "contentHash": "91219f90263ceb55abf850cc45c80a05950415fa123edff47692fe4c50996491",
+      "contentHash": "97681feefaed7b5a463199ff5d53785aaff6994e95125bd9e0ec421af9e21ea3",
       "functions": [],
       "classes": [
         {
@@ -25717,6 +26082,7 @@
             "schemas",
             "canonicalize_call",
             "supports_workflow_action",
+            "restricted_passthrough_tool_names",
             "unoffered_call_error",
             "_generation_error",
             "prepare_call",
@@ -25725,7 +26091,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 147
+          "lineCount": 152
         }
       ],
       "imports": [
@@ -25780,12 +26146,12 @@
       "exports": [
         "MCPToolExposureEngine"
       ],
-      "totalLines": 166,
+      "totalLines": 171,
       "hasStructuralAnalysis": true
     },
     "box_agent/tools/mcp_loader.py": {
       "filePath": "box_agent/tools/mcp_loader.py",
-      "contentHash": "34eaede2f5a54e8ea9cf237caac7247a77580098e39634e40cacf52cfc1eaf2e",
+      "contentHash": "2c27b0a91e37a002052943ce9a6067164ba8e3ba83862fc4ac4f678a9ef6a6ef",
       "functions": [
         {
           "name": "_warn",
@@ -25795,6 +26161,16 @@
           "returnType": "None",
           "exported": true,
           "lineCount": 3
+        },
+        {
+          "name": "_public_mcp_tool_name",
+          "params": [
+            "server_name",
+            "remote_name"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 15
         },
         {
           "name": "_replace_server_catalog",
@@ -26134,6 +26510,12 @@
           ]
         },
         {
+          "source": "re",
+          "specifiers": [
+            "re"
+          ]
+        },
+        {
           "source": "sys",
           "specifiers": [
             "sys"
@@ -26250,6 +26632,7 @@
       ],
       "exports": [
         "_warn",
+        "_public_mcp_tool_name",
         "_replace_server_catalog",
         "_structured_mcp_error_message",
         "_walk_exception_tree",
@@ -26282,7 +26665,7 @@
         "reconnect_auth_failed_mcp_servers_if_token_changed",
         "_reconnect_mcp_server_locked"
       ],
-      "totalLines": 1357,
+      "totalLines": 1379,
       "hasStructuralAnalysis": true
     },
     "box_agent/tools/mcp_tool_catalog.py": {
@@ -26544,7 +26927,7 @@
     },
     "box_agent/tools/memory_tool.py": {
       "filePath": "box_agent/tools/memory_tool.py",
-      "contentHash": "350f78657b0d69a00ec69bf43c0c5423201a125a4edcaec87a64ac969381ffa2",
+      "contentHash": "8402865ccbfc951138d3d69e3e7cae7c93156526ad966f9525871968ecc047aa",
       "functions": [],
       "classes": [
         {
@@ -26722,7 +27105,7 @@
     },
     "box_agent/tools/obsidian_tool.py": {
       "filePath": "box_agent/tools/obsidian_tool.py",
-      "contentHash": "af6075a8686e644cc586af444b6a72e4dd97a8237d659ed46725d16e39bfdd8c",
+      "contentHash": "0ef81bd0979759716f5e567ebb5ab9899ae153167ffd1567b149acf242bce196",
       "functions": [
         {
           "name": "obsidian_config_path",
@@ -26991,7 +27374,7 @@
     },
     "box_agent/tools/permissions.py": {
       "filePath": "box_agent/tools/permissions.py",
-      "contentHash": "9f34ba99ef6f614c62b1e29ce3cbd7ea9c5e7a05773dc94328a5d1119e4ea4a4",
+      "contentHash": "5c78cee35a46f9d4a0ffe41badd36c63b7db0bb8a512b048011659d6cb922ba9",
       "functions": [
         {
           "name": "expand_inline_shell_path_variables",
@@ -27137,7 +27520,7 @@
     },
     "box_agent/tools/plan_tool.py": {
       "filePath": "box_agent/tools/plan_tool.py",
-      "contentHash": "c285f387e21e2e6596b901e1aba888c8de6304cc3e04b3eb80ff31d2af933a10",
+      "contentHash": "b8fe9e0d7293b6a2bf2ee45e0f17917ce7a9d5161d333a02cc7a1046c0fe4e83",
       "functions": [
         {
           "name": "_now",
@@ -27265,7 +27648,7 @@
     },
     "box_agent/tools/pptx_safety.py": {
       "filePath": "box_agent/tools/pptx_safety.py",
-      "contentHash": "5eb663875bba4787e60a7ddb0c38f8750aee29afa45589831c9491170e19ddff",
+      "contentHash": "3b06fcff20ec32d37baf947e75d1175f90d3cbe81ab198d08bcfb976dc40bedc",
       "functions": [
         {
           "name": "_has_skipcheck_name",
@@ -27321,6 +27704,17 @@
           "returnType": "str | None",
           "exported": true,
           "lineCount": 25
+        },
+        {
+          "name": "detect_pptx_image_status_command_bypass",
+          "params": [
+            "command",
+            "workspace_dir",
+            "runtime_env"
+          ],
+          "returnType": "str | None",
+          "exported": true,
+          "lineCount": 50
         }
       ],
       "classes": [],
@@ -27329,6 +27723,18 @@
           "source": "re",
           "specifiers": [
             "re"
+          ]
+        },
+        {
+          "source": "shlex",
+          "specifiers": [
+            "shlex"
+          ]
+        },
+        {
+          "source": "collections.abc",
+          "specifiers": [
+            "Mapping"
           ]
         },
         {
@@ -27344,14 +27750,15 @@
         "_mentions_self_check",
         "_looks_like_direct_dom_export",
         "_looks_like_self_check_removal",
-        "detect_pptx_self_check_bypass"
+        "detect_pptx_self_check_bypass",
+        "detect_pptx_image_status_command_bypass"
       ],
-      "totalLines": 95,
+      "totalLines": 171,
       "hasStructuralAnalysis": true
     },
     "box_agent/tools/registration.py": {
       "filePath": "box_agent/tools/registration.py",
-      "contentHash": "d4c9c80375f8a91489798943ac59106cbdcc702b299ab1f4a096c94f044dc458",
+      "contentHash": "99bdce924bebda99979c43b886821ce77edcd0b1b937d67512e4c9be572d0bd0",
       "functions": [
         {
           "name": "tool_registration_source",
@@ -27553,7 +27960,7 @@
     },
     "box_agent/tools/result_storage.py": {
       "filePath": "box_agent/tools/result_storage.py",
-      "contentHash": "af903cbeb4f27aaef83290c4d920184dc4f941cca66140833ff328012689b3e7",
+      "contentHash": "c7d08a9d4ed35157db1d10b1d4e9e2cefddea8087d7fb01cdb9a9ae87a9030f0",
       "functions": [
         {
           "name": "generate_preview",
@@ -27743,7 +28150,7 @@
     },
     "box_agent/tools/runtime.py": {
       "filePath": "box_agent/tools/runtime.py",
-      "contentHash": "2600547c0e99655e9a97d078dcd5169a8ca5a2440ae87e1f1955b0f0554d6e91",
+      "contentHash": "776abb3859b0536fb7a86c1707f5f010a9e38abadf60b0ea723a14362197c41e",
       "functions": [
         {
           "name": "_promote_runtime_directory",
@@ -28196,7 +28603,7 @@
     },
     "box_agent/tools/runtime_context.py": {
       "filePath": "box_agent/tools/runtime_context.py",
-      "contentHash": "77c57fac6859d899fc1ba587579fee6548e11a9b6718344f90d50e65869c51f2",
+      "contentHash": "611f48c18c029ef8908826b6ef01e3dc666a3db79b27a7571b1a75a059695f72",
       "functions": [
         {
           "name": "current_runtime_invocation",
@@ -28276,7 +28683,7 @@
     },
     "box_agent/tools/safety.py": {
       "filePath": "box_agent/tools/safety.py",
-      "contentHash": "37e1cadb7587013eb1aba9a3d9aca2c9c74d6ad317e710c477568184d0ba8568",
+      "contentHash": "72ecae38381efe94064ba365cd3890036d49aabe858abad1eae7a52896f1c4f7",
       "functions": [
         {
           "name": "_directory_is_writable",
@@ -28727,7 +29134,7 @@
     },
     "box_agent/tools/session_workspace.py": {
       "filePath": "box_agent/tools/session_workspace.py",
-      "contentHash": "5e89b74935a13eff8ab3266fc2dc6b230e03b6912635577b799ea854d85fdd65",
+      "contentHash": "b7c0e8fe6417b254f0bc16ea7a6144ed032de3f00c6628123edec4b20e3dd1b6",
       "functions": [],
       "classes": [
         {
@@ -28794,8 +29201,19 @@
     },
     "box_agent/tools/setup.py": {
       "filePath": "box_agent/tools/setup.py",
-      "contentHash": "a70689878dee08055f4b6658f023323ddfbacc3b1de77ff615f9efb8ee896333",
+      "contentHash": "dd67e9129184636eec19f8ac3afa5cac899e01e2098d438fc64c0fae99b7979f",
       "functions": [
+        {
+          "name": "render_system_prompt_template",
+          "params": [
+            "prompt",
+            "current_date",
+            "language"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 11
+        },
         {
           "name": "set_mcp_timeout_config",
           "params": [],
@@ -28826,7 +29244,7 @@
           ],
           "returnType": "str",
           "exported": true,
-          "lineCount": 42
+          "lineCount": 47
         },
         {
           "name": "build_file_delivery_prompt",
@@ -28835,7 +29253,7 @@
           ],
           "returnType": "str",
           "exported": true,
-          "lineCount": 23
+          "lineCount": 28
         },
         {
           "name": "image_generation_service_configured",
@@ -28954,7 +29372,7 @@
             "bypass_dangerous_command_approval"
           ],
           "exported": true,
-          "lineCount": 273
+          "lineCount": 275
         }
       ],
       "classes": [
@@ -28977,6 +29395,12 @@
           "source": "sys",
           "specifiers": [
             "sys"
+          ]
+        },
+        {
+          "source": "datetime",
+          "specifiers": [
+            "date"
           ]
         },
         {
@@ -29178,6 +29602,7 @@
         }
       ],
       "exports": [
+        "render_system_prompt_template",
         "set_mcp_timeout_config",
         "load_mcp_tools_async",
         "_image_capable_llm",
@@ -29195,7 +29620,7 @@
         "sync_mcp_tool_list",
         "add_workspace_tools"
       ],
-      "totalLines": 825,
+      "totalLines": 851,
       "hasStructuralAnalysis": true
     },
     "box_agent/tools/shell_inspection.py": {
@@ -29496,7 +29921,7 @@
     },
     "box_agent/tools/skill_execution_env.py": {
       "filePath": "box_agent/tools/skill_execution_env.py",
-      "contentHash": "bb9f8591b86a5ea0dee6806f2cd1728bd0a054baebb116eeb9a38a2b35733ae0",
+      "contentHash": "38c369bd9e493072388fdcc118cc366ff173ae602d5e16256b3b9941a1060e08",
       "functions": [
         {
           "name": "build_skill_execution_env",
@@ -29508,7 +29933,7 @@
           ],
           "returnType": "dict[str, str]",
           "exported": true,
-          "lineCount": 110
+          "lineCount": 115
         },
         {
           "name": "_safe_skill_tools_root",
@@ -29617,7 +30042,7 @@
         "_browser_revision",
         "_browser_executable_candidates"
       ],
-      "totalLines": 204,
+      "totalLines": 209,
       "hasStructuralAnalysis": true
     },
     "box_agent/tools/skill_loader.py": {
@@ -29822,7 +30247,7 @@
     },
     "box_agent/tools/skill_preload.py": {
       "filePath": "box_agent/tools/skill_preload.py",
-      "contentHash": "2718f3091e18f772ce179024e13dbf57e83c73dd11741c66b6c452e4bc52dda1",
+      "contentHash": "0143742f2797b67ea6aa60ac4f5ed66b5c13adf514f56bc56dc51aba423ad436",
       "functions": [
         {
           "name": "strip_auto_loaded_skills",
@@ -30220,7 +30645,7 @@
     },
     "box_agent/tools/skill_tool.py": {
       "filePath": "box_agent/tools/skill_tool.py",
-      "contentHash": "d8cf0e43f9f5bdfe6591010ed63b732c7a183e63bbda96adf79d8f6c0d46394f",
+      "contentHash": "8f5ba793cbb3766491c2884469b779c888eeaa56c889ae972067142d1e067a09",
       "functions": [
         {
           "name": "create_skill_tools",
@@ -30302,9 +30727,344 @@
       "totalLines": 176,
       "hasStructuralAnalysis": true
     },
+    "box_agent/tools/skillhub_contributor.py": {
+      "filePath": "box_agent/tools/skillhub_contributor.py",
+      "contentHash": "97f083400e96468523bfe03ea25f60b1177460848260b7806d16094c6f91e2d4",
+      "functions": [
+        {
+          "name": "_capability_version",
+          "params": [
+            "metadata"
+          ],
+          "returnType": "int | None",
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "_search_enabled",
+          "params": [
+            "metadata"
+          ],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "_install_enabled",
+          "params": [
+            "metadata"
+          ],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "skillhub_capabilities",
+          "params": [
+            "metadata"
+          ],
+          "returnType": "tuple[bool, bool]",
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [
+        {
+          "name": "SkillHubHostBridge",
+          "methods": [
+            "__init__",
+            "bind",
+            "ext_method"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 17
+        },
+        {
+          "name": "SkillHubDiscoveryState",
+          "methods": [
+            "__init__",
+            "on_event",
+            "snapshot",
+            "current_snapshot"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 32
+        },
+        {
+          "name": "SkillHubToolContributor",
+          "methods": [
+            "__init__",
+            "_request",
+            "provide_tools"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 74
+        },
+        {
+          "name": "SkillHubContextContributor",
+          "methods": [
+            "provide"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 18
+        }
+      ],
+      "imports": [
+        {
+          "source": "collections.abc",
+          "specifiers": [
+            "Mapping"
+          ]
+        },
+        {
+          "source": "typing",
+          "specifiers": [
+            "Any"
+          ]
+        },
+        {
+          "source": "box_agent.context.api",
+          "specifiers": [
+            "ContextBuildRequest",
+            "ContextItem"
+          ]
+        },
+        {
+          "source": ".runtime_context",
+          "specifiers": [
+            "current_runtime_invocation"
+          ]
+        },
+        {
+          "source": ".skillhub_install_tool",
+          "specifiers": [
+            "SKILLHUB_INSTALL_CAPABILITY_VERSION",
+            "SKILLHUB_INSTALL_METHOD",
+            "SkillHubInstallTool"
+          ]
+        },
+        {
+          "source": ".skillhub_search_tool",
+          "specifiers": [
+            "HARD_CAPABILITY_GAP_PROMPT",
+            "SKILLHUB_SEARCH_CAPABILITY_VERSION",
+            "SKILLHUB_SEARCH_METHOD",
+            "SkillHubSearchTool"
+          ]
+        }
+      ],
+      "exports": [
+        "SkillHubHostBridge",
+        "_capability_version",
+        "_search_enabled",
+        "_install_enabled",
+        "skillhub_capabilities",
+        "SkillHubDiscoveryState",
+        "SkillHubToolContributor",
+        "SkillHubContextContributor"
+      ],
+      "totalLines": 213,
+      "hasStructuralAnalysis": true
+    },
+    "box_agent/tools/skillhub_install_tool.py": {
+      "filePath": "box_agent/tools/skillhub_install_tool.py",
+      "contentHash": "8e80d19fe89daf1cef5c3217eae801208dbc6b535bd20d964e6ed498e33d0cbe",
+      "functions": [
+        {
+          "name": "_text",
+          "params": [
+            "value",
+            "limit"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 2
+        }
+      ],
+      "classes": [
+        {
+          "name": "SkillHubInstallTool",
+          "methods": [
+            "__init__",
+            "name",
+            "description",
+            "parameters",
+            "approve_permission_request",
+            "execute",
+            "_installed_skill_name",
+            "_successful_result",
+            "_refresh_skill",
+            "_error"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 267
+        }
+      ],
+      "imports": [
+        {
+          "source": "asyncio",
+          "specifiers": [
+            "asyncio"
+          ]
+        },
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "collections.abc",
+          "specifiers": [
+            "Awaitable",
+            "Callable",
+            "Mapping"
+          ]
+        },
+        {
+          "source": "typing",
+          "specifiers": [
+            "Any"
+          ]
+        },
+        {
+          "source": ".base",
+          "specifiers": [
+            "Tool",
+            "ToolResult"
+          ]
+        },
+        {
+          "source": ".skill_loader",
+          "specifiers": [
+            "SkillLoader"
+          ]
+        }
+      ],
+      "exports": [
+        "_text",
+        "SkillHubInstallTool"
+      ],
+      "totalLines": 300,
+      "hasStructuralAnalysis": true
+    },
+    "box_agent/tools/skillhub_search_tool.py": {
+      "filePath": "box_agent/tools/skillhub_search_tool.py",
+      "contentHash": "cb6425bda00f9df4abaf951860a9e6751b0b7849044a9d7cfbf4f610b1255d00",
+      "functions": [
+        {
+          "name": "_bounded_text",
+          "params": [
+            "value",
+            "limit"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 2
+        },
+        {
+          "name": "_query_is_safe",
+          "params": [
+            "query"
+          ],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "_normalize_candidate",
+          "params": [
+            "value"
+          ],
+          "returnType": "dict[str, Any] | None",
+          "exported": true,
+          "lineCount": 42
+        },
+        {
+          "name": "capability_snapshot",
+          "params": [
+            "agent",
+            "skill_loader"
+          ],
+          "returnType": "dict[str, Any]",
+          "exported": true,
+          "lineCount": 24
+        }
+      ],
+      "classes": [
+        {
+          "name": "SkillHubSearchTool",
+          "methods": [
+            "__init__",
+            "set_snapshot_provider",
+            "reset_turn",
+            "end_run",
+            "candidate",
+            "candidates",
+            "name",
+            "description",
+            "parameters",
+            "execute",
+            "_guard_error"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 235
+        }
+      ],
+      "imports": [
+        {
+          "source": "asyncio",
+          "specifiers": [
+            "asyncio"
+          ]
+        },
+        {
+          "source": "re",
+          "specifiers": [
+            "re"
+          ]
+        },
+        {
+          "source": "collections.abc",
+          "specifiers": [
+            "Awaitable",
+            "Callable",
+            "Mapping"
+          ]
+        },
+        {
+          "source": "typing",
+          "specifiers": [
+            "Any"
+          ]
+        },
+        {
+          "source": ".base",
+          "specifiers": [
+            "Tool",
+            "ToolResult"
+          ]
+        }
+      ],
+      "exports": [
+        "_bounded_text",
+        "_query_is_safe",
+        "_normalize_candidate",
+        "SkillHubSearchTool",
+        "capability_snapshot"
+      ],
+      "totalLines": 377,
+      "hasStructuralAnalysis": true
+    },
     "box_agent/tools/staged_file_write_tool.py": {
       "filePath": "box_agent/tools/staged_file_write_tool.py",
-      "contentHash": "ea2b52883d2d20cccb14fd16d40035e86e2556c99027cb7e02e3deba6dc38827",
+      "contentHash": "76ab522bd7fad24496eb3fe0664cb331626ac938f89b79bef350fffe025f874f",
       "functions": [],
       "classes": [
         {
@@ -30652,7 +31412,7 @@
     },
     "box_agent/tools/sub_agent_tool.py": {
       "filePath": "box_agent/tools/sub_agent_tool.py",
-      "contentHash": "2e96879b90e7911a1a65a9c2ec8249445312141d74eec0129052f2541891641c",
+      "contentHash": "f170a0c1c8c302521e2347959d343817a9e5ad8fbe9bee9d558b3cd75e7f17e2",
       "functions": [
         {
           "name": "_child_safe_parent_prompt",
@@ -31194,7 +31954,7 @@
     },
     "box_agent/tools/workspace.py": {
       "filePath": "box_agent/tools/workspace.py",
-      "contentHash": "c5b772ec538e475a0569c9037f713d60f16d9799184760119060532a70922e2c",
+      "contentHash": "dd2683cda3ab848673142c9d19aabf7ce9decc1be3178ed77d855b83cded528b",
       "functions": [
         {
           "name": "_overlay_tools",
@@ -31361,7 +32121,7 @@
     },
     "box_agent/trace_viewer/server.py": {
       "filePath": "box_agent/trace_viewer/server.py",
-      "contentHash": "35983f46f0d92f05d9203898676fd3371b87812220605381f19db996c164ea8f",
+      "contentHash": "376a9e43c5345797acd99c44005ab73555e58058dc49666170fd68d36f048d6e",
       "functions": [
         {
           "name": "_read_trace_directory",
@@ -31493,7 +32253,7 @@
     },
     "box_agent/turn_policy.py": {
       "filePath": "box_agent/turn_policy.py",
-      "contentHash": "f2b0875ac43943ed7483938f8a4ee49e5b4387275e24249018b926d96ea751f7",
+      "contentHash": "1e53f926368ec77b45bb0738a8c7c690123e8acc62ec0c08e2af3747639da964",
       "functions": [],
       "classes": [],
       "imports": [
@@ -31595,7 +32355,7 @@
     },
     "box_agent/workflow_checkpoint_store.py": {
       "filePath": "box_agent/workflow_checkpoint_store.py",
-      "contentHash": "e89e58fe2acdb445d4cf2829f9ef8d6bf7c9ad1e5fe9b13b9a76f56fea48d6ea",
+      "contentHash": "604c6126332e2b789f51fefe1b5a3ffec6996b9c957928fbc4d3916a1b738de9",
       "functions": [],
       "classes": [],
       "imports": [
@@ -31618,7 +32378,7 @@
     },
     "box_agent/workflow_owner_store.py": {
       "filePath": "box_agent/workflow_owner_store.py",
-      "contentHash": "dc6336c54e5c27791d202ded2e875fec9b84d44755089d1884aa64fef06a97c9",
+      "contentHash": "2d31c337bd21c9cc62cae6a0ed06fa3f364d543502540fbe76aa3ae9337fbb9a",
       "functions": [],
       "classes": [],
       "imports": [
@@ -31641,7 +32401,7 @@
     },
     "box_agent/workflow_policy.py": {
       "filePath": "box_agent/workflow_policy.py",
-      "contentHash": "b2e8779cf95f09ab97f568bbc9893fc96b52ab81992548f0ee27509b5c65a96e",
+      "contentHash": "0fde8c5bfd2b3b08c494a69e30aea63bc451f23cf9653c4879b298a026d4c931",
       "functions": [],
       "classes": [],
       "imports": [
@@ -31664,7 +32424,7 @@
     },
     "box_agent/workflows/__init__.py": {
       "filePath": "box_agent/workflows/__init__.py",
-      "contentHash": "0052ede7091442a2fa23a6b71e8e50132633474e394b84adaee2bf77f55905e3",
+      "contentHash": "bda6dc3aed60252dc5d0200e8c77e404bceefe83d76cd4c69a08d6b6e79f59bf",
       "functions": [
         {
           "name": "create_workflow_policy",
@@ -31910,7 +32670,7 @@
     },
     "box_agent/workflows/attachment.py": {
       "filePath": "box_agent/workflows/attachment.py",
-      "contentHash": "5bccb099c14bf40c7f81e62610a27df17f06f35ad5b3453de6f0bf491d4fe3b5",
+      "contentHash": "4dc4d2ea66366711611e95608f5062ad0a1f9c5917110cb17db56d07289fa95e",
       "functions": [
         {
           "name": "_text_content",
@@ -32015,7 +32775,7 @@
     },
     "box_agent/workflows/browser.py": {
       "filePath": "box_agent/workflows/browser.py",
-      "contentHash": "39c01abdf43f04feec3e5060135a52494fb619ad0f203e98458e02c8d1b82e40",
+      "contentHash": "f097ea65c89435fd817de6590c376b9b2ec307ce34bdf1d6d2ed29ae7cfbffe7",
       "functions": [
         {
           "name": "_schema_name",
@@ -32071,7 +32831,7 @@
     },
     "box_agent/workflows/completion.py": {
       "filePath": "box_agent/workflows/completion.py",
-      "contentHash": "ae9b8c1a34a8531318259b7212e59305756206a44bfa8d257bb8feff8327d987",
+      "contentHash": "f50e32ae02d7d53713a4daa7381150fedf706b0692592a6955bfd70b13831c4b",
       "functions": [
         {
           "name": "_host_execution_contract",
@@ -32142,7 +32902,7 @@
           ],
           "returnType": "CompletionGate | None",
           "exported": true,
-          "lineCount": 101
+          "lineCount": 108
         }
       ],
       "classes": [],
@@ -32186,7 +32946,7 @@
         {
           "source": ".delivery",
           "specifiers": [
-            "has_deliverable_intent",
+            "extract_deliverable_clauses",
             "is_meta_prompt_rewrite_request",
             "strip_negated_format_clauses"
           ]
@@ -32243,12 +33003,12 @@
         "completion_gate_has_workflow_lifecycle",
         "build_auto_completion_gate"
       ],
-      "totalLines": 337,
+      "totalLines": 344,
       "hasStructuralAnalysis": true
     },
     "box_agent/workflows/completion_gate.py": {
       "filePath": "box_agent/workflows/completion_gate.py",
-      "contentHash": "41ea8e16887a8c9cf002c09b38b65496bc492e1d321b2ce3a350e64957524e37",
+      "contentHash": "5416b369aa817c9608adc1fd376dbea06420946989e5718e5e4e3afe909407c8",
       "functions": [
         {
           "name": "_string_items",
@@ -32420,7 +33180,7 @@
     },
     "box_agent/workflows/completion_intent.py": {
       "filePath": "box_agent/workflows/completion_intent.py",
-      "contentHash": "1802e37756bea7a608a3266e5736d2e858d32cc66531e2d126f4198e4985c0a2",
+      "contentHash": "10f198971affa0eda8ef4aafd722434fb62d3dc862ee6f95767f3f4a56bd9251",
       "functions": [
         {
           "name": "cancels_pending_completion_gate",
@@ -32449,7 +33209,7 @@
     },
     "box_agent/workflows/composite.py": {
       "filePath": "box_agent/workflows/composite.py",
-      "contentHash": "d1d2a9d7ab7207e8048e435a22b5dbaf6c698f7b2c05e189163188fc09c65b41",
+      "contentHash": "e0050db531382b064f2d894730acc9bbe123f601a6c0ddb447abe38bf503b475",
       "functions": [],
       "classes": [],
       "imports": [
@@ -32472,7 +33232,7 @@
     },
     "box_agent/workflows/contract.py": {
       "filePath": "box_agent/workflows/contract.py",
-      "contentHash": "6f279f3479eedd0b66f38df00801f5a1cc385e4a95c2c40e97edb461796c5a4c",
+      "contentHash": "1cc4610e2382da9206ab4cdd1d3b9a4b9cfbf96fe773b881f0cd5e9e043a1d33",
       "functions": [
         {
           "name": "is_natural_end_reason",
@@ -32514,7 +33274,7 @@
     },
     "box_agent/workflows/controlled_presentation.py": {
       "filePath": "box_agent/workflows/controlled_presentation.py",
-      "contentHash": "665b8249df6de970eb535ac3cf5f33c4712d289e916b7df46d792708c5145056",
+      "contentHash": "7b59ec34c3c8adc19605cee222c2e63d11fb47e830fce202d5f6c1763051dbad",
       "functions": [
         {
           "name": "_skill_instruction_hash",
@@ -32550,11 +33310,13 @@
           "params": [
             "stage",
             "tool_name",
-            "arguments"
+            "arguments",
+            "workspace_dir",
+            "artifact_root_dir"
           ],
           "returnType": "str | None",
           "exported": true,
-          "lineCount": 16
+          "lineCount": 25
         },
         {
           "name": "_finalize_error",
@@ -33142,6 +33904,12 @@
             "_research_discovery_exhausted",
             "attach_resume_checkpoint",
             "begin_tool_decision",
+            "_pending_write_checkpoint",
+            "_expected_pending_write_path",
+            "_pending_write_tool_error",
+            "_clear_pending_write",
+            "_record_pending_write_result",
+            "record_tool_cleanup",
             "build_checkpoint",
             "_persist_research_fallback_status",
             "_persist_image_auth_blocked",
@@ -33195,6 +33963,9 @@
             "_last_checkpoint_text",
             "_resume_checkpoint",
             "_last_step_failure_signature",
+            "_pending_write_path",
+            "_pending_write_next_chunk_index",
+            "_pending_write_size_bytes",
             "_dispatched_deterministic_action_ids",
             "_step_failure_streak",
             "_repair_failure_stage",
@@ -33247,7 +34018,7 @@
             "evidence_read_limit"
           ],
           "exported": true,
-          "lineCount": 1849
+          "lineCount": 2006
         }
       ],
       "imports": [
@@ -33377,6 +34148,12 @@
           ]
         },
         {
+          "source": "..tools.pptx_safety",
+          "specifiers": [
+            "detect_pptx_image_status_command_bypass"
+          ]
+        },
+        {
           "source": "..tools.skill_loader",
           "specifiers": [
             "Skill",
@@ -33480,13 +34257,63 @@
         "_tool_failure_signature",
         "ControlledPresentationPolicy"
       ],
-      "totalLines": 3991,
+      "totalLines": 4173,
       "hasStructuralAnalysis": true
     },
     "box_agent/workflows/delivery.py": {
       "filePath": "box_agent/workflows/delivery.py",
-      "contentHash": "a20629bea5e8bae88f14c8370c61bc473321f5a344358a7588d8559cb5179ab4",
+      "contentHash": "821ae86e342cfbe0dd708b86431788edfbd4786a7345d9877e2e1ef561bff934",
       "functions": [
+        {
+          "name": "_local_action_start",
+          "params": [
+            "clause",
+            "action_start",
+            "comma_is_boundary"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 19
+        },
+        {
+          "name": "_local_action_bounds",
+          "params": [
+            "clause",
+            "action_start"
+          ],
+          "returnType": "tuple[int, int]",
+          "exported": true,
+          "lineCount": 15
+        },
+        {
+          "name": "_local_action_prefix",
+          "params": [
+            "clause",
+            "action_start"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "_action_is_informational",
+          "params": [
+            "clause",
+            "action"
+          ],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "extract_deliverable_clauses",
+          "params": [
+            "text"
+          ],
+          "returnType": "tuple[str, ...]",
+          "exported": true,
+          "lineCount": 15
+        },
         {
           "name": "has_deliverable_intent",
           "params": [
@@ -33494,7 +34321,7 @@
           ],
           "returnType": "bool",
           "exported": true,
-          "lineCount": 5
+          "lineCount": 2
         },
         {
           "name": "strip_negated_format_clauses",
@@ -33540,17 +34367,22 @@
         }
       ],
       "exports": [
+        "_local_action_start",
+        "_local_action_bounds",
+        "_local_action_prefix",
+        "_action_is_informational",
+        "extract_deliverable_clauses",
         "has_deliverable_intent",
         "strip_negated_format_clauses",
         "_last_meta_rewrite_span",
         "is_meta_prompt_rewrite_request"
       ],
-      "totalLines": 202,
+      "totalLines": 338,
       "hasStructuralAnalysis": true
     },
     "box_agent/workflows/execution_profile.py": {
       "filePath": "box_agent/workflows/execution_profile.py",
-      "contentHash": "24608718d46f40c62a83de46b8f09ad4a21e414411d90d624f071810c6655cdb",
+      "contentHash": "7ed8b3a1f7f90dac26b9a6b5865db372d81ca27e7e1e3dee90dbaf2aff14d350",
       "functions": [
         {
           "name": "normalize_execution_profile",
@@ -33581,7 +34413,7 @@
     },
     "box_agent/workflows/external_skill.py": {
       "filePath": "box_agent/workflows/external_skill.py",
-      "contentHash": "d02c483fff47569fd685a7048a0f738919a304b1f9c1d1aeef7283b8869cb469",
+      "contentHash": "5c354d09ae571255510590a9492dc897b2438f873c951b7fdf8a653e54fcfd93",
       "functions": [
         {
           "name": "explicit_skill_invocation_name",
@@ -33646,7 +34478,7 @@
           ],
           "returnType": "CompletionGate",
           "exported": true,
-          "lineCount": 34
+          "lineCount": 36
         },
         {
           "name": "build_external_skill_completion_gate_from_options",
@@ -33657,7 +34489,7 @@
           ],
           "returnType": "CompletionGate",
           "exported": true,
-          "lineCount": 44
+          "lineCount": 46
         },
         {
           "name": "external_skill_policy_from_options",
@@ -33921,12 +34753,12 @@
         "_is_relative_to",
         "ExternalSkillRunPolicy"
       ],
-      "totalLines": 997,
+      "totalLines": 1001,
       "hasStructuralAnalysis": true
     },
     "box_agent/workflows/goal.py": {
       "filePath": "box_agent/workflows/goal.py",
-      "contentHash": "c1727f340055ea7024e1e9926f4b81fc0a4fcc9728e535e8f804abe7db768071",
+      "contentHash": "0c0fd0bcd190d37fab16c11bcfde5733109a580bd7748231280dea0109cf8c73",
       "functions": [
         {
           "name": "_now",
@@ -34380,7 +35212,7 @@
     },
     "box_agent/workflows/guards.py": {
       "filePath": "box_agent/workflows/guards.py",
-      "contentHash": "e880312c406b11b0b1762401008e0c1433ecb8604becffa4f1351a90d5bfd526",
+      "contentHash": "61bf17df28069fd26e44cdc2edea58ebc5ddf2616d7d8d5e5fe7afba0c6b5814",
       "functions": [
         {
           "name": "repeated_stream_pattern",
@@ -34774,7 +35606,7 @@
     },
     "box_agent/workflows/hooks.py": {
       "filePath": "box_agent/workflows/hooks.py",
-      "contentHash": "7a7e1af06fe6e98cd7a80b936e1a24403ad2aa9d73311a0ba95f356ec0be6662",
+      "contentHash": "b7b8c2f4ccc1c3d2b7b8887300903e65f5700cae7acd7cc2eccb60a0b2bd6f9b",
       "functions": [],
       "classes": [
         {
@@ -34816,7 +35648,7 @@
     },
     "box_agent/workflows/plan.py": {
       "filePath": "box_agent/workflows/plan.py",
-      "contentHash": "0cf24903cc157f268db2deb08908bf3dd66a9872524d1b0146f2180b7d03dc0a",
+      "contentHash": "196dbfd0dbef88b0d8a91001ea80444c9f9151c284c56c5524dfc1b921676bf0",
       "functions": [
         {
           "name": "_session_id",
@@ -35025,7 +35857,7 @@
     },
     "box_agent/workflows/presentation_checkpoint.py": {
       "filePath": "box_agent/workflows/presentation_checkpoint.py",
-      "contentHash": "fea7891bb203537039e5959bf7c018000053d06c5a178720f50636cb5c4ad3f5",
+      "contentHash": "b3b2fbbe864a58abe908bc0708d4fce924eb7ade6a88b132033552cf3ecb320a",
       "functions": [
         {
           "name": "_controlled_pptx_command",
@@ -35357,11 +36189,12 @@
             "research_attempt_summary",
             "research_search_exhausted",
             "direct_research_read_complete",
-            "direct_research_read_available"
+            "direct_research_read_available",
+            "pending_write"
           ],
           "returnType": "str | None",
           "exported": true,
-          "lineCount": 1085
+          "lineCount": 1127
         },
         {
           "name": "completion_gate_progress_text",
@@ -35486,7 +36319,7 @@
         "build_checkpoint_text",
         "completion_gate_progress_text"
       ],
-      "totalLines": 2616,
+      "totalLines": 2658,
       "hasStructuralAnalysis": true
     },
     "box_agent/workflows/presentation_contract.py": {
@@ -35526,7 +36359,7 @@
     },
     "box_agent/workflows/presentation_preflight.py": {
       "filePath": "box_agent/workflows/presentation_preflight.py",
-      "contentHash": "1d3c04dc76e779dd54993cc5baa194a2f38a1ebb4877d2f9c327ab705eba184f",
+      "contentHash": "0035b89090629e1fbdba2e73744590171d7079d5798233384cb9314113d4a4c6",
       "functions": [
         {
           "name": "load_presentation_preflight_config",
@@ -35988,7 +36821,7 @@
     },
     "box_agent/workflows/presentation_recovery.py": {
       "filePath": "box_agent/workflows/presentation_recovery.py",
-      "contentHash": "369d1ea30376b5f7fd123f9ce64388983f94323e117ba5841c00f168eb099d50",
+      "contentHash": "647c1f9c0ba3d3a926d590ba6af99eaf1aa5fcbdc7dfae2a7a760e037b660960",
       "functions": [
         {
           "name": "_read_json_object",
@@ -36097,7 +36930,7 @@
     },
     "box_agent/workflows/presentation_routing.py": {
       "filePath": "box_agent/workflows/presentation_routing.py",
-      "contentHash": "4d9c2bff6da0a20928ca8d73b50faf13e16dc2173fceac3aa1ced5fc7ef4f96a",
+      "contentHash": "0a8404abe9e0abb00cc8730b6af8aaac8992e1450da1dc82ec8c66a14368c625",
       "functions": [
         {
           "name": "has_explicit_external_research_action",
@@ -36134,11 +36967,12 @@
             "workspace_dir",
             "confirmed_presentation",
             "tool_limits",
-            "execution_profile"
+            "execution_profile",
+            "routing_text"
           ],
           "returnType": "CompletionGate | None",
           "exported": true,
-          "lineCount": 69
+          "lineCount": 72
         }
       ],
       "classes": [],
@@ -36215,12 +37049,12 @@
         "_explicit_pptx_delivery_requested",
         "build_presentation_completion_gate"
       ],
-      "totalLines": 275,
+      "totalLines": 278,
       "hasStructuralAnalysis": true
     },
     "box_agent/workflows/response_continuation.py": {
       "filePath": "box_agent/workflows/response_continuation.py",
-      "contentHash": "8b204039c2ce9a64df28a265606c865b30cf888b1ab7fbe33ebffd157be3cb6d",
+      "contentHash": "84337948c6079d7b63744aa1830ee3f692bcd5e21aaee8723a495a3e0630ecad",
       "functions": [],
       "classes": [
         {
@@ -36273,7 +37107,7 @@
     },
     "box_agent/workflows/routing.py": {
       "filePath": "box_agent/workflows/routing.py",
-      "contentHash": "46139c4699e68904e069364b9ab359b57a5d92f3ef2f0f23bf0b31490ded0435",
+      "contentHash": "73d258b15ce1a2ca34918c25df618266f8912ce8a2f5730cdc84b0cf1be340bb",
       "functions": [
         {
           "name": "text_requests_native_plan",
@@ -36302,7 +37136,7 @@
     },
     "box_agent/workflows/selection.py": {
       "filePath": "box_agent/workflows/selection.py",
-      "contentHash": "74974ce4c699069c5ac5a93cbe9c701a10021a02b334fbdb028df06a4a9e343a",
+      "contentHash": "561bb98fdee1a75ed0033da96029bb4d46d51b401201e209786224c1318c8c9b",
       "functions": [
         {
           "name": "prompt_text",
@@ -36504,7 +37338,7 @@
     },
     "box_agent/workflows/state.py": {
       "filePath": "box_agent/workflows/state.py",
-      "contentHash": "08ee2f8b5b7c63458b6508a1bec4ec9d6006358c2c7ddacc5fc61f879fa212df",
+      "contentHash": "2009349efc92b5af3d2a11cb71030ead927a7e81eba1829abc544822cff4971f",
       "functions": [
         {
           "name": "workflow_state_from_recovery",
@@ -36589,7 +37423,7 @@
     },
     "box_agent/workspace_registry.py": {
       "filePath": "box_agent/workspace_registry.py",
-      "contentHash": "4a4ccae0efb69365726c8333a7e4f4ccdd8ddd7a298d5fb77d5a66111c5d42eb",
+      "contentHash": "60e4dadbc63210b1de6ad2a3ce2538c122fe029918739631de34f2da357d6bcf",
       "functions": [],
       "classes": [],
       "imports": [
@@ -36622,7 +37456,7 @@
     },
     "docs/ACTION_HINT_PROTOCOL.md": {
       "filePath": "docs/ACTION_HINT_PROTOCOL.md",
-      "contentHash": "12a41d9b9e7b4a224683bb8fd620950dc48f9e6d20e2034ee86ea7cd3cb50ecd",
+      "contentHash": "f8adddee90f21076abc43da46d46a10dc651590a6e2dff599df88f86f7506c42",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -36632,22 +37466,22 @@
     },
     "docs/ARCHITECTURE.md": {
       "filePath": "docs/ARCHITECTURE.md",
-      "contentHash": "bc6de85a26b7c3b24c2e46ea2b220873adf1b86d24e27956cf6af69d3fd0c07e",
+      "contentHash": "a7d05a0c056c5da1c6b8a2a894a1b665e8b4fc66f5690ddfd85ff066fdbfa4d8",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 185,
+      "totalLines": 190,
       "hasStructuralAnalysis": true
     },
     "docs/ARCHITECTURE_CN.md": {
       "filePath": "docs/ARCHITECTURE_CN.md",
-      "contentHash": "639145f2efe9dd8bf910d2773ef268cd88f319b5a8ae7b0878e252d5421d992f",
+      "contentHash": "ad105cd691c5484ce2be5a5e593179faeaf629805c1441c8e109048da0dfd5ad",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 211,
+      "totalLines": 216,
       "hasStructuralAnalysis": true
     },
     "docs/ARTIFACT_PROTOCOL.md": {
@@ -36660,9 +37494,19 @@
       "totalLines": 185,
       "hasStructuralAnalysis": true
     },
+    "docs/CODEBASE_MAP_CN.md": {
+      "filePath": "docs/CODEBASE_MAP_CN.md",
+      "contentHash": "bcd7146a6023436b190ae7bc7304cd347d0d236ca0a87d1fb08c721667225833",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 264,
+      "hasStructuralAnalysis": true
+    },
     "docs/CONTEXT_COMPRESSION.md": {
       "filePath": "docs/CONTEXT_COMPRESSION.md",
-      "contentHash": "98ba530d3a12d56edbe93346925e58f05f503664bae78c63911f999b0f417694",
+      "contentHash": "cfc95355476e48b2f755ba3a5722ba91a1ba39e88c82fed7610491b974f8964b",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -36672,7 +37516,7 @@
     },
     "docs/CONTEXT_COMPRESSION_CN.md": {
       "filePath": "docs/CONTEXT_COMPRESSION_CN.md",
-      "contentHash": "437b52cefcfeb42f53053a2bcd029e8661e76b566224dc08aa3cb1ddf6fb2c75",
+      "contentHash": "af688c1eb60843f0b22b192887df203e0b7176d04f04a0ee69b932e0aac70add",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -36682,27 +37526,27 @@
     },
     "docs/DEVELOPMENT_GUIDE.md": {
       "filePath": "docs/DEVELOPMENT_GUIDE.md",
-      "contentHash": "f4ec5f03c0dcc769485dd026fbc53fca968f49aee39eaf8bf424abb5dff180c7",
+      "contentHash": "760c32d18c097b3c4c1eed15c5a1f090f7eba0892efb4aabad85df09e101a9b9",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 528,
+      "totalLines": 537,
       "hasStructuralAnalysis": true
     },
     "docs/DEVELOPMENT_GUIDE_CN.md": {
       "filePath": "docs/DEVELOPMENT_GUIDE_CN.md",
-      "contentHash": "6c4a2bde56a65b6e64f7e0ce83fea5809d594e742a668d5ab8a6224c9a4292f1",
+      "contentHash": "b40a78ae5be18a0334142328dbbac34945fc5e5c594500f13c9556b9a1698de6",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 485,
+      "totalLines": 492,
       "hasStructuralAnalysis": true
     },
     "docs/ENV_CONTEXT_PROTOCOL.md": {
       "filePath": "docs/ENV_CONTEXT_PROTOCOL.md",
-      "contentHash": "1a98702799ad479ace368fe96b2e5d2d41e7dd462fee5ea13e30b56e6be7d6b0",
+      "contentHash": "87e6a99cf011ea9512c1ece90ac1532da2500c86de9186f1ec242501c84e96be",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -36712,7 +37556,7 @@
     },
     "docs/FILESYSTEM_POLICY_PROTOCOL.md": {
       "filePath": "docs/FILESYSTEM_POLICY_PROTOCOL.md",
-      "contentHash": "c1b669b1417ea37bd6265609f1199b64023620ef9c80a1a5943522847252fbd5",
+      "contentHash": "5c4ffdb287a36681ebdc94737cc81c72169780d95c996ac8bb52edc8a3e943af",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -36722,12 +37566,12 @@
     },
     "docs/INTEGRATION.md": {
       "filePath": "docs/INTEGRATION.md",
-      "contentHash": "bbc0d21df17fe12fe5d7dbddcec689d44eb038312a3a0273bb0604c4bf123479",
+      "contentHash": "0f1b1f08ad4cff0d43de3e060155d77d2b25b95b7e6303e13568710564db1d7d",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 107,
+      "totalLines": 120,
       "hasStructuralAnalysis": true
     },
     "docs/MEMORY_INTEGRATION.md": {
@@ -36762,67 +37606,67 @@
     },
     "docs/PPTX_CONTROLLED_HTML_ARCHITECTURE.md": {
       "filePath": "docs/PPTX_CONTROLLED_HTML_ARCHITECTURE.md",
-      "contentHash": "03834c20ba90cca7bbeed79c764f5bb9d38bb2d11192f6a5317da624d96de56d",
+      "contentHash": "af774369d0b2507555a5271a305f6a2335fc5807c0db6158ce9214bb0ef20982",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 223,
+      "totalLines": 232,
       "hasStructuralAnalysis": true
     },
     "docs/PPTX_CONTROLLED_HTML_ARCHITECTURE_CN.md": {
       "filePath": "docs/PPTX_CONTROLLED_HTML_ARCHITECTURE_CN.md",
-      "contentHash": "536fd7b51a3f49f5f2f53ba754b5f9be0e5930221a41a39d7b4b18825e58822d",
+      "contentHash": "b56362073d942b4edfc0ec155cf6eb707b68d6110bbeec4b6a4d6e55702c1e34",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 203,
+      "totalLines": 209,
       "hasStructuralAnalysis": true
     },
     "docs/PPTX_CONTROLLED_HTML_DEVELOPMENT.md": {
       "filePath": "docs/PPTX_CONTROLLED_HTML_DEVELOPMENT.md",
-      "contentHash": "89f873da03da9bbeddc83a07c7d88394185d7c1ebfb797b3cd4e8da4338e454c",
+      "contentHash": "e78558b3019e085dc7ea0e1928885d44285408e714f93f45efb232af4814c890",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 175,
+      "totalLines": 176,
       "hasStructuralAnalysis": true
     },
     "docs/PPTX_CONTROLLED_HTML_DEVELOPMENT_CN.md": {
       "filePath": "docs/PPTX_CONTROLLED_HTML_DEVELOPMENT_CN.md",
-      "contentHash": "f6a2e01129f0c7c91180522d08a96eacf4b708f0dfb77bef5e9e997182686099",
+      "contentHash": "00408c1853a3120c159688cd5a6f5388d4fac46b7a9fbed37a3b0e25dca5aa40",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 194,
+      "totalLines": 195,
       "hasStructuralAnalysis": true
     },
     "docs/PRODUCTION_GUIDE.md": {
       "filePath": "docs/PRODUCTION_GUIDE.md",
-      "contentHash": "420530bb5d824176c9a11f6e836212a66e175e1650982a4103ab650f136a0c7f",
+      "contentHash": "0ad4d1cb5b97ac78dd127681e57f37f36488d81182620d111bd01aa093d5cdf9",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 383,
+      "totalLines": 395,
       "hasStructuralAnalysis": true
     },
     "docs/PRODUCTION_GUIDE_CN.md": {
       "filePath": "docs/PRODUCTION_GUIDE_CN.md",
-      "contentHash": "d5998077fa2d953fc8992a369a43268f880931cc42aa4d845310737819c2b9ac",
+      "contentHash": "ce22b37f4e905b21076035cb8c067e049ef1282c216abf454a148da187f47c84",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 287,
+      "totalLines": 298,
       "hasStructuralAnalysis": true
     },
     "docs/PR_REVIEW_STANDARD.md": {
       "filePath": "docs/PR_REVIEW_STANDARD.md",
-      "contentHash": "80611689a60c37ad77084610bac1dafc9a2b5de03d882e5eb707f7e9ae1df17c",
+      "contentHash": "f90ba961cda2fa311f45e6e22ae20013e8a2e5fd23a7476f4ce47920be630d2c",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -36832,7 +37676,7 @@
     },
     "docs/PR_REVIEW_STANDARD_CN.md": {
       "filePath": "docs/PR_REVIEW_STANDARD_CN.md",
-      "contentHash": "4082a0f08c9fe2484433a05d45660550104129040d8d1c6dfb29fd72ef33dedd",
+      "contentHash": "ee7264afd2a64bd853c10b05e43bda07eb649328fde8e41c792c8b7ba528a450",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -36842,17 +37686,17 @@
     },
     "docs/README.md": {
       "filePath": "docs/README.md",
-      "contentHash": "ef79fb185aa11cd0d8e3329d985f517b4f47c665184aaab3dc47d1eba19f1f8f",
+      "contentHash": "a36c4946c5a140487ec58f241ca0002276c4c786589f134f67769d5c8b5b695d",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 66,
+      "totalLines": 97,
       "hasStructuralAnalysis": true
     },
     "docs/RELEASE_STATE.md": {
       "filePath": "docs/RELEASE_STATE.md",
-      "contentHash": "242d88aa6fa5462c0f7c61e07ed7f81b66e8303536ac535c227e73afeb11c3c7",
+      "contentHash": "cff897f19ea9ecfc2de76e858d116903ca23ec03b05a568d50194ed7038ef211",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -36862,7 +37706,7 @@
     },
     "docs/REVIEW_GUIDE.md": {
       "filePath": "docs/REVIEW_GUIDE.md",
-      "contentHash": "a27b824d072aca95230fd377e36242345a5172d0c78d92dc861eee6b5d9adcd2",
+      "contentHash": "214049be5eee5ec709fb84834fdf98e246f166bf16e1355350accbcc9501f6e6",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -36872,7 +37716,7 @@
     },
     "docs/REVIEW_GUIDE_CN.md": {
       "filePath": "docs/REVIEW_GUIDE_CN.md",
-      "contentHash": "b066ed5764ee9b846ba0e25399f341d606cb062785a9ecc798e1cab4ac26ca46",
+      "contentHash": "a40ee5af5e1753b96a114f97149c3dc551c35708b1decb63f3df0e3e747a8564",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -36902,7 +37746,7 @@
     },
     "docs/THIRD_PARTY_API_COMPATIBILITY.md": {
       "filePath": "docs/THIRD_PARTY_API_COMPATIBILITY.md",
-      "contentHash": "bc4fe6a212badae6446092621245d85f4ffb0ae858e854a7bc24d72e115bc12a",
+      "contentHash": "9e67f5c2a896cbe648efd3de1bbf3c6bd482206719efb67ed66ead005ed1a5e4",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -36912,7 +37756,7 @@
     },
     "docs/UNDERSTAND_ANYTHING.md": {
       "filePath": "docs/UNDERSTAND_ANYTHING.md",
-      "contentHash": "1fa2d0dd699dd988a12fc97435712fc2d609595a4041f75292fc3e1708cfdec5",
+      "contentHash": "9525dd737d853a25bce87f863287c93d099e8c02da660ad1497eb2802a48cf8b",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -36922,7 +37766,7 @@
     },
     "docs/UNDERSTAND_ANYTHING_CN.md": {
       "filePath": "docs/UNDERSTAND_ANYTHING_CN.md",
-      "contentHash": "649b00bd82e43f5c8b71b02985997d65b7e8f9418fd82608e6516cff15c040c5",
+      "contentHash": "2350da1fc0007f226ed336abb440f1e8e5237d721f10e4e99ffdd06c25fb3a5f",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -36952,7 +37796,7 @@
     },
     "docs/WORKFLOW_OWNERSHIP.md": {
       "filePath": "docs/WORKFLOW_OWNERSHIP.md",
-      "contentHash": "37b9e24fa1c155a6a756355322161ae8205392fc7c80976044f7ba039c5d88da",
+      "contentHash": "fc6be1138a1d14559995b92289c8c9af09c65bc449b24d18c2da13976f6edc90",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -36972,7 +37816,7 @@
     },
     "docs/box-agent-architecture-plan-boss.md": {
       "filePath": "docs/box-agent-architecture-plan-boss.md",
-      "contentHash": "d435295929c3fd7088075b0d5c8ef83e392860af25550a319c670b3f0a9e9e07",
+      "contentHash": "e9a6694ec649dd7afc22ebaacf353b69e3682a3e817642dd45c1659da95ff8f5",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -36982,17 +37826,17 @@
     },
     "docs/changes/README.md": {
       "filePath": "docs/changes/README.md",
-      "contentHash": "1d49aecc9854f2288262f69fe3fd0992f20ddc58f0389ab47bcbcdae11d426ef",
+      "contentHash": "e57836b3f7182830e6caf7ff6359b955e8589d66fc6d2f567dd2014afe5eefb5",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 601,
+      "totalLines": 629,
       "hasStructuralAnalysis": true
     },
     "docs/design/README.md": {
       "filePath": "docs/design/README.md",
-      "contentHash": "5de7436103069ca2aa3e6eb0ee33dd71857c32f0cc1a9d00e46144b72bedfa2e",
+      "contentHash": "a8e283cea32af3ce8cfa7efc2eb2bfd1d070edd2cfd427016c828a7b999adf38",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -37002,7 +37846,7 @@
     },
     "docs/e2e/ACP_E2E_GUIDE.md": {
       "filePath": "docs/e2e/ACP_E2E_GUIDE.md",
-      "contentHash": "3b9bd704904a6942d89a78ebba7ccee24bd5147643ea5467410203f99b7d6476",
+      "contentHash": "38a617e3aa2a4da35c99c3e8d5c4537a0aeaf0cbd535a63d6813e40b834a3bfb",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -37012,7 +37856,7 @@
     },
     "docs/e2e/ACP_E2E_GUIDE_CN.md": {
       "filePath": "docs/e2e/ACP_E2E_GUIDE_CN.md",
-      "contentHash": "8f05b90350048e89862068f6835011a3e3d369c7390c0bccc878fc2380565e41",
+      "contentHash": "23e1a85bdbcac955ee9c5ffe164efb16558423e8cb4a6903ed13259a646b2ab2",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -37032,17 +37876,17 @@
     },
     "docs/runtime-capability-matrix.md": {
       "filePath": "docs/runtime-capability-matrix.md",
-      "contentHash": "2758f38f99d6630f04d952a1e712d9f59c6a2536471ccd1c1b01f965ea5ea6ee",
+      "contentHash": "48e0ab0b7fd6498a2c46d0c4fef4cdf9cdd23a0d3939a889db4c472ed2becc69",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 221,
+      "totalLines": 226,
       "hasStructuralAnalysis": true
     },
     "docs/superpowers/plans/2026-08-20-agent-trace-viewer.md": {
       "filePath": "docs/superpowers/plans/2026-08-20-agent-trace-viewer.md",
-      "contentHash": "768fa6fee38e590757c5ff6790c2f8a5c20e811a9a25e636ec5da9d088643cf2",
+      "contentHash": "d2b17390515fd550a77b748551e6314ae4e6b6c3acf7007a347394c8b4a8980b",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -37050,14 +37894,34 @@
       "totalLines": 380,
       "hasStructuralAnalysis": true
     },
+    "docs/superpowers/plans/2026-09-03-main-divergence-migration.md": {
+      "filePath": "docs/superpowers/plans/2026-09-03-main-divergence-migration.md",
+      "contentHash": "1fb34f76f1bb625eaee5803ce6225b756bda3b9d665518e4804f2d18bdb0ba4f",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 214,
+      "hasStructuralAnalysis": true
+    },
     "docs/superpowers/specs/2026-08-20-agent-trace-viewer-design.md": {
       "filePath": "docs/superpowers/specs/2026-08-20-agent-trace-viewer-design.md",
-      "contentHash": "ef368a8225cd93bb4b41b7e0b9efccbfb77bc4f4df0aa45c50d862aaa9cdc07f",
+      "contentHash": "cbc00cd61b6240fbc34b6ae33c0d8e3fde8d484ae218e91b2c49e571f6efecdf",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
       "totalLines": 368,
+      "hasStructuralAnalysis": true
+    },
+    "docs/superpowers/specs/2026-09-03-main-divergence-migration-design.md": {
+      "filePath": "docs/superpowers/specs/2026-09-03-main-divergence-migration-design.md",
+      "contentHash": "b6b45e757512b1b06e699730cab21822b936186404a3fe647bfce1c0037a942f",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 82,
       "hasStructuralAnalysis": true
     },
     "general_review/README.md": {
@@ -37092,7 +37956,7 @@
     },
     "scripts/__init__.py": {
       "filePath": "scripts/__init__.py",
-      "contentHash": "cd280d1c5a3a155b8166b41995a6b8a4837c0cdbee40e2d97bcc75d048ee9f80",
+      "contentHash": "4c7aba725c1a5f958b6f7a53660bf54d6b7e6b159b8632b372e91954c023f2a6",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -37102,7 +37966,7 @@
     },
     "scripts/audit_unused_files.py": {
       "filePath": "scripts/audit_unused_files.py",
-      "contentHash": "a84961638562d82b487299378a31003e5575f7212c19e9a8835ec4010452898e",
+      "contentHash": "a2487ca2b728b3b8104bf2e09134e26ab654aff06c31a2edddca7d8bd33ca169",
       "functions": [
         {
           "name": "_relative",
@@ -37205,7 +38069,7 @@
     },
     "scripts/build_linux_runtime_docker.sh": {
       "filePath": "scripts/build_linux_runtime_docker.sh",
-      "contentHash": "2af66127b53d5f395c4a560a128076e7a73e8500ab5b0f35c68b1cbf9c06c86a",
+      "contentHash": "102f99555e3c9d276767e4af2ad80f2085f3cf4266dccfb245e051ce81960888",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -37215,7 +38079,7 @@
     },
     "scripts/build_runtime.py": {
       "filePath": "scripts/build_runtime.py",
-      "contentHash": "6e0111e597858d1f9ff984ba871721f5404404ce2289db4f2b1a86adda2d554d",
+      "contentHash": "4f66033629f0b76611ab290398e72628165adf4bc78c50443dd409dec1c31c03",
       "functions": [
         {
           "name": "env_flag",
@@ -37770,7 +38634,7 @@
     },
     "scripts/generate_skills_manifest.py": {
       "filePath": "scripts/generate_skills_manifest.py",
-      "contentHash": "0b8f1ae43092688c8344d0652322b59f272690fb65a541229eeb658b7431ed45",
+      "contentHash": "6c9f61380d1ca3bd8ab30445491583e8bd6849384c7734b8ba1818a9e09c559e",
       "functions": [
         {
           "name": "_parse_skill_name",
@@ -37795,7 +38659,7 @@
           "params": [],
           "returnType": "List[Tuple[str, str]]",
           "exported": true,
-          "lineCount": 32
+          "lineCount": 42
         },
         {
           "name": "_read_box_agent_version",
@@ -37867,7 +38731,7 @@
         "_read_box_agent_version",
         "main"
       ],
-      "totalLines": 180,
+      "totalLines": 188,
       "hasStructuralAnalysis": true
     },
     "scripts/probe_relay_tool_stream.py": {
@@ -37948,7 +38812,7 @@
     },
     "scripts/setup-config.sh": {
       "filePath": "scripts/setup-config.sh",
-      "contentHash": "77e1f1e9826269c176a37affbd8c932b8024b65b29555c2669cbcc3289567236",
+      "contentHash": "14ed79241b3781e6963fe8d2e5179fd2fc4c95bc2399d321ed9450e0fb911998",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -38028,7 +38892,7 @@
     },
     "scripts/test_permission_negotiation.py": {
       "filePath": "scripts/test_permission_negotiation.py",
-      "contentHash": "98e6dfa7366b958cb413ce9dfd1a267e07c0b89e561c1f07cc38b81cbafa12c4",
+      "contentHash": "8f824abf569260fa1373a0d30fef6952263efb0712174772e9758a1f27f1d2bb",
       "functions": [
         {
           "name": "_make_request",
