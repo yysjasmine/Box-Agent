@@ -126,8 +126,9 @@ Then replay a real or minimal artifact:
 
 ```bash
 cd "<artifact-output-dir>"
-node /Users/malin1/Dev/ai/Box-Agent/box_agent/skills/document-skills/pptx/scripts/apply_deck_patch.js deck.json deck.patch.json
-node /Users/malin1/Dev/ai/Box-Agent/box_agent/skills/document-skills/pptx/scripts/finalize_controlled_deck.js deck.json --out index.html
+PPTX_SKILL_DIR="<Box-Agent-checkout>/box_agent/skills/document-skills/pptx"
+node "$PPTX_SKILL_DIR/scripts/apply_deck_patch.js" deck.json deck.patch.json
+node "$PPTX_SKILL_DIR/scripts/finalize_controlled_deck.js" deck.json --out index.html
 ```
 
 The finalizer refreshes the deck contract, spec, truth, image, HTML self-check,
@@ -146,10 +147,10 @@ confirm the runtime version/skill digest in logs plus the resulting `deck.json`,
 `qa/`, `index.html`, and one in-app HTML save.
 
 ```bash
-cd /Users/malin1/Dev/ai/Box-Agent
+cd "<Box-Agent-checkout>"
 uv run box-agent-build-runtime --version <version> --install-officev3
 
-cd /Users/malin1/Dev/frontend/officev3
+cd "<officev3-checkout>"
 npm run electron-dev-debug-turbo
 ```
 

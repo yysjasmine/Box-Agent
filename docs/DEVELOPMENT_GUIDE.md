@@ -339,7 +339,10 @@ Edit `mcp.json` to add a new MCP Server:
 Built-in skills are committed under `box_agent/skills/` and loaded through `box_agent/skills/_manifest.json`.
 No git submodule setup is required for normal development.
 
-The generated manifest is the authoritative list of built-in skills, including:
+The generated manifest is the authoritative list of built-in Skills. The
+generator explicitly maintains 12 core built-ins; other packaged marketplace
+Skills, including the five Midu Skills, remain on disk without loading by
+default. The main capability groups include:
 
 - 📄 **Document Processing**: Create and edit PDF, DOCX, XLSX, PPTX
 - 🎨 **Design Creation**: Generate artwork, posters, GIF animations
@@ -351,6 +354,12 @@ Before release, regenerate and commit the manifest if built-in skills change:
 ```bash
 uv run python scripts/generate_skills_manifest.py
 ```
+
+When a host negotiates `skillhub_search` / `skillhub_install`, plugin
+composition adds `search_skillhub` and `install_skillhub_skill` for that
+Session. Search is bounded and read-only per Run. Installation binds a prior
+candidate, requires one-shot user confirmation, delegates to the host, and
+refreshes the catalog. SkillHub does not belong in `kernel/loop.py`.
 
 #### Recommended Skills for officev3
 

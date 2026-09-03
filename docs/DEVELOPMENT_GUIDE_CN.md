@@ -312,7 +312,9 @@ CLI `--task` 模式和 ACP 会话会对持久 goal 启用有边界的自动续�
 内置 skills 已提交在 `box_agent/skills/` 下，并通过 `box_agent/skills/_manifest.json` 加载。
 正常开发不需要执行 git submodule 初始化。
 
-生成的 manifest 是内置 skills 的权威清单，主要包括：
+生成的 manifest 是内置 Skills 的权威清单。当前生成器显式维护 12 个核心内置
+Skill；其余随包发布的市场 Skill（包括五个 Midu Skill）保留在磁盘，但不会自动加载。
+主要能力包括：
 
 - 📄 **文档处理**：轻松创建和编辑 PDF、DOCX、XLSX、PPTX 等格式的文档。
 - 🎨 **设计创作**：生成富有创意的艺术作品、海报和 GIF 动画。
@@ -324,6 +326,11 @@ CLI `--task` 模式和 ACP 会话会对持久 goal 启用有边界的自动续�
 ```bash
 uv run python scripts/generate_skills_manifest.py
 ```
+
+宿主若协商 `skillhub_search` / `skillhub_install` 能力，Plugin 组合层会按 Session
+注入 `search_skillhub` 和 `install_skillhub_skill`。搜索每个 Run 有界且只读；安装必须
+绑定搜索候选并取得一次性用户确认，再委托宿主执行并刷新 catalog。不要把 SkillHub
+逻辑加入 `kernel/loop.py`。
 
 #### officev3 推荐 Skills
 

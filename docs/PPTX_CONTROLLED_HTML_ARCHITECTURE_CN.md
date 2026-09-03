@@ -82,6 +82,12 @@ output/research/* -> 研究 QA -> outline.json -> deck.json -> index.html
 允许复用的研究 URL 与不受支持的 URL。该阶段只允许一次受保护的 `write_file` 修复
 （或一次聚焦的用户补充请求），从机制上阻止重复读取、临时 shell 改写和来源绕过。
 
+分块 `write_file` 尚未收到 `final=true` 时，Workflow 会把目标路径、下一块索引和
+累计大小写入 `pending_write` checkpoint，并以 `WRITE_PENDING` 暂停。恢复后只能
+继续同一事务、显式丢弃，或在工具已清理时重新开始；不能把半成品当作已交付文件。
+图片状态同步和 HTML self-check 还在 Bash/Jupyter 工具边界做命令 token 校验，因而
+即使没有选中 PPT Workflow，也不能用包装命令或链式命令绕过最终检查。
+
 renderer 会把规范化文档写入
 `<script type="application/json" id="deck-document">`。浏览器编辑器读取该模型，
 修改 `props` 或 `layout_id`，再通过同一份内嵌布局注册表重新渲染。

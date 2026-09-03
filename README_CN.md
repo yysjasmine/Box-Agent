@@ -112,7 +112,9 @@ model: "your-model"
 ### 更多特性
 
 - **MCP 工具**：接入任何 [MCP 服务器](https://github.com/modelcontextprotocol/servers) — 网页搜索、知识图谱、数据库
-- **Claude Skills**：数十种内置技能，涵盖文档处理（DOCX、PDF、PPTX、XLSX）、画布设计、Obsidian、Web 应用测试等；以 `_manifest.json` 为权威清单
+- **Skills 与 SkillHub**：内置清单由 `_manifest.json` 管理；宿主协商 `skillhub_search` / `skillhub_install` 后，还可按 Run 搜索并经用户确认安装市场 Skill
+- **可靠演示文稿**：受控 PPTX 工作流保存 pending chunk checkpoint，恢复后继续写入；Shell/Jupyter 入口同时阻止绕过 self-check 和图片状态同步
+- **模型档案**：宿主可用不可变的 `profileId + profileRevision` 选择 Provider/端点；凭据在调用时解析，不进入 Session 元数据或事件
 - **ACP 协议**：通过 JSON-RPC over stdio 将 Box Agent 嵌入 Electron 应用、Zed 编辑器或任何 ACP 兼容宿主
 - **独立运行时**：PyInstaller 二进制打包 Python 及所有依赖。无需外部 Python — 下载即用
 - **跨会话记忆**：持久化记忆让 Agent 在多次对话间保留关键信息
@@ -153,6 +155,7 @@ Context · Tools · Permissions · Memory · Persistence · LLM · Workflows · 
 Gate 和 Autopilot 均作为 Workflow Plugin 运行，并有 parity fixture 覆盖。完整
 归属关系见[架构说明](docs/ARCHITECTURE_CN.md)、
 [运行时能力矩阵](docs/runtime-capability-matrix.md)和[文档索引](docs/README.md)。
+逐文件理解代码时请看[代码导览](docs/CODEBASE_MAP_CN.md)。
 
 ## 演示
 
@@ -292,6 +295,8 @@ uv run pytest tests/test_agent_loop_kernel.py tests/test_kernel_service.py -q
 | Skills | `box_agent/skills/`、`box_agent/tools/skill_loader.py` |
 | 测试 | `tests/test_<area>.py` |
 
+完整的核心目录、源文件和调用链说明见[代码导览](docs/CODEBASE_MAP_CN.md)。
+
 日常开发循环：
 
 ```bash
@@ -339,12 +344,20 @@ provider: "anthropic" # "anthropic" 或 "openai"
 max_steps: 300
 max_parallel_tools: 8
 parallel_tool_timeout_seconds: 900
+provider_stale_seconds: 300
 sub_agent_token_limit: 50000
 sub_agent_batch_synthesis_timeout_seconds: 600 # 设为 0 可关闭额外综合超时
 goal_autopilot_enabled: true
 goal_autopilot_max_turns: 3
 goal_autopilot_max_seconds: 14400
 goal_autopilot_no_progress_turns: 2
+tools:
+  # bash_default_timeout_seconds: 300
+  # bash_max_timeout_seconds: 1200
+  mcp:
+    connect_timeout: 60
+    execute_timeout: 120
+    sse_read_timeout: 180
 ```
 
 ```bash
@@ -354,6 +367,7 @@ box-agent config --set max_steps 300
 box-agent config --set goal_autopilot_max_turns 5
 box-agent config --set tool_limits.external_skill.max_tool_calls 160
 box-agent config --set tool_limits.external_skill.max_delegated_tool_calls 512
+box-agent config --set tools.bash_default_timeout_seconds 450
 box-agent config --json             # 机器可读配置摘要
 box-agent config --edit             # 用编辑器打开配置
 box-agent doctor                    # 检查环境与 API 连通性

@@ -115,7 +115,9 @@ model: "your-model"
 ### More
 
 - **MCP Tools**: Connect to any [MCP server](https://github.com/modelcontextprotocol/servers) — web search, knowledge graphs, databases
-- **Claude Skills**: Dozens of built-in skills for documents (DOCX, PDF, PPTX, XLSX), canvas design, Obsidian, web app testing, and more; `_manifest.json` is the authoritative catalog
+- **Skills and SkillHub**: `_manifest.json` owns the built-in catalog; hosts that negotiate `skillhub_search` / `skillhub_install` can expose bounded per-run search and user-confirmed marketplace installation
+- **Reliable presentations**: The controlled PPTX workflow checkpoints pending chunks for restart-safe writes, while Shell and Jupyter boundaries block self-check and image-status bypasses
+- **Model profiles**: Hosts may select immutable `profileId + profileRevision` provider bindings; credentials are resolved at call time and never copied into Session metadata or events
 - **ACP Protocol**: Embed Box Agent in Electron apps, Zed Editor, or any ACP-compatible host via JSON-RPC over stdio
 - **Standalone Runtime**: PyInstaller binary bundles Python + all dependencies. No external Python needed — download and run
 - **Cross-session Memory**: Persistent memory lets the agent retain key information across conversations
@@ -158,6 +160,7 @@ Gate, and Autopilot now run as workflow plugins with parity fixtures. See the
 [architecture guide](docs/ARCHITECTURE.md),
 [runtime capability matrix](docs/runtime-capability-matrix.md), and
 [documentation index](docs/README.md) for the complete ownership map.
+For a file-by-file source tour, see the [Chinese codebase map](docs/CODEBASE_MAP_CN.md).
 
 ## Demos
 
@@ -300,6 +303,9 @@ Project map:
 | Skills | `box_agent/skills/`, `box_agent/tools/skill_loader.py` |
 | Tests | `tests/test_<area>.py` |
 
+The [codebase map](docs/CODEBASE_MAP_CN.md) lists the core directories, source
+files, and request flow in one place.
+
 Common development loop:
 
 ```bash
@@ -349,12 +355,20 @@ provider: "anthropic" # "anthropic" or "openai"
 max_steps: 300
 max_parallel_tools: 8
 parallel_tool_timeout_seconds: 900
+provider_stale_seconds: 300
 sub_agent_token_limit: 50000
 sub_agent_batch_synthesis_timeout_seconds: 600 # 0 disables the extra batch synthesis cap
 goal_autopilot_enabled: true
 goal_autopilot_max_turns: 3
 goal_autopilot_max_seconds: 14400
 goal_autopilot_no_progress_turns: 2
+tools:
+  # bash_default_timeout_seconds: 300
+  # bash_max_timeout_seconds: 1200
+  mcp:
+    connect_timeout: 60
+    execute_timeout: 120
+    sse_read_timeout: 180
 ```
 
 Tool limits are omitted by default so runtime upgrades can supply updated
@@ -369,6 +383,7 @@ box-agent config --set max_steps 300
 box-agent config --set goal_autopilot_max_turns 5
 box-agent config --set tool_limits.external_skill.max_tool_calls 160
 box-agent config --set tool_limits.external_skill.max_delegated_tool_calls 512
+box-agent config --set tools.bash_default_timeout_seconds 450
 box-agent config --json             # machine-readable config summary
 box-agent config --edit             # open in editor
 box-agent doctor                    # check environment & API connectivity

@@ -87,14 +87,19 @@ box_agent/
 | `acp/bootstrap.py` | 先建立 stdio/完成握手，再在后台加载重依赖；只转发 ACP 方法 |
 | `acp/kernel_runtime.py` | 将配置和插件组装为 `KernelACPRuntime`，不拥有协议传输或第二套 Loop |
 | `llm/__init__.py`、`llm/llm_wrapper.py` | 保持 LLM facade 轻量；只在创建所选 provider 客户端时加载对应厂商 SDK |
+| `llm/model_profiles.py`、`llm/binding.py` | 校验不可变模型档案，并按 Run 绑定 Provider；凭据不进入持久化元数据 |
 | `memory_engine/store.py` | 长期记忆索引、检索与写入实现 |
 | `memory_engine/maintenance.py` | 记忆整理、压缩和维护任务 |
 | `context/experts.py`、`evidence.py` | 专家上下文贡献与检索证据规范化 |
 | `workflows/completion.py`、`guards.py`、`delivery.py` | 交付意图、完成门和纯策略判断 |
+| `tools/skillhub_*` | 仅在宿主协商能力后注入 SkillHub 搜索/确认安装，不修改 Kernel |
+| `tools/pptx_safety.py`、`workflows/presentation_checkpoint.py` | 工具级 PPTX 绕过拦截和可恢复 pending-write checkpoint |
 | `workflows/execution_profile.py`、`turn_policy.py` | 执行档位与轮次分类 |
 | `persistence/artifacts.py`、`roadmap_artifacts.py` | 产物协议、命名、扫描和元数据验证 |
 | `observability/logger.py`、`session_trace.py`、`cache_fingerprint.py` | 可脱敏日志、会话 trace 和请求指纹 |
 | `compat/events.py`、`hooks.py` | 历史事件/Hook 形状到新协议的兼容边界 |
+
+上述是所有权速查；核心运行时每个源文件的职责见[代码导览](CODEBASE_MAP_CN.md)。
 
 ## 核心输入输出协议
 

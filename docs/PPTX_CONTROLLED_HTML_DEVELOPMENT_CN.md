@@ -141,8 +141,9 @@ uv run pytest tests/test_pptx_controlled_deck.py -q
 
 ```bash
 cd "<artifact-output-dir>"
-node /Users/malin1/Dev/ai/Box-Agent/box_agent/skills/document-skills/pptx/scripts/apply_deck_patch.js deck.json deck.patch.json
-node /Users/malin1/Dev/ai/Box-Agent/box_agent/skills/document-skills/pptx/scripts/finalize_controlled_deck.js deck.json --out index.html
+PPTX_SKILL_DIR="<Box-Agent-checkout>/box_agent/skills/document-skills/pptx"
+node "$PPTX_SKILL_DIR/scripts/apply_deck_patch.js" deck.json deck.patch.json
+node "$PPTX_SKILL_DIR/scripts/finalize_controlled_deck.js" deck.json --out index.html
 ```
 
 `finalize_controlled_deck.js` 依序产生或刷新 spec、truth、image manifest、HTML self-check 和
@@ -164,10 +165,10 @@ finalizer 才能避免使用过期 QA。
 常用本地命令（版本号按发布目标替换）：
 
 ```bash
-cd /Users/malin1/Dev/ai/Box-Agent
+cd "<Box-Agent-checkout>"
 uv run box-agent-build-runtime --version <version> --install-officev3
 
-cd /Users/malin1/Dev/frontend/officev3
+cd "<officev3-checkout>"
 npm run electron-dev-debug-turbo
 ```
 

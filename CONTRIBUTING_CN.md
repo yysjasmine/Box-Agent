@@ -72,6 +72,7 @@
 
 - 优先提交小 PR，一次只修改一个行为或一个子系统。
 - 遵循[分层架构与所有权规则](docs/ARCHITECTURE_CN.md)。共享行为不自动属于 `core.py`：优先放在公共契约后的能力/策略模块中，CLI/ACP 保持为适配层。
+- 不确定文件职责时先查[逐文件代码导览](docs/CODEBASE_MAP_CN.md)，再以当前源码和测试验证。
 - 修改代码路径前，如果 `.understand-anything/` 可用，应先用它做代码导航，再用源码阅读、`rg`、测试、日志或运行探针验证。范围和刷新步骤见[代码图谱指南](docs/UNDERSTAND_ANYTHING_CN.md)。
 - 将 Understand Anything 的共享刷新基线与配置纳入 Git（`.understand-anything/` 下的 `knowledge-graph.json`、`meta.json`、`fingerprints.json`、`.understandignore` 和 `config.json`）。架构边界或阅读路线变化时，应一起重新生成并审查图谱、元数据和 fingerprint。不要提交 `last-run-summary.json`、intermediate、trash、dashboard token 或 cache 文件。
 - 不要提交本地凭据或用户配置。`config.yaml`、`mcp.json`、日志和 `workspace/` 都属于本地运行文件。

@@ -67,6 +67,7 @@ decision, read those entries together.
 | Agent Trace diagnostics | `box_agent/trace_viewer/`, `box-agent trace-viewer`, `box-agent-session-trace/v1` | The packaged viewer is a read-only v1 trace consumer; static access stays browser-local and the optional directory service is loopback-only, authority-validated, explicit-path, top-level JSONL, and size-bounded. | Pending review; adds diagnostics without changing the trace writer, Core, provider, or ACP contracts. | [2026-08-20 trace viewer](#2026-08-20--local-agent-trace-diagnostics) |
 | Model routing and controlled presentations | `box_agent/llm/model_routing.py`, `box_agent/workflows/presentation_*`, controlled PPTX | Automatic child-model routing uses a host allowlist, while presentation-specific state and recovery remain outside the generic kernel. | PR #30 is the main record; later research hardening must be checked where relevant. | [PR #30](#2026-08-14--runtime-routing-and-presentation-reliability-pr-30), [later hardening](#other-target-branch-changes-after-or-adjacent-to-those-prs) |
 | Configurable operational limits | `box_agent/config.py`, `box_agent/api/contracts.py`, `box_agent/kernel/model_stream.py` (`provider_stale_seconds`), `image_generation_tool.py` (`max_dimension`), `setup.py` (`generate_image` gating), `openai_client.py` (SenseNova prefixes) | Stale/image/thinking limits are config/env driven; generic image endpoints clamp oversized sizes and unconfigured `generate_image` is not registered. | Carried forward through Kernel run options and adapter bindings. | [2026-08-21 configurable limits](#2026-08-21--configurable-runtime-operational-limits) |
+| Main-divergence behavior migration | model profiles, hosted auth, SkillHub, Midu, controlled PPTX, immutable Session workspace, long-running limits | Post-fork user-visible and safety behavior is re-expressed behind LLM/Tool/Workflow/Service owners; main's deleted Workflow layer and competing JSONL Session Log are intentionally not copied. | Extends the 2026-09-03 single-Kernel baseline without changing execution ownership. | [2026-09-03 main divergence migration](#2026-09-03--main-divergence-behavior-migration) |
 
 For research execution, Todo/progress behavior, browser routing, or contributor
 branch history, also check
@@ -75,6 +76,30 @@ Release, provider API, and ACP compatibility have their own sources under
 [long-lived release and compatibility history](#long-lived-release-and-compatibility-history).
 
 ## Pending material changes
+
+### 2026-09-03 — main divergence behavior migration
+
+- Task: compare `origin/main` with the refactor branch from merge base
+  `e4167a98734ec2abf466510ad94f414dc2b17113`, then port behavior rather than
+  file topology. Immutable model profiles, hosted JWT refresh, GLM/SenseNova
+  compatibility, MCP/Lark/file-write hardening, host-negotiated SkillHub,
+  packaged marketplace Skills, controlled-PPTX recovery/safety, immutable
+  Session workspace, long-running limits, and compact prompt rules move to
+  their new architecture owners.
+- Ownership: `AgentLoopKernel` remains the only execution loop;
+  `KernelAgentService` plus Event/Checkpoint/Effect/Lease stores remain the
+  only durable recovery model. Main's `SessionLog` class and Workflow deletion
+  are explicitly out of scope. CLI/ACP/SDK remain translation layers.
+- Proof: focused tests cover profile identity, auth refresh deduplication,
+  provider wire behavior, tool boundaries, SkillHub negotiation/confirmation,
+  manifest generation, completion intent, dynamic tool preservation, PPTX
+  pending writes/repair guards, workspace immutability, and absence of a second
+  Session Log owner. The exact broad/full-suite result belongs to the final
+  handoff for the reviewed Head.
+- Risk and rollback: changes span provider, host-extension, Skill, presentation,
+  and persistence boundaries. Roll back by capability family rather than
+  restoring old Core/ACP policy. Source proof does not establish a rebuilt,
+  installed, restarted, or live-tested packaged runtime.
 
 ### 2026-09-03 — single-Kernel runtime and completed workflow promotion
 

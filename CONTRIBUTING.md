@@ -72,6 +72,7 @@ If you have an idea for a new feature, please create an Issue first to discuss i
 
 - Prefer small PRs that change one behavior or one subsystem.
 - Follow the [layered architecture and ownership rules](docs/ARCHITECTURE.md). Shared behavior does not automatically belong in `core.py`: prefer a capability/policy module behind the public contracts, and keep CLI/ACP code as adapters.
+- Use the [file-by-file codebase map](docs/CODEBASE_MAP_CN.md) to locate an owner, then verify it against current source and tests.
 - Before changing code paths, use `.understand-anything/` as the first navigation aid when it is available, then verify the path with source reads, `rg`, tests, logs, or runtime probes. See the [code map guide](docs/UNDERSTAND_ANYTHING.md) for scope and refresh steps.
 - Keep the shared Understand Anything refresh baseline and configuration in Git (`knowledge-graph.json`, `meta.json`, `fingerprints.json`, `.understandignore`, and `config.json` under `.understand-anything/`). Regenerate and review the graph, metadata, and fingerprints together when architecture boundaries or the guided tour change. Do not commit `last-run-summary.json`, intermediate, trash, dashboard tokens, or cache files.
 - Do not include local credentials or user config. `config.yaml`, `mcp.json`, logs, and `workspace/` are local runtime files.

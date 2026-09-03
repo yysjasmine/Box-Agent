@@ -282,8 +282,16 @@ container limits:
 max_steps: 300
 max_parallel_tools: 8
 parallel_tool_timeout_seconds: 900
+provider_stale_seconds: 300
 sub_agent_token_limit: 50000
 sub_agent_batch_synthesis_timeout_seconds: 600
+tools:
+  bash_default_timeout_seconds: 300
+  bash_max_timeout_seconds: 1200
+  mcp:
+    connect_timeout: 60
+    execute_timeout: 120
+    sse_read_timeout: 180
 ```
 
 These limits control different operations: `max_steps` bounds top-level model
@@ -294,6 +302,10 @@ batch synthesis setting caps only the tool-free request inferred from `files`.
 Setting the last value to `0` disables that extra cap, not the provider timeout.
 The inferred batch path also enforces file/count/content limits; see
 [Sub-agent Delegation](SUB_AGENT_DELEGATION.md).
+`provider_stale_seconds` bounds silence between streamed chunks. Bash default
+and maximum foreground timeouts are independent from MCP connect, execute, and
+SSE-read timeouts. The example uses current defaults; tune each boundary to
+the provider latency, command class, and MCP service SLO.
 Tool-limit defaults live only in `box_agent/config.py` and are intentionally
 absent from newly generated user configs, so runtime upgrades can update them.
 Add only deliberate overrides under `tool_limits:`; inspect effective values

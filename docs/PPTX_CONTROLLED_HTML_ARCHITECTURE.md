@@ -90,6 +90,15 @@ current outline, and allowed research URLs. That stage permits only one guarded
 `write_file` repair (or a focused user-input request), preventing repeated reads,
 ad-hoc shell rewrites, and provenance bypasses.
 
+When chunked `write_file` has not received `final=true`, the Workflow records
+the target path, next index, and accumulated size in a `pending_write`
+checkpoint and pauses as `WRITE_PENDING`. Resume must continue the same
+transaction, explicitly discard it, or restart only after tool cleanup; a
+partial body is never treated as a delivered artifact. Image-status sync and
+HTML self-check commands are also token-validated at Bash/Jupyter boundaries,
+so wrapper or chained commands cannot bypass the final gate when no PPT
+Workflow is selected.
+
 The renderer embeds the normalized document as
 `<script type="application/json" id="deck-document">`. The browser editor reads
 that model, updates `props` or `layout_id`, and re-renders through the same

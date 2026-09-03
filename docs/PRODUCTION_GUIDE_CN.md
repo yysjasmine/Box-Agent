@@ -189,8 +189,16 @@ services:
 max_steps: 300
 max_parallel_tools: 8
 parallel_tool_timeout_seconds: 900
+provider_stale_seconds: 300
 sub_agent_token_limit: 50000
 sub_agent_batch_synthesis_timeout_seconds: 600
+tools:
+  bash_default_timeout_seconds: 300
+  bash_max_timeout_seconds: 1200
+  mcp:
+    connect_timeout: 60
+    execute_timeout: 120
+    sse_read_timeout: 180
 ```
 
 这些配置分别控制不同操作：`max_steps` 限制顶层模型迭代，`max_parallel_tools`
@@ -199,6 +207,9 @@ sub_agent_batch_synthesis_timeout_seconds: 600
 限制传入 `files` 时推导出的无工具综合请求。将最后一项设为 `0` 只会关闭这层额外限制，
 不会关闭 provider timeout。批处理策略还包含文件数量与内容硬限制，详见
 [子 Agent 委派](SUB_AGENT_DELEGATION_CN.md)。
+`provider_stale_seconds` 控制没有新流式 chunk 时的恢复阈值；Bash 的默认/最大
+前台超时和 MCP 的连接/执行/SSE 读取超时彼此独立。示例值是当前默认值，生产环境
+应按 Provider 延迟、命令类型和 MCP 服务 SLO 单独调整。
 工具阈值默认值只保存在 `box_agent/config.py`，新生成的用户配置不会显式写入这些值，
 因此 runtime 升级可以更新默认值。只有确实需要长期固定的覆盖项才应写入
 `tool_limits:`；可通过 `box-agent config --json` 查看当前生效值。未知或非法字段会直接

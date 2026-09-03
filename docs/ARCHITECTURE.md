@@ -70,14 +70,19 @@ Important files:
 | `acp/bootstrap.py` | Establish stdio and answer the handshake before loading heavyweight capabilities |
 | `acp/kernel_runtime.py` | Assemble `KernelACPRuntime` from config/plugins without owning transport or another loop |
 | `llm/__init__.py`, `llm/llm_wrapper.py` | Keep the LLM facade lightweight and load only the selected provider SDK when its client is created |
+| `llm/model_profiles.py`, `llm/binding.py` | Validate immutable model profiles and bind a provider per run without persisting credentials |
 | `memory_engine/store.py` | Long-term memory indexing, retrieval, and writes |
 | `memory_engine/maintenance.py` | Memory consolidation and maintenance jobs |
 | `context/experts.py`, `evidence.py` | Expert context contribution and evidence normalization |
 | `workflows/completion.py`, `guards.py`, `delivery.py` | Delivery intent, completion gates, and pure policy decisions |
+| `tools/skillhub_*` | Add host-negotiated SkillHub search/confirmed install through composition, never Kernel branches |
+| `tools/pptx_safety.py`, `workflows/presentation_checkpoint.py` | Tool-level PPTX bypass guards and restart-safe pending-write checkpoints |
 | `workflows/execution_profile.py`, `turn_policy.py` | Execution profile and turn classification |
 | `persistence/artifacts.py`, `roadmap_artifacts.py` | Artifact protocol, naming, scanning, and metadata validation |
 | `observability/logger.py`, `session_trace.py`, `cache_fingerprint.py` | Redactable logs, session traces, and request fingerprints |
 | `compat/events.py`, `hooks.py` | Historical event/hook shapes at the compatibility boundary |
+
+For the full per-file runtime inventory, see the [codebase map](CODEBASE_MAP_CN.md).
 
 ## Public protocol
 
